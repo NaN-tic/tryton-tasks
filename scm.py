@@ -34,6 +34,7 @@ def clone(config=None):
             print "Repo " + t.bold(repo_path) + t.green(" Cloned")
 
     read_config_file(config)
+    p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         url = Config.get(section, 'url')
@@ -45,7 +46,8 @@ def clone(config=None):
         p = Process(target=func, args=(section, url, path))
         p.start()
 
-    p.join()
+    if p:
+        p.join()
 
 
 
@@ -86,6 +88,7 @@ def status(config=None, verbose=False):
         print "\n".join(msg)
 
     read_config_file(config)
+    p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
@@ -95,7 +98,8 @@ def status(config=None, verbose=False):
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
-    p.join()
+    if p:
+        p.join()
 
 
 @task
@@ -203,6 +207,7 @@ def pull(config=None, update=True):
         print out
 
     read_config_file(config)
+    p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
@@ -212,7 +217,8 @@ def pull(config=None, update=True):
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
-    p.join()
+    if p:
+        p.join()
 
 
 @task
@@ -238,6 +244,7 @@ def update(config=None, clean=False):
         print out
 
     read_config_file(config)
+    p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
@@ -247,5 +254,6 @@ def update(config=None, clean=False):
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
-    p.join()
+    if p:
+       p.join()
 
