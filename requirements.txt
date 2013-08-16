@@ -2,3 +2,4 @@ blessings
 hgapi
 invoke
 path.py
+Bitbucket-API
