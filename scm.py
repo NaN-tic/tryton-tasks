@@ -24,14 +24,14 @@ def read_config_file(config_file=None):
 @task
 def clone(config=None):
 
-    def hg_clone(module, url, path):
-        print "Adding Module " + t.bold(module) + " to clone list"
-        repo_path = os.path.join(path, module)
-        if os.path.exists(repo_path):
-            print "Path " + t.bold(repo_path) + t.red(" Already exists")
-        else:
-            run('hg clone -q %s %s' % (url, repo_path))
-            print "Repo " + t.bold(repo_path) + t.green(" Cloned")
+    def hg_clone(url, repo_path):
+        command = 'hg clone -q %s %s' % (url, repo_path)
+        try:
+            run(command)
+        except:
+            print "Error running " + t.bold(command)
+            raise
+        print "Repo " + t.bold(repo_path) + t.green(" Cloned")
 
     read_config_file(config)
     p = None
@@ -43,9 +43,11 @@ def clone(config=None):
         if repo != 'hg':
             print "Not developet yet"
             continue
-        p = Process(target=func, args=(section, url, path))
-        p.start()
-
+        repo_path = os.path.join(path, section)
+        if not os.path.exists(repo_path):
+            print "Adding Module " + t.bold(section) + " to clone list"
+            p = Process(target=func, args=(url, repo_path))
+            p.start()
     if p:
         p.join()
 
