@@ -112,10 +112,11 @@ def diff(config=None, verbose=False):
             print t.red("Missing repositori:") + t.bold(path_repo)
             return
         if not verbose:
-            print t.bold(module+"\n")
-            run('cd %s; hg diff --stat' % path_repo)
+            result = run('cd %s; hg diff --stat' % path_repo, hide='stdout')
+            if result.stdout:
+                print t.bold(module+"\n")
+                print result.stdout
             return
-
         repo = hgapi.Repo(path_repo)
         for diff in repo.hg_diff():
             if diff:
