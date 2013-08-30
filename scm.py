@@ -7,6 +7,7 @@ import os
 import ConfigParser
 from multiprocessing import Process
 
+MAX_PROCESSES = 20
 
 t = Terminal()
 Config = ConfigParser.ConfigParser()
@@ -21,6 +22,18 @@ def read_config_file(config_file=None):
             if files.endswith(".cfg"):
                 Config.readfp(open(os.path.join(r,files)))
 
+def wait_processes(processes, maximum=MAX_PROCESSES):
+    i = 0
+    while len(processes) > MAX_PROCESSES:
+        if i >= len(processes):
+            i = 0
+        p = processes[i]
+        p.join(0.1)
+        if not p.is_alive():
+            del processes[i]
+        i += 1
+
+
 @task
 def clone(config=None):
 
@@ -34,6 +47,7 @@ def clone(config=None):
         print "Repo " + t.bold(repo_path) + t.green(" Cloned")
 
     read_config_file(config)
+    processes = []
     p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -48,8 +62,9 @@ def clone(config=None):
             print "Adding Module " + t.bold(section) + " to clone list"
             p = Process(target=func, args=(url, repo_path))
             p.start()
-    if p:
-        p.join()
+            processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 
@@ -90,6 +105,7 @@ def status(config=None, verbose=False):
         print "\n".join(msg)
 
     read_config_file(config)
+    processes = []
     p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -100,8 +116,9 @@ def status(config=None, verbose=False):
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
-    if p:
-        p.join()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 @task
@@ -144,6 +161,7 @@ def summary(config=None, verbose=False):
         print summary
 
     read_config_file(config)
+    processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
@@ -153,7 +171,9 @@ def summary(config=None, verbose=False):
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
-    p.join()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 @task
@@ -176,6 +196,7 @@ def ppush(config=None, verbose=False):
         print out
 
     read_config_file(config)
+    processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
@@ -185,7 +206,9 @@ def ppush(config=None, verbose=False):
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
-    p.join()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 @task
 def pull(config=None, update=True):
@@ -210,6 +233,7 @@ def pull(config=None, update=True):
         print out
 
     read_config_file(config)
+    processes = []
     p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -220,8 +244,9 @@ def pull(config=None, update=True):
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
-    if p:
-        p.join()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 @task
@@ -247,6 +272,7 @@ def update(config=None, clean=False):
         print out
 
     read_config_file(config)
+    processes = []
     p = None
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -257,6 +283,6 @@ def update(config=None, clean=False):
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
-    if p:
-       p.join()
-
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
