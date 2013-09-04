@@ -6,6 +6,8 @@ from multiprocessing import Process
 import ConfigParser
 from .utils import t, read_config_file
 import os
+import sys
+from blessings import Terminal
 
 MAX_PROCESSES = 20
 
@@ -142,28 +144,54 @@ def status(config=None, verbose=False):
 
 
 @task
-def diff(config=None, verbose=False):
+def diff(config=None, verbose=True, rev1='default', rev2=None):
     def hg_diff(module, path, verbose):
-        path_repo = os.path.join(path, module)
-        if not os.path.exists(path_repo):
-            print t.red("Missing repositori:") + t.bold(path_repo)
-            return
-        if not verbose:
-            result = run('cd %s; hg diff --stat' % path_repo, hide='stdout')
-            if result.stdout:
-                print t.bold(module + "\n")
-                print result.stdout
-            return
-        repo = hgapi.Repo(path_repo)
-        for diff in repo.hg_diff():
-            if diff:
-                print t.bold(module + "\n")
-                print diff['diff']
+        t = Terminal()
+        try:
+            msg = []
+            path_repo = os.path.join(path, module)
+            if not os.path.exists(path_repo):
+                print t.red("Missing repositori:") + t.bold(path_repo)
+                return
+
+            if not verbose:
+                result = run('cd %s;hg diff --stat' % path_repo, hide='stdout')
+                if result.stdout:
+                    msg.append(t.bold(module + "\n"))
+                    msg.append(result.stdout)
+                    print "\n".join(msg)
+                return
+            repo = hgapi.Repo(path_repo)
+            msg = []
+            for diff in repo.hg_diff(rev1, rev2):
+                if diff:
+                    d = diff['diff'].split('\n')
+                    for line in d:
+                        if line and line[0] == '-':
+                            line = t.red + line + t.normal
+                        elif line and line[0] == '+':
+                            line = t.green + line + t.normal
+
+                        if line:
+                            msg.append(line)
+            if msg == []:
+                return
+            msg.insert(0, t.bold('\n[' + module + "]\n"))
+            print "\n".join(msg)
+        except:
+            msg.insert(0, t.bold('\n[' + module + "]\n"))
+            msg.append(str(sys.exc_info()[1]))
+            print "\n".join(msg)
 
     Config = read_config_file(config)
+    processes = []
     for section in Config.sections():
         path = Config.get(section, 'path')
-        hg_diff(section, path, verbose)
+        p = Process(target=hg_diff, args=(section, path, verbose))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 @task
