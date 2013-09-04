@@ -9,6 +9,7 @@ import os
 
 MAX_PROCESSES = 20
 
+
 def set_repo_url(repo_type, path, module, name, url):
     """ Update repo url on repository config file, useful to clone and
     set a custom repo and branch to work """
@@ -25,6 +26,7 @@ def set_repo_url(repo_type, path, module, name, url):
         print "Not suported yet"
     hg_set_repo_url()
 
+
 def wait_processes(processes, maximum=MAX_PROCESSES):
     i = 0
     while len(processes) > MAX_PROCESSES:
@@ -38,7 +40,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
 
 
 @task
-def clone(config=None):
+def clone(config=None, mirror=False):
 
     def hg_clone(url, repo_path):
         command = 'hg clone -q %s %s' % (url, repo_path)
@@ -51,7 +53,7 @@ def clone(config=None):
 
     Config = read_config_file(config)
     p = None
-    process = []
+    processes = []
     set_url = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -85,6 +87,7 @@ def clone(config=None):
             mirror_url = Config.get(section, 'mirror-url')
             set_repo_url(repo, path, section, 'mirror', mirror_url)
 
+
 @task
 def status(config=None, verbose=False):
 
@@ -96,25 +99,25 @@ def status(config=None, verbose=False):
         repo = hgapi.Repo(repo_path)
         st = repo.hg_status(empty=True)
         if not st and verbose:
-            print t.bold_green('\['+ module +']')
+            print t.bold_green('\[' + module + ']')
             return
         if not st and not verbose:
             return
 
-        msg = [t.bold_red("\n["+ module + ']')]
+        msg = [t.bold_red("\n[" + module + ']')]
 
         if st.get('A'):
             for file_name in st['A']:
-                msg.append(t.green('A '+ file_name))
+                msg.append(t.green('A ' + file_name))
         if st.get('M'):
             for file_name in st['M']:
-                msg.append(t.yellow('M '+file_name))
+                msg.append(t.yellow('M ' + file_name))
         if st.get('R'):
             for file_name in st['R']:
-                msg.append(t.red('R '+file_name))
+                msg.append(t.red('R ' + file_name))
         if st.get('!'):
             for file_name in st['!']:
-                msg.append(t.bold_red('! '+ file_name))
+                msg.append(t.bold_red('! ' + file_name))
         if st.get('?'):
             for file_name in st['?']:
                 msg.append(t.blue('? ' + file_name))
@@ -148,13 +151,13 @@ def diff(config=None, verbose=False):
         if not verbose:
             result = run('cd %s; hg diff --stat' % path_repo, hide='stdout')
             if result.stdout:
-                print t.bold(module+"\n")
+                print t.bold(module + "\n")
                 print result.stdout
             return
         repo = hgapi.Repo(path_repo)
         for diff in repo.hg_diff():
             if diff:
-                print t.bold(module+"\n")
+                print t.bold(module + "\n")
                 print diff['diff']
 
     Config = read_config_file(config)
@@ -171,9 +174,9 @@ def summary(config=None, verbose=False):
             print t.red("Missing repositori:") + t.bold(path_repo)
             return
         repo = hgapi.Repo(path_repo)
-        cmd = ['summary','--remote']
+        cmd = ['summary', '--remote']
         summary = repo.hg_command(*cmd)
-        print t.bold("= " + module +" =")
+        print t.bold("= " + module + " =")
         print summary
 
     Config = read_config_file(config)
@@ -208,7 +211,7 @@ def ppush(config=None, verbose=False):
         except:
             #TODO:catch correct exception
             return
-        print t.bold("= " + module +" =")
+        print t.bold("= " + module + " =")
         print out
 
     Config = read_config_file(config)
@@ -226,6 +229,7 @@ def ppush(config=None, verbose=False):
         wait_processes(processes)
     wait_processes(processes, 0)
 
+
 @task
 def pull(config=None, update=True):
     def hg_pull(module, path, update):
@@ -241,11 +245,11 @@ def pull(config=None, update=True):
             out = repo.hg_command(*cmd)
         except:
             #TODO:catch correct exception
-            print t.red("= " + module +" = KO!")
+            print t.red("= " + module + " = KO!")
             return
         if "no changes found" in out:
             return
-        print t.bold("= " + module +" =")
+        print t.bold("= " + module + " =")
         print out
 
     Config = read_config_file(config)
@@ -280,12 +284,12 @@ def update(config=None, clean=False):
             out = repo.hg_command(*cmd)
         except:
             #TODO:catch correct exception
-            print t.red("= " + module +" = KO!")
+            print t.red("= " + module + " = KO!")
             return
         if "0 files updated, 0 files merged, 0 files removed, 0 \
            files unresolved" in out:
             return
-        print t.bold("= " + module +" =")
+        print t.bold("= " + module + " =")
         print out
 
     Config = read_config_file(config)
