@@ -2,25 +2,28 @@
 
 from invoke import task, run
 import hgapi
-from blessings import Terminal
-import os
-import ConfigParser
 from multiprocessing import Process
+import ConfigParser
+from .utils import t, read_config_file
+import os
 
 MAX_PROCESSES = 20
 
-t = Terminal()
-Config = ConfigParser.ConfigParser()
+def set_repo_url(repo_type, path, module, name, url):
+    """ Update repo url on repository config file, useful to clone and
+    set a custom repo and branch to work """
+    def hg_set_repo_url():
+        c = ConfigParser.ConfigParser()
+        hg_file = os.path.join(path_repo, '.hg', 'hgrc')
+        c.readfp(open(hg_file))
+        c.set('paths', name, url)
+        with open(hg_file, 'wb') as configfile:
+            c.write(configfile)
 
-def read_config_file(config_file=None):
-    if not config_file is None:
-        Config.readfp(open(config_file))
-        return
-
-    for r,d,f in os.walk("./config"):
-        for files in f:
-            if files.endswith(".cfg"):
-                Config.readfp(open(os.path.join(r,files)))
+    path_repo = os.path.join(path, module)
+    if repo_type != 'hg':
+        print "Not suported yet"
+    hg_set_repo_url()
 
 def wait_processes(processes, maximum=MAX_PROCESSES):
     i = 0
@@ -46,12 +49,18 @@ def clone(config=None):
             raise
         print "Repo " + t.bold(repo_path) + t.green(" Cloned")
 
-    read_config_file(config)
-    processes = []
+    Config = read_config_file(config)
     p = None
+    process = []
+    set_url = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         url = Config.get(section, 'url')
+        mirror_url = None
+        repo_url = url
+        if mirror and Config.has_option(section, 'mirror-url'):
+            mirror_url = Config.get(section, 'mirror-url')
+            url = mirror_url
         path = Config.get(section, 'path')
         func = hg_clone
         if repo != 'hg':
@@ -59,6 +68,7 @@ def clone(config=None):
             continue
         repo_path = os.path.join(path, section)
         if not os.path.exists(repo_path):
+            set_url.append(section)
             print "Adding Module " + t.bold(section) + " to clone list"
             p = Process(target=func, args=(url, repo_path))
             p.start()
@@ -66,7 +76,14 @@ def clone(config=None):
         wait_processes(processes)
     wait_processes(processes, 0)
 
-
+    for section in set_url:
+        repo = Config.get(section, 'repo')
+        repo_url = Config.get(section, 'url')
+        path = Config.get(section, 'path')
+        set_repo_url(repo, path, section, 'default', repo_url)
+        if Config.has_option(section, 'mirror-url'):
+            mirror_url = Config.get(section, 'mirror-url')
+            set_repo_url(repo, path, section, 'mirror', mirror_url)
 
 @task
 def status(config=None, verbose=False):
@@ -104,7 +121,7 @@ def status(config=None, verbose=False):
 
         print "\n".join(msg)
 
-    read_config_file(config)
+    Config = read_config_file(config)
     processes = []
     p = None
     for section in Config.sections():
@@ -140,9 +157,8 @@ def diff(config=None, verbose=False):
                 print t.bold(module+"\n")
                 print diff['diff']
 
-    read_config_file(config)
+    Config = read_config_file(config)
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         hg_diff(section, path, verbose)
 
@@ -160,7 +176,7 @@ def summary(config=None, verbose=False):
         print t.bold("= " + module +" =")
         print summary
 
-    read_config_file(config)
+    Config = read_config_file(config)
     processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -195,7 +211,7 @@ def ppush(config=None, verbose=False):
         print t.bold("= " + module +" =")
         print out
 
-    read_config_file(config)
+    Config = read_config_file(config)
     processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -232,7 +248,7 @@ def pull(config=None, update=True):
         print t.bold("= " + module +" =")
         print out
 
-    read_config_file(config)
+    Config = read_config_file(config)
     processes = []
     p = None
     for section in Config.sections():
@@ -266,12 +282,13 @@ def update(config=None, clean=False):
             #TODO:catch correct exception
             print t.red("= " + module +" = KO!")
             return
-        if "0 files updated, 0 files merged, 0 files removed, 0 files unresolved" in out:
+        if "0 files updated, 0 files merged, 0 files removed, 0 \
+           files unresolved" in out:
             return
         print t.bold("= " + module +" =")
         print out
 
-    read_config_file(config)
+    Config = read_config_file(config)
     processes = []
     p = None
     for section in Config.sections():
