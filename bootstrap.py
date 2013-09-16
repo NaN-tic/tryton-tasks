@@ -7,6 +7,8 @@ from blessings import Terminal
 from invoke import task, run
 from path import path
 
+from .scm import clone
+
 
 t = Terminal()
 Config = ConfigParser.ConfigParser()
@@ -40,13 +42,18 @@ def _check_required_file(filename, directory_name, directory_path):
 
 
 @task
-def clone_tasks(taskpath='tasks'):
+def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
     if path(taskpath).exists():
+        print ('Updating tasks repo')
+        os.chdir(taskpath)
+        run('hg pull')
+        run('hg update')
+        os.chdir(INITIAL_PATH)
         return
 
-    if not Config.clone_tasks:
+    if not Config.get_tasks:
         if not _ask_ok('Are you in the customer project directory? '
                 'Answer "yes" to clone the "tryton-utils" repository '
                 'in "%s" directory. [Y/n] ' % taskpath, 'y'):
@@ -61,13 +68,18 @@ def clone_tasks(taskpath='tasks'):
 
 
 @task
-def clone_config(configpath='config'):
+def get_config(configpath='config'):
     # TODO: add option to update repository
     Config.config_path = path(configpath).abspath()
     if path(configpath).exists():
+        print ('Updating config repo')
+        os.chdir(configpath)
+        run('hg pull')
+        run('hg update')
+        os.chdir(INITIAL_PATH)
         return
 
-    if not Config.clone_config:
+    if not Config.get_config:
         if not _ask_ok('Are you in the customer project directory? '
                 'Answer "yes" to clone the "tryton-config" repository '
                 'in "%s" directory. [Y/n] ' % configpath, 'y'):
@@ -128,7 +140,7 @@ def activate_virtualenv(projectname):
     run(activate_this_path)
 
 
-@task(['clone_config', 'activate_virtualenv'])
+@task(['get_config', 'activate_virtualenv'])
 def install_requirements(upgrade=False):
     if not Config.requirements:
         return
@@ -167,7 +179,7 @@ def bootstrap(projectpath='', projectname='',
         taskspath='tasks',
         configpath='config',
         virtualenv=True,
-        upgradereqs=True):
+        upgradereqs=False):
 
     if projectpath:
         projectpath = path(projectpath)
@@ -185,14 +197,17 @@ def bootstrap(projectpath='', projectname='',
     Config.virtualenv = virtualenv
 
     # TODO: parse local.cfg to Config if exists?
-    Config.clone_tasks = True
-    Config.clone_config = True
+    Config.get_tasks = True
+    Config.get_config = True
     Config.requirements = True  # Install?
 
-    clone_tasks(taskspath)
-    clone_config(configpath)
+    get_tasks(taskspath)
+    get_config(configpath)
     activate_virtualenv(projectname)
     install_requirements(upgrade=upgradereqs)
+
+    clone('config/base.cfg')
+    clone()
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
