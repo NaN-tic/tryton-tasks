@@ -41,8 +41,10 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
         i += 1
 
 
-@task
+@task()
 def clone(config=None, mirror=False):
+    config_repo = hgapi.Repo('./config')
+    print config_repo.hg_command(*['pull', '-u'])
 
     def hg_clone(url, repo_path):
         command = 'hg clone -q %s %s' % (url, repo_path)

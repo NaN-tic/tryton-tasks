@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import ConfigParser
+import hgapi
 import os
 import sys
 from blessings import Terminal
@@ -47,10 +48,8 @@ def get_tasks(taskpath='tasks'):
     Config.tasks_path = taskpath
     if path(taskpath).exists():
         print ('Updating tasks repo')
-        os.chdir(taskpath)
-        run('hg pull')
-        run('hg update')
-        os.chdir(INITIAL_PATH)
+        repo = hgapi.Repo(taskpath)
+        print repo.hg_command(*['pull', '-u'])
         return
 
     if not Config.get_tasks:
@@ -73,10 +72,8 @@ def get_config(configpath='config'):
     Config.config_path = path(configpath).abspath()
     if path(configpath).exists():
         print ('Updating config repo')
-        os.chdir(configpath)
-        run('hg pull')
-        run('hg update')
-        os.chdir(INITIAL_PATH)
+        repo = hgapi.Repo(configpath)
+        print repo.hg_command(*['pull', '-u'])
         return
 
     if not Config.get_config:
