@@ -316,8 +316,8 @@ def update(config=None, clean=False):
             #TODO:catch correct exception
             print t.red("= " + module + " = KO!")
             return
-        if "0 files updated, 0 files merged, 0 files removed, 0 \
-           files unresolved" in out:
+        if (u"0 files updated, 0 files merged, 0 files removed, 0 "
+                u"files unresolved\n") in out:
             return
         print t.bold("= " + module + " =")
         print out
