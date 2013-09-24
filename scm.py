@@ -3,30 +3,12 @@
 from invoke import task, run
 import hgapi
 from multiprocessing import Process
-import ConfigParser
 from .utils import t, read_config_file
 import os
 import sys
 from blessings import Terminal
 
 MAX_PROCESSES = 20
-
-
-def set_repo_url(repo_type, path, module, name, url):
-    """ Update repo url on repository config file, useful to clone and
-    set a custom repo and branch to work """
-    def hg_set_repo_url():
-        c = ConfigParser.ConfigParser()
-        hg_file = os.path.join(path_repo, '.hg', 'hgrc')
-        c.readfp(open(hg_file))
-        c.set('paths', name, url)
-        with open(hg_file, 'wb') as configfile:
-            c.write(configfile)
-
-    path_repo = os.path.join(path, module)
-    if repo_type != 'hg':
-        print "Not suported yet"
-    hg_set_repo_url()
 
 
 def wait_processes(processes, maximum=MAX_PROCESSES):
@@ -42,9 +24,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
 
 
 @task()
-def clone(config=None, mirror=False):
-    config_repo = hgapi.Repo('./config')
-    print config_repo.hg_command(*['pull', '-u'])
+def clone(config=None):
 
     def hg_clone(url, repo_path):
         command = 'hg clone -q %s %s' % (url, repo_path)
@@ -58,15 +38,9 @@ def clone(config=None, mirror=False):
     Config = read_config_file(config)
     p = None
     processes = []
-    set_url = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         url = Config.get(section, 'url')
-        mirror_url = None
-        repo_url = url
-        if mirror and Config.has_option(section, 'mirror-url'):
-            mirror_url = Config.get(section, 'mirror-url')
-            url = mirror_url
         path = Config.get(section, 'path')
         func = hg_clone
         if repo != 'hg':
@@ -74,22 +48,12 @@ def clone(config=None, mirror=False):
             continue
         repo_path = os.path.join(path, section)
         if not os.path.exists(repo_path):
-            set_url.append(section)
             print "Adding Module " + t.bold(section) + " to clone list"
             p = Process(target=func, args=(url, repo_path))
             p.start()
             processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-
-    for section in set_url:
-        repo = Config.get(section, 'repo')
-        repo_url = Config.get(section, 'url')
-        path = Config.get(section, 'path')
-        set_repo_url(repo, path, section, 'default', repo_url)
-        if Config.has_option(section, 'mirror-url'):
-            mirror_url = Config.get(section, 'mirror-url')
-            set_repo_url(repo, path, section, 'mirror', mirror_url)
 
 
 @task
