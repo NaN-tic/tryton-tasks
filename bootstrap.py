@@ -19,29 +19,6 @@ Config = ConfigParser.ConfigParser()
 INITIAL_PATH = path.getcwd()
 
 
-def _exit(message=None):
-    if path.getcwd() != INITIAL_PATH:
-        os.chdir(INITIAL_PATH)
-    if not message:
-        return sys.exit(0)
-    sys.exit(message)
-
-
-def _ask_ok(prompt, default_answer=None):
-    ok = raw_input(prompt) or default_answer
-    if ok.lower() in ('y', 'ye', 'yes'):
-        return True
-    if ok.lower() in ('n', 'no', 'nop', 'nope'):
-        return False
-    _exit("Yes or no, please")
-
-
-def _check_required_file(filename, directory_name, directory_path):
-    if not directory_path.joinpath(filename).exists():
-        _exit('%s file not found in %s directory: %s' % (filename,
-                directory_name, directory_path))
-
-
 @task
 def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
@@ -121,14 +98,14 @@ def activate_virtualenv(projectname):
         return
 
     if 'WORKON_HOME' not in os.environ:
-        _exit('ERROR: To could activate a virtualenv it\'s required the '
-            '"virtualenvwrapper" installed and configured.')
+        _exit(INITIAL_PATH, 'ERROR: To could activate a virtualenv it\'s '
+            'required the "virtualenvwrapper" installed and configured.')
 
     virtualenv_path = path(os.environ['WORKON_HOME']).joinpath(
         projectname)
     if not virtualenv_path.exists() or not virtualenv_path.isdir():
-        _exit('ERROR: Do not exists a virtualenv for project "%s" in '
-            'workon directory: %s. Create it with "mkvirtualenv" tool.'
+        _exit(INITIAL_PATH, 'ERROR: Do not exists a virtualenv for project '
+            '"%s" in workon directory: %s. Create it with "mkvirtualenv" tool.'
             % (projectname, virtualenv_path))
 
     activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
@@ -149,9 +126,9 @@ def install_requirements(upgrade=False):
             'What do you want to do now: skip requirements install or abort '
             'bootstrap? [Skip/abort] ')
         if resp.lower() not in ('', 's', 'skip', 'a', 'abort'):
-            _exit('Invalid answer.')
+            _exit(INITIAL_PATH, 'Invalid answer.')
         if resp.lower() in ('a', 'abort'):
-            _exit()
+            _exit(INITIAL_PATH)
         if resp.lower() in ('', 's', 'skip'):
             return
 
