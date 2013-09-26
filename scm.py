@@ -251,7 +251,9 @@ def hg_pull(module, path, update):
         return
 
     if "no changes found" in result.stdout:
+        os.chdir(cwd)
         return
+
     print t.bold("= " + module + " =")
     print result.stdout
     os.chdir(cwd)
@@ -298,7 +300,9 @@ def hg_update(module, path, clean):
 
     if (u"0 files updated, 0 files merged, 0 files removed, 0 "
             u"files unresolved\n") in result.stdout:
+        os.chdir(cwd)
         return
+
     print t.bold("= " + module + " =")
     print result.stdout
     os.chdir(cwd)
