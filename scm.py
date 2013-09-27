@@ -28,7 +28,7 @@ def hg_clone(url, repo_path):
     try:
         run(command)
     except:
-        print "Error running " + t.bold(command)
+        print >> sys.stderr, "Error running " + t.bold(command)
         raise
     print "Repo " + t.bold(repo_path) + t.green(" Cloned")
 
@@ -47,7 +47,7 @@ def clone(config=None):
         path = Config.get(section, 'path')
         func = hg_clone
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         repo_path = os.path.join(path, section)
         if not os.path.exists(repo_path):
@@ -62,7 +62,7 @@ def clone(config=None):
 def hg_status(module, path, verbose):
     repo_path = os.path.join(path, module)
     if not os.path.exists(repo_path):
-        print t.red("Missing repositori:") + t.bold(repo_path)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(repo_path)
         return
     repo = hgapi.Repo(repo_path)
     st = repo.hg_status(empty=True)
@@ -103,7 +103,7 @@ def status(config=None, verbose=False):
         path = Config.get(section, 'path')
         func = hg_status
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -118,7 +118,8 @@ def hg_diff(module, path, verbose, rev1, rev2):
         msg = []
         path_repo = os.path.join(path, module)
         if not os.path.exists(path_repo):
-            print t.red("Missing repositori:") + t.bold(path_repo)
+            print >> sys.stderr, (t.red("Missing repositori:")
+                + t.bold(path_repo))
             return
 
         if not verbose:
@@ -148,7 +149,7 @@ def hg_diff(module, path, verbose, rev1, rev2):
     except:
         msg.insert(0, t.bold('\n[' + module + "]\n"))
         msg.append(str(sys.exc_info()[1]))
-        print "\n".join(msg)
+        print >> sys.stderr, "\n".join(msg)
 
 
 @task
@@ -167,7 +168,7 @@ def diff(config=None, verbose=True, rev1='default', rev2=None):
 def hg_summary(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print t.red("Missing repositori:") + t.bold(path_repo)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
     repo = hgapi.Repo(path_repo)
     cmd = ['summary', '--remote']
@@ -185,7 +186,7 @@ def summary(config=None, verbose=False):
         path = Config.get(section, 'path')
         func = hg_summary
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -197,7 +198,7 @@ def summary(config=None, verbose=False):
 def hg_ppush(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print t.red("Missing repositori:") + t.bold(path_repo)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
     repo = hgapi.Repo(path_repo)
     cmd = ['outgoing']
@@ -207,6 +208,7 @@ def hg_ppush(module, path, verbose):
         out = repo.hg_command(*cmd)
     except:
         #TODO:catch correct exception
+        print >> sys.stderr, "Error running " + t.bold(*cmd)
         return
     print t.bold("= " + module + " =")
     print out
@@ -221,7 +223,7 @@ def ppush(config=None, verbose=False):
         path = Config.get(section, 'path')
         func = hg_ppush
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -233,7 +235,7 @@ def ppush(config=None, verbose=False):
 def hg_pull(module, path, update):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print t.red("Missing repositori:") + t.bold(path_repo)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
 
     cwd = os.getcwd()
@@ -245,8 +247,8 @@ def hg_pull(module, path, update):
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
-        print t.red("= " + module + " = KO!")
-        print result.stderr
+        print >> sys.stderr, t.red("= " + module + " = KO!")
+        print >> sys.stderr, result.stderr
         os.chdir(cwd)
         return
 
@@ -269,7 +271,7 @@ def pull(config=None, update=True):
         path = Config.get(section, 'path')
         func = hg_pull
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
@@ -281,7 +283,7 @@ def pull(config=None, update=True):
 def hg_update(module, path, clean):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print t.red("Missing repositori:") + t.bold(path_repo)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
 
     cwd = os.getcwd()
@@ -293,8 +295,8 @@ def hg_update(module, path, clean):
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
-        print t.red("= " + module + " = KO!")
-        print result.stderr
+        print >> sys.stderr, t.red("= " + module + " = KO!")
+        print >> sys.stderr, result.stderr
         os.chdir(cwd)
         return
 
@@ -318,7 +320,7 @@ def update(config=None, clean=False):
         path = Config.get(section, 'path')
         func = hg_update
         if repo != 'hg':
-            print "Not developet yet"
+            print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, clean))
         p.start()
