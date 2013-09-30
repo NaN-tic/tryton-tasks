@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import ConfigParser
-import hgapi
 import os
 from blessings import Terminal
 from invoke import task, run
@@ -163,6 +162,26 @@ def install_requirements(upgrade=False):
 # TODO: prepare_local() => set configuration options for future bootstrap based
 # on Config values
 
+
+@task
+def install_proteus(proteuspath=None, upgrade=False):
+    print "Installing proteus."
+    if proteuspath is None:
+        cmd = ['pip', 'install', 'proteus']
+        if upgrade:
+            cmd.insert(2, '-u')
+        run(' '.join(cmd))
+    else:
+        if not path(proteuspath).exists():
+            _exit(INITIAL_PATH, "ERROR: Proteus path '%s' doesn't exists."
+                % proteuspath)
+        cwd = path.getcwd()
+        os.chdir(proteuspath)
+        run('python setup.py install')
+        os.chdir(cwd)
+    print ""
+
+
 @task(default=True)
 def bootstrap(projectpath='', projectname='',
         taskspath='tasks',
@@ -200,6 +219,8 @@ def bootstrap(projectpath='', projectname='',
 
     clone('config/base.cfg')
     clone()
+
+    install_proteus('proteus')
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
