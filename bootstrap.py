@@ -8,7 +8,7 @@ from invoke import task, run
 from path import path
 
 from .common import _ask_ok, _check_required_file, _exit
-from .scm import clone
+from .scm import hg_clone, hg_pull, clone
 
 
 t = Terminal()
@@ -24,9 +24,8 @@ def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
     if path(taskpath).exists():
-        print ('Updating tasks repo')
-        repo = hgapi.Repo(taskpath)
-        print repo.hg_command(*['pull', '-u'])
+        print 'Updating tasks repo'
+        hg_pull(taskpath, '.', True)
         return
 
     if not Config.get_tasks:
@@ -37,9 +36,7 @@ def get_tasks(taskpath='tasks'):
 
     print ('Cloning ssh://hg@hg.bitbucket.org/nantic/tryton-utils '
         'repository in "tasks" directory.')
-    run('hg clone ssh://hg@hg.bitbucket.org/nantic/tryton-utils %s'
-            % str(taskpath))
-    #_out=options.output, _err=sys.stderr)
+    hg_clone('ssh://hg@hg.bitbucket.org/nantic/tryton-utils', taskpath)
     print ""
 
 
@@ -49,8 +46,7 @@ def get_config(configpath='config'):
     Config.config_path = path(configpath).abspath()
     if path(configpath).exists():
         print ('Updating config repo')
-        repo = hgapi.Repo(configpath)
-        print repo.hg_command(*['pull', '-u'])
+        hg_pull(configpath, '.', True)
         return
 
     if not Config.get_config:
@@ -61,9 +57,28 @@ def get_config(configpath='config'):
 
     print ('Cloning ssh://hg@hg.bitbucket.org/nantic/tryton-config '
         'repository in "config" directory.')
-    run('hg clone ssh://hg@hg.bitbucket.org/nantic/tryton-config %s'
-            % str(configpath))
-    #_out=options.output, _err=sys.stderr)
+    hg_clone('ssh://hg@hg.bitbucket.org/nantic/tryton-config', configpath)
+    print ""
+
+
+@task
+def get_utils(utilspath='utils'):
+    # TODO: add option to update repository
+    Config.utils_path = utilspath
+    if path(utilspath).exists():
+        print 'Updating utils repo'
+        hg_pull(utilspath, '.', True)
+        return
+
+    if not Config.get_utils:
+        if not _ask_ok('Are you in the customer project directory? '
+                'Answer "yes" to clone the "nan_tryton_utils" repository '
+                'in "%s" directory. [Y/n] ' % utilspath, 'y'):
+            return
+
+    print ('Cloning ssh://hg@hg.bitbucket.org/nantic/nan_tryton_utils '
+        'repository in "utils" directory.')
+    hg_clone('ssh://hg@hg.bitbucket.org/nantic/nan_tryton_utils', utilspath)
     print ""
 
 
@@ -152,6 +167,7 @@ def install_requirements(upgrade=False):
 def bootstrap(projectpath='', projectname='',
         taskspath='tasks',
         configpath='config',
+        utilspath='utils',
         virtualenv=True,
         upgradereqs=False):
 
@@ -173,10 +189,12 @@ def bootstrap(projectpath='', projectname='',
     # TODO: parse local.cfg to Config if exists?
     Config.get_tasks = True
     Config.get_config = True
+    Config.get_utils = True
     Config.requirements = True  # Install?
 
     get_tasks(taskspath)
     get_config(configpath)
+    get_utils(utilspath)
     activate_virtualenv(projectname)
     install_requirements(upgrade=upgradereqs)
 
