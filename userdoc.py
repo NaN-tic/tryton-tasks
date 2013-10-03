@@ -6,7 +6,7 @@ from blessings import Terminal
 from invoke import task, run
 from path import path
 
-from .common import _exit, _check_required_file
+from .utils import _exit, _check_required_file
 
 
 t = Terminal()

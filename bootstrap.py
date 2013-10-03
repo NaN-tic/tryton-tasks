@@ -6,7 +6,7 @@ from blessings import Terminal
 from invoke import task, run
 from path import path
 
-from .common import _ask_ok, _check_required_file, _exit
+from .utils import _ask_ok, _check_required_file, _exit
 from .scm import hg_clone, hg_pull, clone
 
 
