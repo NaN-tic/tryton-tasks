@@ -195,7 +195,7 @@ def summary(config=None, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_ppush(module, path, verbose):
+def hg_outgoing(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
@@ -215,13 +215,13 @@ def hg_ppush(module, path, verbose):
 
 
 @task
-def ppush(config=None, verbose=False):
+def outgoing(config=None, verbose=False):
     Config = read_config_file(config)
     processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
-        func = hg_ppush
+        func = hg_outgoing
         if repo != 'hg':
             print >> sys.stderr, "Not developet yet"
             continue
