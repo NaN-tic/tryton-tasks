@@ -26,7 +26,7 @@ def apply(issue, fdir='features'):
 
 @task
 def list(patch=None, verbose=False):
-    Config = read_config_file(config, type='patches')
+    Config = read_config_file(None, type='patches')
     for section in Config.sections():
         issue_id = section[1:]
         if patch and patch != issue_id:
