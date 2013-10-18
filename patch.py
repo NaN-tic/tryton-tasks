@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import os
-import sys
 from utils import t, read_config_file
 from pyactiveresource.activeresource import ActiveResource
 from key import site, headers
-from invoke import Collection, task, run
+from invoke import task, run
+
 
 class Issue(ActiveResource):
     _site = site
@@ -13,14 +13,12 @@ class Issue(ActiveResource):
 
 @task
 def apply(issue, fdir='features'):
-    Config = read_config_file(None,  type='patches')
+    Config = read_config_file(None, type='patches')
     for section in Config.sections():
         if section[1:] == issue:
             url = Config.get(section, 'url')
-            path = Config.get(section, 'path')
-            aux_path = path.replace('/', '\/')
             diff_file = url.split('/')[-1]
-            run('patch -p0 -i %s'%(fdir+"/"+diff_file), echo=True)
+            run('patch -p0 -i %s' % (fdir + "/" + diff_file), echo=True)
             break
 
 
@@ -32,9 +30,9 @@ def list(patch=None, unstable=True, verbose=False):
         if patch and patch != issue_id:
             continue
         issue = Issue.find(issue_id)
-        print issue_id, ("{t.bold}%s{t.normal}"%issue.subject).format(t=t)
+        print issue_id, ("{t.bold}%s{t.normal}" % issue.subject).format(t=t)
         if verbose:
-            print ("{t.yellow}%s{t.normal}"%issue.description).format(t=t)
+            print ("{t.yellow}%s{t.normal}" % issue.description).format(t=t)
 
 
 @task
