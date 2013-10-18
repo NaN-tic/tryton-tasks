@@ -25,8 +25,8 @@ def apply(issue, fdir='features'):
 
 
 @task
-def list(patch=None, verbose=False):
-    Config = read_config_file(None, type='patches')
+def list(patch=None, unstable=True, verbose=False):
+    Config = read_config_file(None, type='patches', unstable=unstable)
     for section in Config.sections():
         issue_id = section[1:]
         if patch and patch != issue_id:
@@ -38,11 +38,11 @@ def list(patch=None, verbose=False):
 
 
 @task
-def update(config=None, module=None, fdir='features'):
+def update(config=None, unstable=True, module=None, fdir='features'):
     if not os.path.exists(fdir):
         os.makedirs(fdir)
 
-    Config = read_config_file(config, type='patches')
+    Config = read_config_file(config, type='patches', unstable=True)
     for section in Config.sections():
         if not Config.has_option(section, 'patch'):
             continue

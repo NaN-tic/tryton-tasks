@@ -34,11 +34,11 @@ def hg_clone(url, repo_path):
 
 
 @task()
-def clone(config=None):
+def clone(config=None, unstable=True):
     # Updates config repo to get new repos in config files
     hg_pull('config', '.', True)
 
-    Config = read_config_file(config)
+    Config = read_config_file(config, unstable=unstable)
     p = None
     processes = []
     for section in Config.sections():
@@ -94,8 +94,8 @@ def hg_status(module, path, verbose):
 
 
 @task
-def status(config=None, verbose=False):
-    Config = read_config_file(config)
+def status(config=None, unstable=True, verbose=False):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
     for section in Config.sections():
@@ -153,8 +153,8 @@ def hg_diff(module, path, verbose, rev1, rev2):
 
 
 @task
-def diff(config=None, verbose=True, rev1='default', rev2=None):
-    Config = read_config_file(config)
+def diff(config=None, unstable=True, verbose=True, rev1='default', rev2=None):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
         path = Config.get(section, 'path')
@@ -178,8 +178,8 @@ def hg_summary(module, path, verbose):
 
 
 @task
-def summary(config=None, verbose=False):
-    Config = read_config_file(config)
+def summary(config=None, unstable=True, verbose=False):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -215,8 +215,8 @@ def hg_outgoing(module, path, verbose):
 
 
 @task
-def outgoing(config=None, verbose=False):
-    Config = read_config_file(config)
+def outgoing(config=None, unstable=True, verbose=False):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
         repo = Config.get(section, 'repo')
@@ -262,8 +262,8 @@ def hg_pull(module, path, update):
 
 
 @task
-def pull(config=None, update=True):
-    Config = read_config_file(config)
+def pull(config=None, unstable=True, update=True):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
     for section in Config.sections():
@@ -311,8 +311,8 @@ def hg_update(module, path, clean):
 
 
 @task
-def update(config=None, clean=False):
-    Config = read_config_file(config)
+def update(config=None, unstable=True, clean=False):
+    Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
     for section in Config.sections():

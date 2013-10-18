@@ -32,7 +32,7 @@ def _check_required_file(filename, directory_name, directory_path):
                 directory_name, directory_path))
 
 
-def read_config_file(config_file=None, type='repos'):
+def read_config_file(config_file=None, type='repos', unstable=True):
     assert type in ('repos', 'patches', 'all'), "Invalid 'type' param"
 
     Config = ConfigParser.ConfigParser()
@@ -41,8 +41,11 @@ def read_config_file(config_file=None, type='repos'):
     else:
         for r, d, f in os.walk("./config"):
             for files in f:
-                if files.endswith(".cfg"):
-                    Config.readfp(open(os.path.join(r, files)))
+                if not files.endswith(".cfg"):
+                    continue
+                if not unstable and files.endswith("-unstable.cfg"):
+                    continue
+                Config.readfp(open(os.path.join(r, files)))
 
     if type == 'all':
         return Config

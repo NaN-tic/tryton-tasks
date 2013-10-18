@@ -120,8 +120,8 @@ def mirror_module(name, verbose=False):
 
 
 @task
-def mirror(config=None, verbose=False):
-    config = read_config_file(config)
+def mirror(config=None, unstable=True, verbose=False):
+    config = read_config_file(config, unstable=unstable)
     repos = config.sections()
     processes = []
 
