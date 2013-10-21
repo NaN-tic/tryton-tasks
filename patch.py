@@ -12,6 +12,17 @@ class Issue(ActiveResource):
 
 
 @task
+def unapply(issue, fdir='features'):
+    Config = read_config_file(None, type='patches')
+    for section in Config.sections():
+        if section[1:] == issue:
+            url = Config.get(section, 'url')
+            diff_file = url.split('/')[-1]
+            run('patch -p0 -R -i %s' % (fdir + "/" + diff_file), echo=True)
+            break
+
+
+@task
 def apply(issue, fdir='features'):
     Config = read_config_file(None, type='patches')
     for section in Config.sections():
