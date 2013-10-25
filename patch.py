@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 import os
+import ConfigParser
 from utils import t, read_config_file
 from pyactiveresource.activeresource import ActiveResource
-from key import site, headers
 from invoke import task, run
+from .config import get_config
 
+
+config = get_config()
+site = None
+headers = None
+if 'redmine' in config:
+    site = config['redmine'].get('site')
+    headers = config['redmine'].get('headers')
 
 class Issue(ActiveResource):
     _site = site
