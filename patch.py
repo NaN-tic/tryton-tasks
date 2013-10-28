@@ -14,7 +14,6 @@ if 'redmine' in config:
     site = config['redmine'].get('site')
     headers = eval(config['redmine'].get('headers'))
 
-print site, headers
 class Issue(ActiveResource):
     _site = site
     _headers = headers
