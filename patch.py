@@ -12,8 +12,9 @@ site = None
 headers = None
 if 'redmine' in config:
     site = config['redmine'].get('site')
-    headers = config['redmine'].get('headers')
+    headers = eval(config['redmine'].get('headers'))
 
+print site, headers
 class Issue(ActiveResource):
     _site = site
     _headers = headers
