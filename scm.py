@@ -23,14 +23,24 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
         i += 1
 
 
-def hg_clone(url, repo_path):
-    command = 'hg clone -q %s %s' % (url, repo_path)
+def hg_clone(url, path, branch=None):
+    command = 'hg clone -q %s %s' % (url, path)
     try:
         run(command)
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
         raise
-    print "Repo " + t.bold(repo_path) + t.green(" Cloned")
+    print "Repo " + t.bold(path) + t.green(" Cloned")
+
+
+def git_clone(url, path, branch="master"):
+    command = 'git clone -b %s -q %s %s' % (branch, url, path)
+    try:
+        run(command)
+    except:
+        print >> sys.stderr, "Error running " + t.bold(command)
+        raise
+    print "Repo " + t.bold(path) + t.green(" Cloned")
 
 
 @task()
@@ -44,15 +54,21 @@ def clone(config=None, unstable=True):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         url = Config.get(section, 'url')
-        path = Config.get(section, 'path')
-        func = hg_clone
-        if repo != 'hg':
+        repo_path = Config.get(section, 'path')
+        branch = False
+        if repo == 'hg':
+            func = hg_clone
+        elif repo == 'git':
+            if Config.has_option(section, 'branch'):
+                branch = Config.get(section, 'branch')
+            func = git_clone
+        else:
             print >> sys.stderr, "Not developet yet"
             continue
-        repo_path = os.path.join(path, section)
-        if not os.path.exists(repo_path):
+        path = os.path.join(repo_path, section)
+        if not os.path.exists(path):
             print "Adding Module " + t.bold(section) + " to clone list"
-            p = Process(target=func, args=(url, repo_path))
+            p = Process(target=func, args=(url, path, branch))
             p.start()
             processes.append(p)
         wait_processes(processes)
@@ -101,8 +117,9 @@ def status(config=None, unstable=True, verbose=False):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
-        func = hg_status
-        if repo != 'hg':
+        if repo == 'hg':
+            func = hg_status
+        else:
             print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
@@ -261,6 +278,33 @@ def hg_pull(module, path, update):
     os.chdir(cwd)
 
 
+def git_pull(module, path, update):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+
+    cmd = ['git', 'pull']
+    result = run(' '.join(cmd), warn=True, hide='both')
+
+    if not result.ok:
+        print >> sys.stderr, t.red("= " + module + " = KO!")
+        print >> sys.stderr, result.stderr
+        os.chdir(cwd)
+        return
+
+    if "no changes found" in result.stdout:
+        os.chdir(cwd)
+        return
+
+    print t.bold("= " + module + " =")
+    print result.stdout
+    os.chdir(cwd)
+
+
 @task
 def pull(config=None, unstable=True, update=True):
     Config = read_config_file(config, unstable=unstable)
@@ -269,8 +313,11 @@ def pull(config=None, unstable=True, update=True):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
-        func = hg_pull
-        if repo != 'hg':
+        if repo == 'hg':
+            func = hg_pull
+        elif repo == 'git':
+            func = git_pull
+        else:
             print >> sys.stderr, "Not developet yet"
             continue
         p = Process(target=func, args=(section, path, update))
