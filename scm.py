@@ -261,6 +261,7 @@ def hg_pull(module, path, update):
     cmd = ['hg', 'pull']
     if update:
         cmd.append('-u')
+        cmd.append('-y')  # noninteractive
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
@@ -339,6 +340,8 @@ def hg_update(module, path, clean):
     cmd = ['hg', 'update']
     if clean:
         cmd.append('-C')
+    else:
+        cmd.append('-y')  # noninteractive
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
