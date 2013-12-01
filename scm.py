@@ -63,7 +63,7 @@ def clone(config=None, unstable=True):
                 branch = Config.get(section, 'branch')
             func = git_clone
         else:
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         path = os.path.join(repo_path, section)
         if not os.path.exists(path):
@@ -120,7 +120,7 @@ def status(config=None, unstable=True, verbose=False):
         if repo == 'hg':
             func = hg_status
         else:
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -203,7 +203,7 @@ def summary(config=None, unstable=True, verbose=False):
         path = Config.get(section, 'path')
         func = hg_summary
         if repo != 'hg':
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -240,7 +240,7 @@ def outgoing(config=None, unstable=True, verbose=False):
         path = Config.get(section, 'path')
         func = hg_outgoing
         if repo != 'hg':
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
@@ -319,7 +319,7 @@ def pull(config=None, unstable=True, update=True):
         elif repo == 'git':
             func = git_pull
         else:
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, update))
         p.start()
@@ -370,7 +370,7 @@ def update(config=None, unstable=True, clean=False):
         path = Config.get(section, 'path')
         func = hg_update
         if repo != 'hg':
-            print >> sys.stderr, "Not developet yet"
+            print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, clean))
         p.start()
