@@ -11,6 +11,33 @@ from blessings import Terminal
 MAX_PROCESSES = 20
 
 
+@task
+def repo_list(config=None, git_only=False, unstable=True, verbose=False):
+    Config = read_config_file(config, unstable=unstable)
+
+    repos = {
+        'git': [],
+        'hg': []
+    }
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        url = Config.get(section, 'url')
+        repo_path = Config.get(section, 'path')
+        repos[repo] += [(section, url, repo_path)]
+
+    if git_only:
+        del repos['hg']
+
+    for key, values in repos.iteritems():
+        print >> sys.stderr, "Repositories in  " + t.bold(key)
+        for val in values:
+            name, url, repo_path = val
+            if not verbose:
+                print >> sys.stderr, name
+            else:
+                print >> sys.stderr, name, repo_path, url
+
+
 def wait_processes(processes, maximum=MAX_PROCESSES):
     i = 0
     while len(processes) > MAX_PROCESSES:
@@ -75,12 +102,18 @@ def clone(config=None, unstable=True):
     wait_processes(processes, 0)
 
 
-def hg_status(module, path, verbose):
+def hg_status(module, path, verbose, url):
     repo_path = os.path.join(path, module)
     if not os.path.exists(repo_path):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(repo_path)
         return
     repo = hgapi.Repo(repo_path)
+    actual_url = str(repo.config('paths', 'default')).rstrip('/')
+    url = str(url).rstrip('/')
+    if actual_url != url:
+        print >> sys.stderr, t.red("Repo URL differs:") + t.bold(actual_url +
+            " != " + url)
+
     st = repo.hg_status(empty=True)
     if not st and verbose:
         print t.bold_green('\[' + module + ']')
@@ -117,12 +150,13 @@ def status(config=None, unstable=True, verbose=False):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
+        url =  Config.get(section, 'url')
         if repo == 'hg':
             func = hg_status
         else:
             print >> sys.stderr, "Not developed yet"
             continue
-        p = Process(target=func, args=(section, path, verbose))
+        p = Process(target=func, args=(section, path, verbose, url))
         p.start()
         processes.append(p)
         wait_processes(processes)
