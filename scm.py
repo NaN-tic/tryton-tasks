@@ -11,8 +11,8 @@ from blessings import Terminal
 MAX_PROCESSES = 20
 
 
-@task
-def repo_list(config=None, git_only=False, unstable=True, verbose=False):
+@task()
+def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
 
     repos = {
@@ -25,7 +25,7 @@ def repo_list(config=None, git_only=False, unstable=True, verbose=False):
         repo_path = Config.get(section, 'path')
         repos[repo] += [(section, url, repo_path)]
 
-    if git_only:
+    if gitOnly:
         del repos['hg']
 
     for key, values in repos.iteritems():
