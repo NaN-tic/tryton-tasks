@@ -182,6 +182,17 @@ def install_proteus(proteuspath=None, upgrade=False):
     print ""
 
 
+@task
+def create_symlinks():
+    cwd = path.getcwd()
+    if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
+        print 'Symlinks script not found'
+        return
+    os.chdir(os.path.join(cwd, 'utils'))
+    run('./script-symlinks.sh')
+    os.chdir(cwd)
+
+
 @task(default=True)
 def bootstrap(projectpath='', projectname='',
         taskspath='tasks',
@@ -221,6 +232,7 @@ def bootstrap(projectpath='', projectname='',
     clone()
 
     install_proteus('proteus')
+    create_symlinks()
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
