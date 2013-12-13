@@ -33,9 +33,9 @@ def get_tasks(taskpath='tasks'):
                 'in "%s" directory. [Y/n] ' % taskpath, 'y'):
             return
 
-    print ('Cloning ssh://hg@hg.bitbucket.org/nantic/tryton-utils '
+    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-utils '
         'repository in "tasks" directory.')
-    hg_clone('ssh://hg@hg.bitbucket.org/nantic/tryton-utils', taskpath)
+    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-utils', taskpath)
     print ""
 
 
@@ -54,9 +54,9 @@ def get_config(configpath='config'):
                 'in "%s" directory. [Y/n] ' % configpath, 'y'):
             return
 
-    print ('Cloning ssh://hg@hg.bitbucket.org/nantic/tryton-config '
+    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-config '
         'repository in "config" directory.')
-    hg_clone('ssh://hg@hg.bitbucket.org/nantic/tryton-config', configpath)
+    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-config', configpath)
     print ""
 
 
@@ -75,9 +75,9 @@ def get_utils(utilspath='utils'):
                 'in "%s" directory. [Y/n] ' % utilspath, 'y'):
             return
 
-    print ('Cloning ssh://hg@hg.bitbucket.org/nantic/nan_tryton_utils '
+    print ('Cloning ssh://hg@bitbucket.org/nantic/nan_tryton_utils '
         'repository in "utils" directory.')
-    hg_clone('ssh://hg@hg.bitbucket.org/nantic/nan_tryton_utils', utilspath)
+    hg_clone('ssh://hg@bitbucket.org/nantic/nan_tryton_utils', utilspath)
     print ""
 
 
