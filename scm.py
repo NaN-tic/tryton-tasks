@@ -331,7 +331,10 @@ def git_pull(module, path, update):
         os.chdir(cwd)
         return
 
-    if "no changes found" in result.stdout:
+    # If mercurial outputs 'no changes found'
+    # or git outputs 'Already up-to-date' do not print anything.
+    if ('no changes found' in result.stdout
+            or 'Already up-to-date' in result.stdout):
         os.chdir(cwd)
         return
 
