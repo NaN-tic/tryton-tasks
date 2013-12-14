@@ -406,6 +406,8 @@ def update(config=None, unstable=True, clean=False):
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         func = hg_update
+        if repo == 'git':
+            continue
         if repo != 'hg':
             print >> sys.stderr, "Not developed yet"
             continue
