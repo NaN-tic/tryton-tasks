@@ -63,8 +63,13 @@ def hg_clone(url, path, branch=None):
 
 def git_clone(url, path, branch="master"):
     command = 'git clone -b %s -q %s %s' % (branch, url, path)
+    if not path.endswith(os.path.sep):
+        path += os.path.sep
     try:
         run(command)
+        # Create .hg directory so hg diff on trytond does not
+        # show git repositories.
+        run('mkdir %s.hg' % path)
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
         raise
