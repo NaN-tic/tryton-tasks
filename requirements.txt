@@ -1,7 +1,7 @@
 blessings
+GitPython
 hgapi
 invoke
 path.py
 hg+https://bitbucket.org/DavidVilla/python-bitbucket-api
 pyactiveresource
-

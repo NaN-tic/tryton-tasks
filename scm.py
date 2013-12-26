@@ -2,6 +2,7 @@
 
 from invoke import task, run
 import hgapi
+import git
 from multiprocessing import Process
 from .utils import t, read_config_file
 import os
@@ -105,20 +106,19 @@ def clone(config=None, unstable=True):
 def hg_status(module, path, verbose, url):
     repo_path = os.path.join(path, module)
     if not os.path.exists(repo_path):
-        print >> sys.stderr, t.red("Missing repositori:") + t.bold(repo_path)
+        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
         return
     repo = hgapi.Repo(repo_path)
     actual_url = str(repo.config('paths', 'default')).rstrip('/')
     url = str(url).rstrip('/')
     if actual_url != url:
-        print >> sys.stderr, t.red("Repo URL differs:") + t.bold(actual_url +
+        print >> sys.stderr, t.red("Repo URL differs: ") + t.bold(actual_url +
             " != " + url)
 
     st = repo.hg_status(empty=True)
-    if not st and verbose:
-        print t.bold_green('\[' + module + ']')
-        return
-    if not st and not verbose:
+    if not st:
+        if verbose:
+            print t.bold_green('[' + module + ']')
         return
 
     msg = [t.bold_red("\n[" + module + ']')]
@@ -141,6 +141,35 @@ def hg_status(module, path, verbose, url):
 
     print "\n".join(msg)
 
+def git_status(module, path, verbose, url):
+    repo_path = os.path.join(path, module)
+    if not os.path.exists(repo_path):
+        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
+        return
+    repo = git.Repo(repo_path)
+    config = repo.config_reader()
+    config.read()
+    actual_url = config.get_value('remote "origin"', 'url')
+    if actual_url != url:
+        print >> sys.stderr, t.red("Repo URL differs: ") + t.bold(actual_url +
+            " != " + url)
+    diff = repo.index.diff(None)
+    if not diff:
+        if verbose:
+            print t.bold_green('[' + module + ']')
+        return
+
+    msg = [t.bold_red("\n[" + module + ']')]
+    for d in diff.iter_change_type('A'):
+        msg.append(t.green('A ' + d.b_blob.path))
+    for d in diff.iter_change_type('M'):
+        msg.append(t.yellow('M ' + d.a_blob.path))
+    for d in diff.iter_change_type('R'):
+        msg.append(t.blue('R %s -> %s' % (d.a_blob.path, d.b_blob.path)))
+    for d in diff.iter_change_type('D'):
+        msg.append(t.bold_red('D ' + d.a_blob.path))
+    print "\n".join(msg)
+
 
 @task
 def status(config=None, unstable=True, verbose=False):
@@ -153,6 +182,8 @@ def status(config=None, unstable=True, verbose=False):
         url =  Config.get(section, 'url')
         if repo == 'hg':
             func = hg_status
+        elif repo == 'git':
+            func = git_status
         else:
             print >> sys.stderr, "Not developed yet"
             continue
