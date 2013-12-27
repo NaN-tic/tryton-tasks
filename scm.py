@@ -116,35 +116,35 @@ def hg_status(module, path, verbose, url):
     repo = hgapi.Repo(repo_path)
     actual_url = str(repo.config('paths', 'default')).rstrip('/')
     url = str(url).rstrip('/')
+
+    msg = []
     if actual_url != url:
-        print >> sys.stderr, t.red("Repo URL differs: ") + t.bold(actual_url +
-            " != " + url)
+        msg.append(t.red("Repo URL differs: ")
+            + t.bold(actual_url + " != " + url))
 
     st = repo.hg_status(empty=True)
-    if not st:
-        if verbose:
-            print t.bold_green('[' + module + ']')
-        return
-
-    msg = [t.bold_red("\n[" + module + ']')]
-
-    if st.get('A'):
-        for file_name in st['A']:
-            msg.append(t.green('A ' + file_name))
-    if st.get('M'):
-        for file_name in st['M']:
-            msg.append(t.yellow('M ' + file_name))
-    if st.get('R'):
-        for file_name in st['R']:
-            msg.append(t.red('R ' + file_name))
-    if st.get('!'):
-        for file_name in st['!']:
-            msg.append(t.bold_red('! ' + file_name))
-    if st.get('?'):
-        for file_name in st['?']:
-            msg.append(t.blue('? ' + file_name))
-
-    print "\n".join(msg)
+    if st:
+        if st.get('A'):
+            for file_name in st['A']:
+                msg.append(t.green('A ' + file_name))
+        if st.get('M'):
+            for file_name in st['M']:
+                msg.append(t.yellow('M ' + file_name))
+        if st.get('R'):
+            for file_name in st['R']:
+                msg.append(t.red('R ' + file_name))
+        if st.get('!'):
+            for file_name in st['!']:
+                msg.append(t.bold_red('! ' + file_name))
+        if st.get('?'):
+            for file_name in st['?']:
+                msg.append(t.blue('? ' + file_name))
+    if msg:
+        msg.insert(0, t.bold_red('\n[' + module + ']'))
+    elif verbose:
+        msg.append(t.bold_green('\n[' + module + ']'))
+    if msg:
+        print '\n'.join(msg)
 
 def git_status(module, path, verbose, url):
     repo_path = os.path.join(path, module)
@@ -154,26 +154,27 @@ def git_status(module, path, verbose, url):
     repo = git.Repo(repo_path)
     config = repo.config_reader()
     config.read()
+    msg = []
     actual_url = config.get_value('remote "origin"', 'url')
     if actual_url != url:
-        print >> sys.stderr, t.red("Repo URL differs: ") + t.bold(actual_url +
-            " != " + url)
+        msg.append(t.red('Repo URL differs: ') + t.bold(actual_url +
+                ' != ' + url))
     diff = repo.index.diff(None)
-    if not diff:
-        if verbose:
-            print t.bold_green('[' + module + ']')
-        return
-
-    msg = [t.bold_red("\n[" + module + ']')]
-    for d in diff.iter_change_type('A'):
-        msg.append(t.green('A ' + d.b_blob.path))
-    for d in diff.iter_change_type('M'):
-        msg.append(t.yellow('M ' + d.a_blob.path))
-    for d in diff.iter_change_type('R'):
-        msg.append(t.blue('R %s -> %s' % (d.a_blob.path, d.b_blob.path)))
-    for d in diff.iter_change_type('D'):
-        msg.append(t.bold_red('D ' + d.a_blob.path))
-    print "\n".join(msg)
+    if diff:
+        for d in diff.iter_change_type('A'):
+            msg.append(t.green('A ' + d.b_blob.path))
+        for d in diff.iter_change_type('M'):
+            msg.append(t.yellow('M ' + d.a_blob.path))
+        for d in diff.iter_change_type('R'):
+            msg.append(t.blue('R %s -> %s' % (d.a_blob.path, d.b_blob.path)))
+        for d in diff.iter_change_type('D'):
+            msg.append(t.bold_red('D ' + d.a_blob.path))
+    if msg:
+        msg.insert(0, t.bold_red('\n[' + module + ']'))
+    elif verbose:
+        msg.append(t.bold_green('\n[' + module + ']'))
+    if msg:
+        print '\n'.join(msg)
 
 
 @task
