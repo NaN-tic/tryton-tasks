@@ -140,11 +140,11 @@ def hg_status(module, path, verbose, url):
             for file_name in st['?']:
                 msg.append(t.blue('? ' + file_name))
     if msg:
-        msg.insert(0, t.bold_red('\n[' + module + ']'))
+        msg.insert(0, t.bold_red('[' + module + ']'))
     elif verbose:
-        msg.append(t.bold_green('\n[' + module + ']'))
+        msg.append(t.bold_green('[' + module + ']'))
     if msg:
-        print '\n'.join(msg)
+        print '\n'.join(msg) + '\n'
 
 def git_status(module, path, verbose, url):
     repo_path = os.path.join(path, module)
@@ -170,11 +170,11 @@ def git_status(module, path, verbose, url):
         for d in diff.iter_change_type('D'):
             msg.append(t.bold_red('D ' + d.a_blob.path))
     if msg:
-        msg.insert(0, t.bold_red('\n[' + module + ']'))
+        msg.insert(0, t.bold_red('[' + module + ']'))
     elif verbose:
-        msg.append(t.bold_green('\n[' + module + ']'))
+        msg.append(t.bold_green('[' + module + ']'))
     if msg:
-        print '\n'.join(msg)
+        print '\n'.join(msg) + '\n'
 
 
 @task
