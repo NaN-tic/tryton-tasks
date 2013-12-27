@@ -452,3 +452,13 @@ def update(config=None, unstable=True, clean=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
+
+@task()
+def fetch():
+    print t.bold('Pulling...')
+    pull()
+    print t.bold('Updating...')
+    update()
+    print t.bold('Cloning...')
+    clone()
+    print t.bold('Fetched.')
