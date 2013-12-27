@@ -104,7 +104,7 @@ def clone(config=None, unstable=True):
             p = Process(target=func, args=(url, path, branch))
             p.start()
             processes.append(p)
-        wait_processes(processes)
+            wait_processes(processes)
     wait_processes(processes, 0)
 
 
