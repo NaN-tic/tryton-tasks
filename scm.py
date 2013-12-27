@@ -41,15 +41,15 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
 
 def wait_processes(processes, maximum=MAX_PROCESSES):
     i = 0
-    while len(processes) > MAX_PROCESSES:
+    while len(processes) > maximum:
         if i >= len(processes):
             i = 0
         p = processes[i]
         p.join(0.1)
-        if not p.is_alive():
+        if p.is_alive():
+            i += 1
+        else:
             del processes[i]
-        i += 1
-
 
 def hg_clone(url, path, branch=None):
     command = 'hg clone -q %s %s' % (url, path)
