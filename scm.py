@@ -7,6 +7,7 @@ from multiprocessing import Process
 from .utils import t, read_config_file
 import os
 import sys
+import subprocess
 from blessings import Terminal
 
 MAX_PROCESSES = 20
@@ -456,10 +457,38 @@ def update(config=None, unstable=True, clean=False):
 
 @task()
 def fetch():
+    print t.bold('Reverting patches...')
+    bashCommand = ['quilt', 'pop', '-a']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to remove patche(es)"
+        print err
+        print t.bold('Not Fetched.')
+        return
     print t.bold('Pulling...')
     pull()
     print t.bold('Updating...')
     update()
     print t.bold('Cloning...')
     clone()
+    print t.bold('Applaing patches...')
+    bashCommand = ['quilt', 'push', '-a']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to apply patche(es)"
+        print err
     print t.bold('Fetched.')
+
+def execBashCommand(bashCommand):
+    """
+        Execute bash command.
+        @bashCommand: is list with the command and the options
+        return: list with the output and the posible error
+    """
+    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE)
+    output, err = process.communicate()
+    return output, err
