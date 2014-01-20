@@ -6,6 +6,21 @@ from blessings import Terminal
 from invoke import task
 from path import path
 
+try:
+    from proteus import config, Wizard, Model
+except ImportError:
+    proteus_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+                'proteus')))
+    if os.path.isdir(proteus_path):
+        sys.path.insert(0, proteus_path)
+    from proteus import config, Wizard, Model
+
+trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+            'trytond')))
+if os.path.isdir(trytond_path):
+    sys.path.insert(0, trytond_path)
+
+
 t = Terminal()
 
 
@@ -92,3 +107,122 @@ def update_parent_left_right(database, table, field, host='localhost',
 
     print "calculating parent_left of table", table, "and field:", field
     _parent_store_compute(db.cursor(), table, field)
+
+
+@task
+def prepare_translations(database, langs=None, host='localhost', port=5432,
+        dbuser=None, dbpassword=None):
+    print t.bold('export_translations: %s, %s') % (database, langs)
+    if not _check_database(database, host, port, dbuser, dbpassword):
+        return
+
+    config.set_trytond(database_type='postgresql', database_name=database)
+
+    Lang = Model.get('ir.lang')
+    if langs is None:
+        languages = Lang.find([
+                ('translatable', '=', True),
+                ])
+    else:
+        langs = langs.split(',')
+        languages = Lang.find([
+                ('code', 'in', langs),
+                ])
+        if set(langs) != set(l.code for l in languages):
+            print t.bold('Invalid languages: %s') % languages
+            return
+
+    translation_set = Wizard('ir.translation.set')
+    translation_set.execute('set_')
+    translation_set.execute('end')
+
+    translation_clean = Wizard('ir.translation.clean')
+    translation_clean.execute('clean')
+    translation_clean.execute('end')
+
+    for language in languages:
+        translation_update = Wizard('ir.translation.update')
+        translation_update.form.language = language
+        translation_update.execute('update')
+        print "%s translation updated" % language.name
+
+
+@task
+def export_translations(database, modules, langs=None,
+        host='localhost', port=5432, dbuser=None, dbpassword=None):
+    print t.bold('export_translations: %s, %s, %s') % (database, modules,
+        langs)
+    if not _check_database(database, host, port, dbuser, dbpassword):
+        return
+
+    config.set_trytond(database_type='postgresql', database_name=database)
+
+    Module = Model.get('ir.module.module')
+    if modules == 'all':
+        ir_modules = Module.find([
+                ('state', '=', 'installed'),
+                ])
+    else:
+        modules = modules.split(',')
+        ir_modules = Module.find([
+                ('state', '=', 'installed'),
+                ('name', 'in', modules),
+                ])
+        missing_modules = set(modules) - set(m.name for m in ir_modules)
+        if missing_modules:
+            print t.bold('Invalid modules: %s') % missing_modules
+            return
+
+    Lang = Model.get('ir.lang')
+    if langs is None:
+        languages = Lang.find([
+                ('translatable', '=', True),
+                ])
+    else:
+        langs = langs.split(',')
+        languages = Lang.find([
+                ('code', 'in', langs),
+                ])
+        if set(langs) != set(l.code for l in languages):
+            print 'Invalid languages: %s' % languages
+            return
+
+    for module in ir_modules:
+        module_locale_path = os.path.abspath(os.path.normpath(
+                os.path.join(os.getcwd(), module.name, 'locale')))
+        if not os.path.exists(module_locale_path):
+            os.makedirs(module_locale_path)
+
+        for language in languages:
+            translation_export = Wizard('ir.translation.export')
+            translation_export.form.language = language
+            translation_export.form.module = module
+            translation_export.execute('export')
+
+            file_path = os.path.join(module_locale_path,
+                '%s.po' % language.code)
+            with open(file_path, 'w') as f:
+                f.write(str(translation_export.form.file))
+            translation_export.execute('end')
+            print 'Translation of "%s" in "%s" exported successfully.' % (
+                module.name, language.code)
+
+
+def _check_database(database, host='localhost', port=5432, dbuser=None,
+        dbpassword=None):
+    connection_params = {
+        'dbname': database,
+        'host': host,
+        'port': port,
+        }
+    if dbuser:
+        connection_params['user'] = dbuser
+    if dbpassword:
+        connection_params['password'] = dbpassword
+    try:
+        psycopg2.connect(**connection_params)
+    except Exception, e:
+        print t.bold('Invalid database connection params:')
+        print str(e)
+        return False
+    return True
