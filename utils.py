@@ -189,11 +189,14 @@ def export_translations(database, modules, langs=None,
 
     for module in ir_modules:
         module_locale_path = os.path.abspath(os.path.normpath(
-                os.path.join(os.getcwd(), module.name, 'locale')))
+                os.path.join(os.getcwd(), 'modules', module.name, 'locale')))
         if not os.path.exists(module_locale_path):
             os.makedirs(module_locale_path)
 
         for language in languages:
+            if language.code == 'en_US':
+                continue
+
             translation_export = Wizard('ir.translation.export')
             translation_export.form.language = language
             translation_export.form.module = module
@@ -204,8 +207,8 @@ def export_translations(database, modules, langs=None,
             with open(file_path, 'w') as f:
                 f.write(str(translation_export.form.file))
             translation_export.execute('end')
-            print 'Translation of "%s" in "%s" exported successfully.' % (
-                module.name, language.code)
+            print ('Translation of "%s" in "%s" exported successfully.'
+                % (module.name, language.code))
 
 
 def _check_database(database, host='localhost', port=5432, dbuser=None,

@@ -79,3 +79,27 @@ def update(config=None, unstable=True, module=None, fdir='features'):
         run('cd %s; sed -i "s/b\//%s/g" %s' % (fdir, aux_path, diff_file),
             echo=True)
         #run('patch -p0 %s'%(fdir+"/"+diff_file), echo=True)
+
+
+@task
+def push(patch=None, force=False):
+    cmd = ['quilt', 'push']
+    if force:
+        cmd.append('-f')
+    if patch:
+        cmd.append(patch)
+    else:
+        cmd.append('-a')
+    run(' '.join(cmd), echo=True)
+
+
+@task
+def pop(patch=None, force=True):
+    cmd = ['quilt', 'pop']
+    if force:
+        cmd.append('-f')
+    if patch:
+        cmd.append(patch)
+    else:
+        cmd.append('-a')
+    run(' '.join(cmd), echo=True)
