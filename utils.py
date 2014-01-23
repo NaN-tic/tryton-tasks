@@ -110,7 +110,7 @@ def update_parent_left_right(database, table, field, host='localhost',
 
 
 @task
-def prepare_translations(database, langs=None, host='localhost', port=5432,
+def prepare_translations(database, langs=None, host=None, port=None,
         dbuser=None, dbpassword=None):
     print t.bold('export_translations: %s, %s') % (database, langs)
     if not _check_database(database, host, port, dbuser, dbpassword):
@@ -149,7 +149,7 @@ def prepare_translations(database, langs=None, host='localhost', port=5432,
 
 @task
 def export_translations(database, modules, langs=None,
-        host='localhost', port=5432, dbuser=None, dbpassword=None):
+        host=None, port=None, dbuser=None, dbpassword=None):
     print t.bold('export_translations: %s, %s, %s') % (database, modules,
         langs)
     if not _check_database(database, host, port, dbuser, dbpassword):
