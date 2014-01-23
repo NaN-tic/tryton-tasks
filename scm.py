@@ -147,6 +147,7 @@ def hg_status(module, path, verbose, url):
     if msg:
         print '\n'.join(msg) + '\n'
 
+
 def git_status(module, path, verbose, url):
     repo_path = os.path.join(path, module)
     if not os.path.exists(repo_path):
@@ -186,7 +187,7 @@ def status(config=None, unstable=True, verbose=False):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
-        url =  Config.get(section, 'url')
+        url = Config.get(section, 'url')
         if repo == 'hg':
             func = hg_status
         elif repo == 'git':
@@ -362,14 +363,18 @@ def hg_outgoing(module, path, verbose):
     cmd = ['outgoing']
     if verbose:
         cmd.append('-v')
+
     try:
         out = repo.hg_command(*cmd)
-    except:
-        #TODO:catch correct exception
-        print >> sys.stderr, "Error running " + t.bold(*cmd)
+    except hgapi.HgException, e:
+        if 'no changes found' in str(e):
+            return
+        print t.bold_red('[' + module + ']')
+        print "Error running %s (%s): %s" % (t.bold(*cmd), e.exit_code, str(e))
         return
-    print t.bold("= " + module + " =")
-    print out
+    if out:
+        print t.bold("= " + module + " =")
+        print out
 
 
 @task
