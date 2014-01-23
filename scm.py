@@ -201,6 +201,75 @@ def status(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
+def hg_resolve(module, path, verbose, action, tool, nostatus, include,
+        exclude):
+    repo_path = os.path.join(path, module)
+    if not os.path.exists(repo_path):
+        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
+        return
+
+    assert action and action in ('merge', 'mark', 'unmark', 'list'), (
+        "Invalid 'action' parameter for 'resolve': %s\nIt must to be 'merge', "
+        "'list', 'mark', or 'unmark'." % action)
+
+    repo = hgapi.Repo(repo_path)
+
+    cmd = ['resolve']
+    if action != 'merge':
+        cmd.append('--%s' % action)
+        if action == 'list':
+            if nostatus:
+                cmd.append('--no-status')
+    else:
+        if tool:
+            assert tool in ('internal:dump', 'internal:fail', 'internal:local',
+                'internal:merge', 'internal:other', 'internal:prompt'), (
+                    "Invalid 'tool' parameter for 'resolve'. Look at "
+                    "'hg help merge-tools' to know which tools are available.")
+            cmd += ['-t', tool]
+    if not include and not exclude:
+        cmd.append('--all')
+    else:
+        if include:
+            for pattern in include.split(','):
+                cmd += ['-I', pattern]
+        if exclude:
+            for pattern in exclude.split(','):
+                cmd += ['-X', pattern]
+
+    try:
+        out = repo.hg_command(*cmd)
+    except hgapi.HgException, e:
+        print t.bold_red('[' + module + ']')
+        print "Error running %s (%s): %s" % (t.bold(*cmd), e.exit_code, str(e))
+        return
+    if out:
+        print t.bold("= " + module + " =")
+        print out
+
+
+@task
+def resolve(config=None, unstable=True, verbose=False, action='merge',
+        tool=None, nostatus=False, include=None, exclude=None):
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        if repo == 'hg':
+            func = hg_resolve
+        else:
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=func, args=(section, path, verbose, action, tool,
+                nostatus, include, exclude))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
+
 def hg_diff(module, path, verbose, rev1, rev2):
     t = Terminal()
     try:

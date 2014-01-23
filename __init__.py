@@ -9,6 +9,7 @@ from invoke import Collection
 ns = Collection()
 ns.add_task(clone)
 ns.add_task(status)
+ns.add_task(resolve)
 ns.add_task(diff)
 ns.add_task(summary)
 ns.add_task(outgoing)
