@@ -211,13 +211,13 @@ def export_translations(database, modules, langs=None,
                 % (module.name, language.code))
 
 
-def _check_database(database, host='localhost', port=5432, dbuser=None,
+def _check_database(database, host=None, port=None, dbuser=None,
         dbpassword=None):
-    connection_params = {
-        'dbname': database,
-        'host': host,
-        'port': port,
-        }
+    connection_params = { 'dbname': database }
+    if host:
+        connection_params['host'] = host
+    if port:
+        connection_params['port'] = port
     if dbuser:
         connection_params['user'] = dbuser
     if dbpassword:
