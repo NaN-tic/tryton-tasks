@@ -532,7 +532,7 @@ def update(config=None, unstable=True, clean=False):
 @task()
 def fetch():
     print t.bold('Reverting patches...')
-    bashCommand = ['quilt', 'pop', '-a']
+    bashCommand = ['quilt', 'pop', '-fa']
     output, err = execBashCommand(bashCommand)
     if not err:
         print output
