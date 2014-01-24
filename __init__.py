@@ -2,6 +2,7 @@ import bootstrap
 import utils
 from .scm import *
 import patch
+import tryton
 
 from invoke import Collection
 
@@ -20,3 +21,4 @@ ns.add_task(fetch)
 ns.add_collection(Collection.from_module(bootstrap), 'bs')
 ns.add_collection(Collection.from_module(utils))
 ns.add_collection(Collection.from_module(patch))
+ns.add_collection(Collection.from_module(tryton))
