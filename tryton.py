@@ -2,12 +2,20 @@
 
 import os
 from invoke import task, run
-from sql import Table
-from trytond.transaction import Transaction
-from trytond.modules import *
 
-ir_module = Table('ir_module_module')
-ir_model_data = Table('ir_model_data')
+try:
+    from trytond.transaction import Transaction
+    from trytond.modules import *
+except ImportError:
+    pass
+
+try:
+    from sql import Table
+    ir_module = Table('ir_module_module')
+    ir_model_data = Table('ir_model_data')
+except ImportError:
+    ir_module = None
+    ir_model_data = None
 
 discard = ['trytond', 'tryton', 'proteus', 'nereid_app',
            'sao', 'tasks', 'utils', 'config', 'patches']

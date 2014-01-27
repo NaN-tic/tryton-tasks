@@ -13,7 +13,11 @@ except ImportError:
                 'proteus')))
     if os.path.isdir(proteus_path):
         sys.path.insert(0, proteus_path)
-    from proteus import config, Wizard, Model
+    try:
+        from proteus import config, Wizard, Model
+    except ImportError:
+        pass
+
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
