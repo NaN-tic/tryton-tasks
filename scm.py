@@ -541,6 +541,14 @@ def fetch():
         print err
         print t.bold('Not Fetched.')
         return
+    print t.bold('Pulling and updated local repository...')
+    bashCommand = ['hg', 'pull', '-u']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to pull the local repostory. Err:"
+        print err
     print t.bold('Pulling...')
     pull()
     print t.bold('Updating...')
