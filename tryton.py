@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+import contextlib
 import os
 import psycopg2
 import sys
+from blessings import Terminal
 from invoke import task, run
 
 try:
@@ -117,8 +119,6 @@ def parent_compute(database, table, field, host='localhost', port='5432',
     db.close()
 
 
-
-
 @task()
 def missing(database, install=False, show=True):
     set_context(database)
@@ -145,3 +145,37 @@ def missing(database, install=False, show=True):
         run('trytond/bin/trytond -d %s -i %s' % (database, miss))
 
     return ",".join(miss)
+
+
+@task()
+def forgotten(database, show=True):
+    """
+    Return a list of modules that exists in the DB but not in *.cfg files
+    """
+    t = Terminal()
+    set_context(database)
+    cursor = Transaction().cursor
+    cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
+    db_module_list = set([(r[0], r[1]) for r in cursor.fetchall()])
+
+    forgotten_uninstalled = []
+    forgotten_installed = []
+    for module, state in db_module_list:
+        try:
+            get_module_info(module)
+        except IOError:
+            if state in ('installed', 'to install', 'to upgrade'):
+                forgotten_installed.append(module)
+            else:
+                forgotten_uninstalled.append(module)
+
+    if show:
+        if forgotten_uninstalled:
+            print t.bold("Forgotten modules:")
+            print "  - " + "\n  - ".join(forgotten_uninstalled)
+            print ""
+        if forgotten_installed:
+            print t.red("Forgotten installed modules:")
+            print "  - " + "\n  - ".join(forgotten_installed)
+            print ""
+    return forgotten_uninstalled, forgotten_installed
