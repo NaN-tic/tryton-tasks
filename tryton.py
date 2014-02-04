@@ -9,9 +9,22 @@ from invoke import task, run
 try:
     from trytond.transaction import Transaction
     from trytond.modules import *
+    #from trytond.modules import Graph, Node, get_module_info
 except ImportError, e:
     print >> sys.stderr, "trytond importation error: ", e
     pass
+
+try:
+    from proteus import config as pconfig, Wizard, Model
+except ImportError:
+    proteus_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+                'proteus')))
+    if os.path.isdir(proteus_path):
+        sys.path.insert(0, proteus_path)
+    try:
+        from proteus import config as pconfig, Wizard, Model
+    except ImportError, e:
+        sys.exit("proteus importation error: %s" % str(e))
 
 try:
     from sql import Table
@@ -21,11 +34,32 @@ except ImportError:
     ir_module = None
     ir_model_data = None
 
+trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+            'trytond')))
+if os.path.isdir(trytond_path):
+    sys.path.insert(0, trytond_path)
+
+os.environ['TZ'] = "Europe/Madrid"
+
+t = Terminal()
+
 discard = ['trytond', 'tryton', 'proteus', 'nereid_app',
            'sao', 'tasks', 'utils', 'config', 'patches']
 
 
-os.environ['TZ'] = "Europe/Madrid"
+def check_database(database, connection_params):
+    if connection_params is None:
+        connection_params = {}
+    else:
+        connection_params = connection_params.copy()
+    connection_params['dbname'] = database
+    try:
+        psycopg2.connect(**connection_params)
+    except Exception, e:
+        print t.bold('Invalid database connection params:')
+        print str(e)
+        return False
+    return True
 
 
 def set_context(database_name):
@@ -152,7 +186,6 @@ def forgotten(database, show=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
-    t = Terminal()
     set_context(database)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
@@ -179,3 +212,37 @@ def forgotten(database, show=True):
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
     return forgotten_uninstalled, forgotten_installed
+
+
+@task()
+def uninstall(database, modules='forgotten', connection_params=None):
+    if not database or not modules:
+        return
+
+    if modules == 'forgotten':
+        unused, modules = forgotten(database, show=False)
+    else:
+        modules = modules.split(',')
+    if not modules:
+        return
+
+    print t.bold("uninstall: ") + ", ".join(modules)
+    if connection_params is None:
+        connection_params = {}
+    if not check_database(database, connection_params):
+        return
+
+    config = pconfig.set_trytond(database_type='postgresql',
+        database_name=database, **connection_params)
+
+    Module = Model.get('ir.module.module')
+    modules_to_uninstall = Module.find([
+            ('name', 'in', modules),
+            ])
+    Module.uninstall([m.id for m in modules_to_uninstall],
+        config.context)
+
+    module_install_upgrade = Wizard('ir.module.module.install_upgrade')
+    module_install_upgrade.execute('upgrade')
+    module_install_upgrade.execute('config')
+    print ""
