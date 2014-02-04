@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-import psycopg2
 import os
+import psycopg2
+import sys
 from invoke import task, run
 
 try:
     from trytond.transaction import Transaction
     from trytond.modules import *
-except ImportError:
+except ImportError, e:
+    print >> sys.stderr, "trytond importation error: ", e
     pass
 
 try:

@@ -16,7 +16,7 @@ except ImportError:
     try:
         from proteus import config, Wizard, Model
     except ImportError:
-        pass
+        sys.exit(1)
 
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
