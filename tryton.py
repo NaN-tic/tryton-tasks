@@ -215,6 +215,11 @@ def forgotten(database, show=True):
 
 @task()
 def uninstall(database, modules='forgotten', connection_params=None):
+    """
+    Uninstall the supplied modules (separated by coma) from database.
+    If modules is 'forgotten' (o it isn't provided) it uninstalls the installed
+    forgotten modules (modules that are installed but aren't in *.cfg files.
+    """
     if not database or not modules:
         return
 
