@@ -12,7 +12,6 @@ try:
     #from trytond.modules import Graph, Node, get_module_info
 except ImportError, e:
     print >> sys.stderr, "trytond importation error: ", e
-    pass
 
 try:
     from proteus import config as pconfig, Wizard, Model
@@ -24,7 +23,7 @@ except ImportError:
     try:
         from proteus import config as pconfig, Wizard, Model
     except ImportError, e:
-        sys.exit("proteus importation error: %s" % str(e))
+        print >> sys.stderr, "proteus importation error: ", e
 
 try:
     from sql import Table

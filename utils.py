@@ -15,8 +15,8 @@ except ImportError:
         sys.path.insert(0, proteus_path)
     try:
         from proteus import config, Wizard, Model
-    except ImportError:
-        sys.exit(1)
+    except ImportError, e:
+        print >> sys.stderr, "proteus importation error: ", e
 
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),

@@ -7,7 +7,7 @@ from invoke import task, run
 from path import path
 
 from .utils import _ask_ok, _check_required_file, _exit
-from .scm import hg_clone, hg_pull, clone
+from .scm import hg_clone, hg_pull, clone, fetch
 
 
 t = Terminal()
@@ -229,7 +229,7 @@ def bootstrap(projectpath='', projectname='',
     install_requirements(upgrade=upgradereqs)
 
     clone('config/base.cfg')
-    clone()
+    fetch()
 
     install_proteus('proteus')
     create_symlinks()
