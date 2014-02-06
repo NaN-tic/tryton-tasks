@@ -165,15 +165,16 @@ def missing(database, install=False, show=True):
         miss |= missing
         module_list.update(miss)
 
+    miss = ",".join(miss)
     if show:
-        print "Missing dependencies,".join(miss)
+        print "Missing dependencies: %s " % miss
         print "Press Key to continue..."
         sys.stdin.read(1)
 
     if install:
         run('trytond/bin/trytond -d %s -i %s' % (database, miss))
 
-    return ",".join(miss)
+    return miss
 
 
 @task()
