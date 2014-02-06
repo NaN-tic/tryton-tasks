@@ -18,12 +18,14 @@ except ImportError:
     except ImportError, e:
         print >> sys.stderr, "proteus importation error: ", e
 
-
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
 if os.path.isdir(trytond_path):
     sys.path.insert(0, trytond_path)
 
+NO_MODULE_REPOS = ['trytond', 'tryton', 'proteus', 'nereid_app', 'sao',
+    'tasks', 'utils', 'config', 'patches']
+BASE_MODULES = ['ir', 'res', 'tests', 'webdav']
 
 t = Terminal()
 

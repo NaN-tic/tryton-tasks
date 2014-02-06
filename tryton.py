@@ -3,8 +3,9 @@ import contextlib
 import os
 import psycopg2
 import sys
-from blessings import Terminal
 from invoke import task, run
+
+from .utils import t, read_config_file, NO_MODULE_REPOS, BASE_MODULES
 
 try:
     from trytond.transaction import Transaction
@@ -39,11 +40,6 @@ if os.path.isdir(trytond_path):
     sys.path.insert(0, trytond_path)
 
 os.environ['TZ'] = "Europe/Madrid"
-
-t = Terminal()
-
-discard = ['trytond', 'tryton', 'proteus', 'nereid_app',
-           'sao', 'tasks', 'utils', 'config', 'patches']
 
 
 def check_database(database, connection_params):
@@ -181,21 +177,23 @@ def missing(database, install=False, show=True):
 
 
 @task()
-def forgotten(database, show=True):
+def forgotten(database, show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
     set_context(database)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
-    db_module_list = set([(r[0], r[1]) for r in cursor.fetchall()])
+    db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
+
+    config = read_config_file(unstable=unstable)
+    configs_module_list = [section for section in config.sections()
+        if section not in NO_MODULE_REPOS]
 
     forgotten_uninstalled = []
     forgotten_installed = []
     for module, state in db_module_list:
-        try:
-            get_module_info(module)
-        except IOError:
+        if module not in BASE_MODULES and module not in configs_module_list:
             if state in ('installed', 'to install', 'to upgrade'):
                 forgotten_installed.append(module)
             else:
@@ -211,6 +209,39 @@ def forgotten(database, show=True):
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
     return forgotten_uninstalled, forgotten_installed
+
+
+@task()
+def lost(database, show=True):
+    """
+    Return a list of modules that exists in the DB but not in filesystem
+    """
+    set_context(database)
+    cursor = Transaction().cursor
+    cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
+    db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
+
+    lost_uninstalled = []
+    lost_installed = []
+    for module, state in db_module_list:
+        try:
+            get_module_info(module)
+        except IOError:
+            if state in ('installed', 'to install', 'to upgrade'):
+                lost_installed.append(module)
+            else:
+                lost_uninstalled.append(module)
+
+    if show:
+        if lost_uninstalled:
+            print t.bold("Lost modules:")
+            print "  - " + "\n  - ".join(lost_uninstalled)
+            print ""
+        if lost_installed:
+            print t.red("Lost installed modules:")
+            print "  - " + "\n  - ".join(lost_installed)
+            print ""
+    return lost_uninstalled, lost_installed
 
 
 @task()
