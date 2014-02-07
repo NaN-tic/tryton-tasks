@@ -555,7 +555,7 @@ def fetch():
     update()
     print t.bold('Cloning...')
     clone()
-    print t.bold('Applaing patches...')
+    print t.bold('Applying patches...')
     bashCommand = ['quilt', 'push', '-a']
     output, err = execBashCommand(bashCommand)
     if not err:
