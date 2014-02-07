@@ -178,7 +178,7 @@ def missing(database, install=False, show=True):
 
 
 @task()
-def forgotten(database, show=True, unstable=True):
+def forgotten(database, delete_module=False, show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
@@ -209,11 +209,15 @@ def forgotten(database, show=True, unstable=True):
             print t.red("Forgotten installed modules:")
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
+
+    if delete_module and forgotten_uninstalled:
+        delete(database, forgotten_uninstalled)
+
     return forgotten_uninstalled, forgotten_installed
 
 
 @task()
-def lost(database, show=True):
+def lost(database, delete_module=False, show=True):
     """
     Return a list of modules that exists in the DB but not in filesystem
     """
@@ -242,6 +246,10 @@ def lost(database, show=True):
             print t.red("Lost installed modules:")
             print "  - " + "\n  - ".join(lost_installed)
             print ""
+
+    if delete_module and lost_uninstalled:
+        delete(database, lost_uninstalled)
+
     return lost_uninstalled, lost_installed
 
 
@@ -282,3 +290,32 @@ def uninstall(database, modules='forgotten', connection_params=None):
     module_install_upgrade.execute('upgrade')
     module_install_upgrade.execute('config')
     print ""
+
+
+@task()
+def delete(database, modules):
+    """
+    Delete the supplied modules (separated by coma) from ir_module_module_
+    table of database.
+    """
+    if not database or not modules:
+        return
+
+    if isinstance(modules, basestring):
+        modules = modules.split(',')
+
+    print t.bold("delete: ") + ", ".join(modules)
+    set_context(database)
+    cursor = Transaction().cursor
+    cursor.execute(*ir_module.select(ir_module.name,
+                        where=(ir_module.state.in_(('installed', 'to install',
+                                'to upgrade', 'to remove')) &
+                            ir_module.name.in_(tuple(modules)))))
+    installed_modules = [name for (name,) in cursor.fetchall()]
+    if installed_modules:
+        print (t.red("Some supplied modules are installed: ") +
+            ", ".join(installed_modules))
+        return
+
+    cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
+    cursor.commit()
