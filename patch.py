@@ -55,7 +55,8 @@ def list(patch=None, unstable=True, verbose=False):
 
 
 @task
-def update(config=None, unstable=True, module=None, fdir='features'):
+def update(config=None, unstable=True, module=None, fdir='features',
+        verbose=False):
     if not os.path.exists(fdir):
         os.makedirs(fdir)
 
@@ -67,17 +68,19 @@ def update(config=None, unstable=True, module=None, fdir='features'):
         if not module is None and module != section:
             continue
 
+        print t.bold("patch.update: ") + section
+
         url = Config.get(section, 'url')
         path = Config.get(section, 'path')
 
-        run('cd %s; wget -N -q %s' % (fdir, url))
+        run('cd %s; wget -N -q %s' % (fdir, url), echo=verbose)
 
         aux_path = path.replace('/', '\/')
         diff_file = url.split('/')[-1]
         run('cd %s; sed -i "s/a\//%s/g" %s' % (fdir, aux_path, diff_file),
-            echo=True)
+            echo=verbose)
         run('cd %s; sed -i "s/b\//%s/g" %s' % (fdir, aux_path, diff_file),
-            echo=True)
+            echo=verbose)
         #run('patch -p0 %s'%(fdir+"/"+diff_file), echo=True)
 
 
