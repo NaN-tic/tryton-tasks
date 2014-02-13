@@ -1,0 +1,37 @@
+# Copy to $HOME/.bucket
+
+[accounts]
+default=user:password
+
+config  = string(default='')
+owner   = string(default='nantic')
+verbose = integer(default=0)
+
+[ls]
+show_scm    = boolean(default=False)
+show_desc   = boolean(default=False)
+show_access = boolean(default=False)
+scm         = option(hg, git, all, default=all)
+access      = option(public, private, all, default=all)
+
+[st]
+remote  = boolean(default=False)
+already = boolean(default=False)
+
+[create]
+private = boolean(default=False)
+scm     = option(hg, git, default=hg)
+clone   = boolean(default=False)
+desc    = string(default='')
+
+[clone]
+destdir = string(default='.')
+proto   = option(http, ssh, default=ssh)
+
+[sync]
+owner    = string(default=None)
+all      = boolean(default=False)
+already  = boolean(default=False)
+
+[set]
+private  = boolean(default=None)
