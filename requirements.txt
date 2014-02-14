@@ -3,5 +3,9 @@ GitPython>=0.3.2.RC1
 hgapi
 invoke>=0.6
 path.py
-hg+https://bitbucket.org/DavidVilla/python-bitbucket-api
 pyactiveresource
+
+-e hg+https://bitbucket.org/DavidVilla/python-bitbucket-api#egg=bitbucket-api
+# bitbucket-api dependencies
+configobj
+PyHamcrest
