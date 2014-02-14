@@ -3,8 +3,8 @@ import utils
 from .scm import *
 import patch
 #import nantic
+import bitbucket
 import tryton
-import bbucket
 from invoke import Collection
 
 
@@ -24,4 +24,4 @@ ns.add_collection(Collection.from_module(utils))
 ns.add_collection(Collection.from_module(patch))
 #ns.add_collection(Collection.from_module(nantic))
 ns.add_collection(Collection.from_module(tryton))
-ns.add_collection(Collection.from_module(bbucket))
+ns.add_collection(Collection.from_module(bitbucket))

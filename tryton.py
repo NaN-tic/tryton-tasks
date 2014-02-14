@@ -178,7 +178,7 @@ def missing(database, install=False, show=True):
 
 
 @task()
-def forgotten(database, delete_module=False, show=True, unstable=True):
+def forgotten(database, delete=False, show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
@@ -210,14 +210,14 @@ def forgotten(database, delete_module=False, show=True, unstable=True):
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
 
-    if delete_module and forgotten_uninstalled:
-        delete(database, forgotten_uninstalled)
+    if delete and forgotten_uninstalled:
+        delete_modules(database, forgotten_uninstalled)
 
     return forgotten_uninstalled, forgotten_installed
 
 
 @task()
-def lost(database, delete_module=False, show=True):
+def lost(database, delete=False, show=True):
     """
     Return a list of modules that exists in the DB but not in filesystem
     """
@@ -247,8 +247,8 @@ def lost(database, delete_module=False, show=True):
             print "  - " + "\n  - ".join(lost_installed)
             print ""
 
-    if delete_module and lost_uninstalled:
-        delete(database, lost_uninstalled)
+    if delete and lost_uninstalled:
+        delete_modules(database, lost_uninstalled)
 
     return lost_uninstalled, lost_installed
 
@@ -293,7 +293,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
 
 
 @task()
-def delete(database, modules):
+def delete_modules(database, modules):
     """
     Delete the supplied modules (separated by coma) from ir_module_module_
     table of database.
