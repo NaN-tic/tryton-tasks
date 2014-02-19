@@ -52,8 +52,8 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
         else:
             del processes[i]
 
-def hg_clone(url, path, branch=None):
-    command = 'hg clone -q %s %s' % (url, path)
+def hg_clone(url, path, branch="default"):
+    command = 'hg clone -r %s -q %s %s' % (branch, url, path)
     try:
         run(command)
     except:
@@ -90,11 +90,11 @@ def clone(config=None, unstable=True):
         url = Config.get(section, 'url')
         repo_path = Config.get(section, 'path')
         branch = False
+        if Config.has_option(section, 'branch'):
+            branch = Config.get(section, 'branch')
         if repo == 'hg':
             func = hg_clone
         elif repo == 'git':
-            if Config.has_option(section, 'branch'):
-                branch = Config.get(section, 'branch')
             func = git_clone
         else:
             print >> sys.stderr, "Not developed yet"
