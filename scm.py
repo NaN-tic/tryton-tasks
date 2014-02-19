@@ -93,8 +93,12 @@ def clone(config=None, unstable=True):
         if Config.has_option(section, 'branch'):
             branch = Config.get(section, 'branch')
         if repo == 'hg':
+            if not branch:
+                branch='default'
             func = hg_clone
         elif repo == 'git':
+            if not branch:
+                branch='master'
             func = git_clone
         else:
             print >> sys.stderr, "Not developed yet"
