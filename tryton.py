@@ -178,7 +178,8 @@ def missing(database, install=False, show=True):
 
 
 @task()
-def forgotten(database, delete=False, show=True, unstable=True):
+def forgotten(database, delete=False, delete_installed=False,
+        show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
@@ -212,6 +213,9 @@ def forgotten(database, delete=False, show=True, unstable=True):
 
     if delete and forgotten_uninstalled:
         delete_modules(database, forgotten_uninstalled)
+
+    if delete_installed and forgotten_installed:
+        delete_modules(database, forgotten_installed, True)
 
     return forgotten_uninstalled, forgotten_installed
 
@@ -293,7 +297,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
 
 
 @task()
-def delete_modules(database, modules):
+def delete_modules(database, modules, force=False):
     """
     Delete the supplied modules (separated by coma) from ir_module_module_
     table of database.
@@ -313,9 +317,14 @@ def delete_modules(database, modules):
                             ir_module.name.in_(tuple(modules)))))
     installed_modules = [name for (name,) in cursor.fetchall()]
     if installed_modules:
-        print (t.red("Some supplied modules are installed: ") +
-            ", ".join(installed_modules))
-        return
+        if not force:
+            print (t.red("Some supplied modules are installed: ") +
+                ", ".join(installed_modules))
+            return
+        if force:
+            print (t.red("Deleting installed supplied modules: ") +
+                ", ".join(installed_modules))
+
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     cursor.commit()
