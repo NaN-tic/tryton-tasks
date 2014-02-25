@@ -567,6 +567,21 @@ def fetch():
     else:
         print "It's not possible to apply patche(es)"
         print err
+    print t.bold('Updating requirements...')
+    bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to apply patche(es)"
+        print err
+    bashCommand = ['pip', 'install', '-r', 'tasks/requirements.txt']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to apply patche(es)"
+        print err
     print t.bold('Fetched.')
 
 def execBashCommand(bashCommand):
