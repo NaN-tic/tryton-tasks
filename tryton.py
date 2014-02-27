@@ -150,6 +150,10 @@ def parent_compute(database, table, field, host='localhost', port='5432',
 
 @task()
 def missing(database, install=False, show=True):
+    """
+    Checks which modules are missing according to the dependencies of the
+    modules installed in the database.
+    """
     set_context(database)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name,
