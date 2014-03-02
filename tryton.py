@@ -111,6 +111,23 @@ def create_graph(module_list):
 
 
 @task()
+def update_post_move_sequence(database, fiscalyear, sequence,
+    host='localhost', port='5432',  user='angel', password='password'):
+    ''' Force update of post_move_sequence on fiscalyears '''
+    db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
+        password=password)
+
+    cursor = db.cursor()
+    cursor.execute(
+        "update account_fiscalyear set post_move_sequence = %s "
+        "where id = %s " % (fiscalyear, sequence))
+    cursor.execute(
+        "update account_period set post_move_sequence = null where "
+        "fiscalyear = %s" % (fiscalyear))
+    db.commit()
+    db.close()
+
+@task()
 def parent_compute(database, table, field, host='localhost', port='5432',
         user='angel', password='password'):
 
