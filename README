@@ -27,7 +27,7 @@ pip install -r requriements.txt
 Install
 =======
 
-hg clone https://bitbucket.org/nantic/tryton-utils tasks
+hg clone https://bitbucket.org/nantic/tryton-tasks tasks
 hg clone https://bitbucket.org/nantic/tryton-config config
 
 
@@ -63,9 +63,9 @@ option with the path to _repo-dir_ directory:
 ..
      > invoke --root=../
 
-If you haven't renamed _tryton-utils_ to _tasks_, you can call _invoke_ with
-_--collection/-c_ option with the path to _tryton-utils_ directory:
+If you haven't renamed _tryton-tasks_ to _tasks_, you can call _invoke_ with
+_--collection/-c_ option with the path to _tryton-tasks_ directory:
 
 ..
-      > invoke --root=../tryton-utils
+      > invoke --root=../tryton-tasks
 
