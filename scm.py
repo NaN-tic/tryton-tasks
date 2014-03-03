@@ -12,6 +12,22 @@ from blessings import Terminal
 
 MAX_PROCESSES = 20
 
+def get_virtualenv():
+    return os.path.join(os.path.dirname(__file__), 'virtual-env.sh')
+
+@task()
+def add2virtualenv():
+
+    aux = run(get_virtualenv() + ' lssitepackages', hide=True)
+    Config = read_config_file()
+    for section in Config.sections():
+        if not Config.has_option(section, 'add2virtualenv'):
+            continue
+        repo_path = Config.get(section, 'path')
+        project_path = os.path.dirname(__file__).split('tasks')[-1]
+        path = os.path.join(project_path, repo_path, section)
+        if not path in str(aux):
+            run(get_virtualenv() + ' add2virtualenv ' + path )
 
 @task()
 def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
@@ -583,6 +599,9 @@ def fetch():
         print "It's not possible to apply patche(es)"
         print err
     print t.bold('Fetched.')
+
+    print "Update virtualenv paths"
+    add2virtualenv()
 
 def execBashCommand(bashCommand):
     """

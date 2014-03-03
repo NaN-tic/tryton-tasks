@@ -231,8 +231,8 @@ def bootstrap(projectpath='', projectname='',
     clone('config/base.cfg')
     fetch()
 
-    install_proteus('proteus')
     create_symlinks()
+    add2virtualenv()
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
