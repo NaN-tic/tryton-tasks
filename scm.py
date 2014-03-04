@@ -329,6 +329,44 @@ def resolve(config=None, unstable=True, verbose=False, action='merge',
         wait_processes(processes)
     wait_processes(processes, 0)
 
+def hg_stat(path):
+    result = run( 'cd %s; hg diff --stat' % path, hide=True )
+    lines = result.stdout.split('\n')[:-2]
+    files = []
+    for line in lines:
+        files.append(line.split('|')[0].strip())
+    return files
+
+def git_stat(path):
+    print "git_stat not implemented yet"
+
+@task
+def stat(module):
+    Config = read_config_file()
+    for section in Config.sections():
+        if section != module:
+            continue
+        repo = get_repo(section, Config, 'stat')
+        return repo['function'](repo['path'])
+
+def git_base_diff(path):
+    print "git_base_diff not implemented yet"
+
+def hg_base_diff(path):
+    files = " ".join(hg_stat(path))
+    diff = run( 'cd %s; hg diff --git %s' % (path, files))
+    base_diff = run( 'cd %s; hg diff --git -r null:-1 %s' % (path,files))
+    return diff.stdout, base_diff.stdout
+
+@task
+def module_diff(module, base=False):
+    Config = read_config_file()
+    for section in Config.sections():
+        if section != module:
+            continue
+        repo = get_repo(section, Config, 'base_diff')
+        return repo['function'](repo['path'])
+
 
 def hg_diff(module, path, verbose, rev1, rev2):
     t = Terminal()
