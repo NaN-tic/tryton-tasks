@@ -29,13 +29,13 @@ def get_tasks(taskpath='tasks'):
 
     if not Config.get_tasks:
         if not _ask_ok('Are you in the customer project directory? '
-                'Answer "yes" to clone the "tryton-utils" repository '
+                'Answer "yes" to clone the "tryton-tasks" repository '
                 'in "%s" directory. [Y/n] ' % taskpath, 'y'):
             return
 
-    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-utils '
+    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-tasks '
         'repository in "tasks" directory.')
-    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-utils', taskpath)
+    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-tasks', taskpath)
     print ""
 
 
@@ -231,8 +231,8 @@ def bootstrap(projectpath='', projectname='',
     clone('config/base.cfg')
     fetch()
 
-    install_proteus('proteus')
     create_symlinks()
+    add2virtualenv()
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
