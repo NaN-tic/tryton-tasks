@@ -12,6 +12,23 @@ from blessings import Terminal
 
 MAX_PROCESSES = 20
 
+DEFAULT_BRANCH = {
+    'git': 'master',
+    'hg': 'default'
+}
+
+def get_repo(section, config, function=None):
+    repository = {}
+    repository['type'] = config.get(section, 'repo')
+    repository['url'] = config.get(section, 'url')
+    repository['path'] = os.path.join(config.get(section, 'path'),section)
+    repository['branch'] = DEFAULT_BRANCH[repository['type']]
+    if config.has_option(section, 'branch'):
+        repository['branch'] = config.get(section, 'branch')
+    repository['function'] = None
+    if function:
+        repository['function'] = eval("%s_%s" % (repository['type'], function))
+    return repository
 
 @task()
 def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
@@ -86,102 +103,83 @@ def clone(config=None, unstable=True):
     p = None
     processes = []
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        url = Config.get(section, 'url')
-        repo_path = Config.get(section, 'path')
-        branch = False
-        if Config.has_option(section, 'branch'):
-            branch = Config.get(section, 'branch')
-        if repo == 'hg':
-            if not branch:
-                branch='default'
-            func = hg_clone
-        elif repo == 'git':
-            if not branch:
-                branch='master'
-            func = git_clone
-        else:
-            print >> sys.stderr, "Not developed yet"
-            continue
-        path = os.path.join(repo_path, section)
-        if not os.path.exists(path):
-            print "Adding Module " + t.bold(section) + " to clone list"
-            p = Process(target=func, args=(url, path, branch))
+        repo = get_repo(section, Config, 'clone')
+        if not os.path.exists(repo['path']):
+            p = Process(target=repo['function'], args=(repo['url'],
+                    repo['path'], repo['branch']))
             p.start()
             processes.append(p)
             wait_processes(processes)
     wait_processes(processes, 0)
 
 
+def print_status(module, files):
+    status_key_map = {
+        'A': 'Added',
+        'M': 'Modified',
+        'R': 'Removed',
+        '!': 'Deleted',
+        '?': 'Untracked',
+        'D': 'Deleted',
+    }
+
+    status_key_color = {
+        'A': 'green',
+        'M': 'yellow',
+        'R': 'red',
+        '!': 'red',
+        '=': 'blue',
+        'D': 'red',
+        '?': 'red',
+    }
+
+    msg = []
+    for key, value in files.iteritems():
+        tf = status_key_map.get(key)
+        col = eval('t.' + status_key_color.get(key, 'normal'))
+        for f in value:
+            msg.append(col + " %s (%s):%s " % (tf, key, f) + t.normal)
+    if msg:
+        msg.insert(0, "[%s]" % module)
+        print '\n'.join(msg)
+
+
 def hg_status(module, path, verbose, url):
-    repo_path = os.path.join(path, module)
-    if not os.path.exists(repo_path):
-        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
-        return
-    repo = hgapi.Repo(repo_path)
+    repo = hgapi.Repo(path)
     actual_url = str(repo.config('paths', 'default')).rstrip('/')
     url = str(url).rstrip('/')
-
+    if actual_url != url:
+        print >> sys.stderr, (t.bold('[%s]' % module) +
+            t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
     msg = []
     if actual_url != url:
         msg.append(t.red("Repo URL differs: ")
             + t.bold(actual_url + " != " + url))
 
     st = repo.hg_status(empty=True)
-    if st:
-        if st.get('A'):
-            for file_name in st['A']:
-                msg.append(t.green('A ' + file_name))
-        if st.get('M'):
-            for file_name in st['M']:
-                msg.append(t.yellow('M ' + file_name))
-        if st.get('R'):
-            for file_name in st['R']:
-                msg.append(t.red('R ' + file_name))
-        if st.get('!'):
-            for file_name in st['!']:
-                msg.append(t.bold_red('! ' + file_name))
-        if st.get('?'):
-            for file_name in st['?']:
-                msg.append(t.blue('? ' + file_name))
-    if msg:
-        msg.insert(0, t.bold_red('[' + module + ']'))
-    elif verbose:
-        msg.append(t.bold_green('[' + module + ']'))
-    if msg:
-        print '\n'.join(msg) + '\n'
+    print_status(module, st)
+    return st
 
 
 def git_status(module, path, verbose, url):
-    repo_path = os.path.join(path, module)
-    if not os.path.exists(repo_path):
-        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
-        return
-    repo = git.Repo(repo_path)
+    repo = git.Repo(path)
     config = repo.config_reader()
     config.read()
-    msg = []
     actual_url = config.get_value('remote "origin"', 'url')
     if actual_url != url:
-        msg.append(t.red('Repo URL differs: ') + t.bold(actual_url +
-                ' != ' + url))
+        print >> sys.stderr, (t.bold('[%s]' % module) +
+            t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
     diff = repo.index.diff(None)
-    if diff:
-        for d in diff.iter_change_type('A'):
-            msg.append(t.green('A ' + d.b_blob.path))
-        for d in diff.iter_change_type('M'):
-            msg.append(t.yellow('M ' + d.a_blob.path))
-        for d in diff.iter_change_type('R'):
-            msg.append(t.blue('R %s -> %s' % (d.a_blob.path, d.b_blob.path)))
-        for d in diff.iter_change_type('D'):
-            msg.append(t.bold_red('D ' + d.a_blob.path))
-    if msg:
-        msg.insert(0, t.bold_red('[' + module + ']'))
-    elif verbose:
-        msg.append(t.bold_green('[' + module + ']'))
-    if msg:
-        print '\n'.join(msg) + '\n'
+    files = {}
+    for change in diff.change_type:
+        files[change] = []
 
+    if diff:
+        for change in diff.change_type:
+            for d in diff.iter_change_type(change):
+                files[change].append(d.a_blob.path)
+    print_status(module, files)
+    return files
 
 @task
 def status(config=None, unstable=True, verbose=False):
@@ -189,17 +187,13 @@ def status(config=None, unstable=True, verbose=False):
     processes = []
     p = None
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        url = Config.get(section, 'url')
-        if repo == 'hg':
-            func = hg_status
-        elif repo == 'git':
-            func = git_status
-        else:
-            print >> sys.stderr, "Not developed yet"
-            continue
-        p = Process(target=func, args=(section, path, verbose, url))
+        repo = get_repo(section, Config, 'status')
+        if not os.path.exists(repo['path']):
+            print >> sys.stderr, t.red("Missing repositori: ") +\
+                    t.bold(repo['path'])
+            return
+        p = Process(target=repo['function'], args=(section,
+                repo['path'], verbose, repo['url']))
         p.start()
         processes.append(p)
         wait_processes(processes)
