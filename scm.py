@@ -1,19 +1,22 @@
 #!/usr/bin/env python
-
 from invoke import task, run
 import hgapi
 import git
-from multiprocessing import Process
-from .utils import t, read_config_file
 import os
 import sys
 import subprocess
 from blessings import Terminal
+from multiprocessing import Process
+from path import path
+
+from .utils import t, read_config_file, NO_MODULE_REPOS
 
 MAX_PROCESSES = 20
 
+
 def get_virtualenv():
     return os.path.join(os.path.dirname(__file__), 'virtual-env.sh')
+
 
 @task()
 def add2virtualenv():
@@ -25,9 +28,10 @@ def add2virtualenv():
             continue
         repo_path = Config.get(section, 'path')
         project_path = os.path.dirname(__file__).split('tasks')[-1]
-        path = os.path.join(project_path, repo_path, section)
-        if not path in str(aux):
-            run(get_virtualenv() + ' add2virtualenv ' + path )
+        abspath = os.path.join(project_path, repo_path, section)
+        if not abspath in str(aux):
+            run(get_virtualenv() + ' add2virtualenv ' + abspath)
+
 
 @task()
 def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
@@ -56,6 +60,46 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
                 print >> sys.stderr, name, repo_path, url
 
 
+@task()
+def unknown(unstable=True, status=False, show=True):
+    """
+    Return a list of modules/repositories that exists in filesystem but not in
+    config files
+    ;param status: show status for unknown repositories.
+    """
+    Config = read_config_file(unstable=unstable)
+    configs_module_list = [section for section in Config.sections()
+        if section not in NO_MODULE_REPOS]
+
+    modules_wo_repo = []
+    repo_not_in_cfg = []
+    for module_path in path('./modules').dirs():
+        module_name = module_path.basename()
+        if module_name in configs_module_list:
+            continue
+
+        if (module_path.joinpath('.hg').isdir() or
+                module_path.joinpath('.git').isdir()):
+            repo_not_in_cfg.append(module_name)
+            if status and module_path.joinpath('.hg').isdir():
+                hg_status(module_name, module_path.parent, False, None)
+            elif status and module_path.joinpath('.git').isdir():
+                git_status(module_name, module_path.parent, False, None)
+        else:
+            modules_wo_repo.append(module_name)
+
+    if show:
+        if modules_wo_repo:
+            print t.bold("Unknown module (without repository):")
+            print "  - " + "\n  - ".join(modules_wo_repo)
+            print ""
+        if not status and repo_not_in_cfg:
+            print t.bold("Unknown repository:")
+            print "  - " + "\n  - ".join(repo_not_in_cfg)
+            print ""
+    return modules_wo_repo, repo_not_in_cfg
+
+
 def wait_processes(processes, maximum=MAX_PROCESSES):
     i = 0
     while len(processes) > maximum:
@@ -67,6 +111,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
             i += 1
         else:
             del processes[i]
+
 
 def hg_clone(url, path, branch="default"):
     command = 'hg clone -r %s -q %s %s' % (branch, url, path)
