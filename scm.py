@@ -32,13 +32,16 @@ def get_repo(section, config, function=None):
     return repository
 
 def get_virtualenv():
+    if os.environ.get('VIRTUAL_ENV'):
+        return ''
     return os.path.join(os.path.dirname(__file__), 'virtual-env.sh')
 
 
 @task()
 def add2virtualenv():
 
-    aux = run(get_virtualenv() + ' lssitepackages', hide=True)
+    virtualenv = get_virtualenv()
+    aux = run(virtualenv + ' lssitepackages', hide=True)
     Config = read_config_file()
     for section in Config.sections():
         if not Config.has_option(section, 'add2virtualenv'):
@@ -47,7 +50,7 @@ def add2virtualenv():
         project_path = os.path.dirname(__file__).split('tasks')[-1]
         abspath = os.path.join(project_path, repo_path, section)
         if not abspath in str(aux):
-            run(get_virtualenv() + ' add2virtualenv ' + abspath)
+            run(virtualenv + ' add2virtualenv ' + abspath)
 
 
 @task()
