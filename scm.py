@@ -134,7 +134,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
 
 
 def hg_clone(url, path, branch="default"):
-    command = 'hg clone -r %s -q %s %s' % (branch, url, path)
+    command = 'hg clone -b %s -q %s %s' % (branch, url, path)
     try:
         run(command)
     except:
