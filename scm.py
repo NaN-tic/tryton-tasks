@@ -455,6 +455,39 @@ def git_pull(module, path, update):
     os.chdir(cwd)
 
 
+@task()
+def branch(branch, clean=False, config=None, unstable=True):
+    print t.bold('Reverting patches...')
+    bashCommand = ['quilt', 'pop', '-fa']
+    output, err = execBashCommand(bashCommand)
+    Config = read_config_file(config, unstable=unstable)
+
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        if repo == 'git':
+            continue
+        if repo != 'hg':
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=hg_update, args=(section, path, clean, branch))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
+    print t.bold('Applying patches...')
+    bashCommand = ['quilt', 'push', '-a']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to apply patche(es)"
+        print err
+
+
 @task
 def pull(config=None, unstable=True, update=True):
     Config = read_config_file(config, unstable=unstable)
@@ -477,7 +510,7 @@ def pull(config=None, unstable=True, update=True):
     wait_processes(processes, 0)
 
 
-def hg_update(module, path, clean):
+def hg_update(module, path, clean, branch=None):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
@@ -491,9 +524,15 @@ def hg_update(module, path, clean):
         cmd.append('-C')
     else:
         cmd.append('-y')  # noninteractive
+
+    if branch:
+        cmd.extend(['-r', branch])
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
+        if branch is not None and u'abort: unknown revision' in result.stderr:
+            os.chdir(cwd)
+            return
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
         os.chdir(cwd)
