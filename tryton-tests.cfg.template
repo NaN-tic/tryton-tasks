@@ -1,0 +1,8 @@
+[PROJECT]
+projects_path = /home/USER/projectes/tryton
+trytond=%(projects_path)s/PROJECT/trytond
+proteus=%(projects_path)s/PROJECT/proteus
+nereid=%(projects_path)s/PROJECT/nereid_app
+output=/tmp/PROJECT
+add_timestamp=True
+

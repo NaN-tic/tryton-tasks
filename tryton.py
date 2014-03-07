@@ -111,6 +111,23 @@ def create_graph(module_list):
 
 
 @task()
+def update_post_move_sequence(database, fiscalyear, sequence,
+    host='localhost', port='5432',  user='angel', password='password'):
+    ''' Force update of post_move_sequence on fiscalyears '''
+    db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
+        password=password)
+
+    cursor = db.cursor()
+    cursor.execute(
+        "update account_fiscalyear set post_move_sequence = %s "
+        "where id = %s " % (fiscalyear, sequence))
+    cursor.execute(
+        "update account_period set post_move_sequence = null where "
+        "fiscalyear = %s" % (fiscalyear))
+    db.commit()
+    db.close()
+
+@task()
 def parent_compute(database, table, field, host='localhost', port='5432',
         user='angel', password='password'):
 
@@ -150,6 +167,10 @@ def parent_compute(database, table, field, host='localhost', port='5432',
 
 @task()
 def missing(database, install=False, show=True):
+    """
+    Checks which modules are missing according to the dependencies of the
+    modules installed in the database.
+    """
     set_context(database)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name,
@@ -178,7 +199,8 @@ def missing(database, install=False, show=True):
 
 
 @task()
-def forgotten(database, delete_module=False, show=True, unstable=True):
+def forgotten(database, delete=False, delete_installed=False,
+        show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
@@ -210,14 +232,17 @@ def forgotten(database, delete_module=False, show=True, unstable=True):
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
 
-    if delete_module and forgotten_uninstalled:
-        delete(database, forgotten_uninstalled)
+    if delete and forgotten_uninstalled:
+        delete_modules(database, forgotten_uninstalled)
+
+    if delete_installed and forgotten_installed:
+        delete_modules(database, forgotten_installed, True)
 
     return forgotten_uninstalled, forgotten_installed
 
 
 @task()
-def lost(database, delete_module=False, show=True):
+def lost(database, delete=False, show=True):
     """
     Return a list of modules that exists in the DB but not in filesystem
     """
@@ -247,8 +272,8 @@ def lost(database, delete_module=False, show=True):
             print "  - " + "\n  - ".join(lost_installed)
             print ""
 
-    if delete_module and lost_uninstalled:
-        delete(database, lost_uninstalled)
+    if delete and lost_uninstalled:
+        delete_modules(database, lost_uninstalled)
 
     return lost_uninstalled, lost_installed
 
@@ -293,7 +318,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
 
 
 @task()
-def delete(database, modules):
+def delete_modules(database, modules, force=False):
     """
     Delete the supplied modules (separated by coma) from ir_module_module_
     table of database.
@@ -313,9 +338,14 @@ def delete(database, modules):
                             ir_module.name.in_(tuple(modules)))))
     installed_modules = [name for (name,) in cursor.fetchall()]
     if installed_modules:
-        print (t.red("Some supplied modules are installed: ") +
-            ", ".join(installed_modules))
-        return
+        if not force:
+            print (t.red("Some supplied modules are installed: ") +
+                ", ".join(installed_modules))
+            return
+        if force:
+            print (t.red("Deleting installed supplied modules: ") +
+                ", ".join(installed_modules))
+
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     cursor.commit()
