@@ -2,10 +2,11 @@ import bootstrap
 import utils
 from .scm import *
 import patch
-#import nantic
 import tryton
 from invoke import Collection
 import reviewboard
+import tests
+
 
 
 ns = Collection()
@@ -27,7 +28,6 @@ ns.add_task(add2virtualenv)
 ns.add_collection(Collection.from_module(bootstrap), 'bs')
 ns.add_collection(Collection.from_module(utils))
 ns.add_collection(Collection.from_module(patch))
-#ns.add_collection(Collection.from_module(nantic))
 ns.add_collection(Collection.from_module(tryton))
 ns.add_collection(Collection.from_module(tests))
 ns.add_collection(Collection.from_module(reviewboard), 'rb')
