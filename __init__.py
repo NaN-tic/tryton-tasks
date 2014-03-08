@@ -7,6 +7,7 @@ import patch
 import tryton
 import tests
 from invoke import Collection
+import reviewboard
 
 
 ns = Collection()
@@ -31,3 +32,4 @@ ns.add_collection(Collection.from_module(patch))
 ns.add_collection(Collection.from_module(tryton))
 #ns.add_collection(Collection.from_module(bitbucket))
 ns.add_collection(Collection.from_module(tests))
+ns.add_collection(Collection.from_module(reviewboard), 'rb')
