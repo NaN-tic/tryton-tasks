@@ -5,6 +5,7 @@ import patch
 #import nantic
 import tryton
 from invoke import Collection
+import reviewboard
 
 
 ns = Collection()
@@ -29,3 +30,4 @@ ns.add_collection(Collection.from_module(patch))
 #ns.add_collection(Collection.from_module(nantic))
 ns.add_collection(Collection.from_module(tryton))
 ns.add_collection(Collection.from_module(tests))
+ns.add_collection(Collection.from_module(reviewboard), 'rb')
