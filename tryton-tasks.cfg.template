@@ -1,0 +1,5 @@
+[reviewboard]
+server = http://git.nan-tic.com/reviews/
+user = angel
+password = 
+
