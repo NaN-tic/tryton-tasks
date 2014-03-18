@@ -34,6 +34,11 @@ except ImportError:
     ir_module = None
     ir_model_data = None
 
+try:
+    from trytond.config import CONFIG
+except ImportError, e:
+    print >> sys.stderr, "trytond importation error: ", e
+
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
 if os.path.isdir(trytond_path):
@@ -57,7 +62,8 @@ def check_database(database, connection_params):
     return True
 
 
-def set_context(database_name):
+def set_context(database_name, config_file=None):
+    CONFIG.update_etc(config_file)
     if not Transaction().cursor:
         Transaction().start(database_name, 0)
     else:
@@ -166,12 +172,12 @@ def parent_compute(database, table, field, host='localhost', port='5432',
 
 
 @task()
-def missing(database, install=False, show=True):
+def missing(database, config_file=None, install=False, show=True):
     """
     Checks which modules are missing according to the dependencies of the
     modules installed in the database.
     """
-    set_context(database)
+    set_context(database, config_file)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name,
                         where=ir_module.state.in_(('installed', 'to install',
@@ -193,18 +199,19 @@ def missing(database, install=False, show=True):
         sys.stdin.read(1)
 
     if install:
-        run('trytond/bin/trytond -d %s -i %s' % (database, miss))
+        configfile = config_file and "-c %s" % config_file or ""
+        run('trytond/bin/trytond -d %s %s -i %s' % (database, configfile, miss))
 
     return miss
 
 
 @task()
-def forgotten(database, delete=False, delete_installed=False,
+def forgotten(database, config_file=None, delete=False, delete_installed=False,
         show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files
     """
-    set_context(database)
+    set_context(database, config_file)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
     db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
@@ -242,11 +249,11 @@ def forgotten(database, delete=False, delete_installed=False,
 
 
 @task()
-def lost(database, delete=False, show=True):
+def lost(database, config_file=None, delete=False, show=True):
     """
     Return a list of modules that exists in the DB but not in filesystem
     """
-    set_context(database)
+    set_context(database, config_file)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
     db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
@@ -318,7 +325,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
 
 
 @task()
-def delete_modules(database, modules, force=False):
+def delete_modules(database, modules, config_file=None, force=False):
     """
     Delete the supplied modules (separated by coma) from ir_module_module_
     table of database.
@@ -330,7 +337,7 @@ def delete_modules(database, modules, force=False):
         modules = modules.split(',')
 
     print t.bold("delete: ") + ", ".join(modules)
-    set_context(database)
+    set_context(database, config_file)
     cursor = Transaction().cursor
     cursor.execute(*ir_module.select(ir_module.name,
                         where=(ir_module.state.in_(('installed', 'to install',
