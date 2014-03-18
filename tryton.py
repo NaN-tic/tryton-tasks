@@ -298,7 +298,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
     if modules == 'forgotten':
         unused, modules = forgotten(database, show=False)
     else:
-        modules = modules.split(',')
+        modules = modules.replace(" ", "").split(',')
     if not modules:
         return
 
@@ -314,6 +314,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
     Module = Model.get('ir.module.module')
     modules_to_uninstall = Module.find([
             ('name', 'in', modules),
+            ('state', '=', 'installed')
             ])
     Module.uninstall([m.id for m in modules_to_uninstall],
         config.context)
