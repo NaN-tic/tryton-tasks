@@ -4,12 +4,27 @@ from invoke import task, run
 from .scm import module_diff
 from .config import get_config
 import ConfigParser
+import os
+import tempfile
 
 
 try:
     from rbtools.api.client import RBClient
 except:
     pass
+
+
+def make_tempfile(content=None):
+    """
+    Creates a temporary file and returns the path. The path is stored
+    in an array for later cleanup.
+    """
+    fd, tmpfile = tempfile.mkstemp()
+
+    if content:
+        os.write(fd, content)
+    os.close(fd)
+    return tmpfile
 
 
 def get_root():
@@ -25,7 +40,11 @@ def get_repository():
     return repository
 
 @task
-def review(module, summary, description, bug, review=None):
+def create(module, summary, description, bug, review=None):
+    """
+        Create  or update review
+    """
+
     diff, base_diff = module_diff(module)
     root = get_root()
     if review:
@@ -44,4 +63,49 @@ def review(module, summary, description, bug, review=None):
     draft = draft.update(target_people=user.username)
     draft.update(public=True)
 
-def
+@task
+def list():
+    root = get_root()
+    requests = root.get_review_requests()
+    for request in requests:
+        print "%(id)s - %(summary)s Updated:%(last_updated)s" % request
+        for bug in request['bugs_closed']:
+            print "Bug: %s" % bug
+        print "%(description)s\n" % request
+
+def request_by_bug(bug):
+    root = get_root()
+    requests = root.get_review_requests()
+    res = []
+    for request in requests:
+        if bug in request['bugs_closed']:
+            res.append(request)
+    return res
+
+def request_by_id(review_id):
+    root = get_root()
+    review_request = root.get_review_request(review_request_id=review_id)
+    return [review_request]
+
+@task
+def fetch(module, bug=None, review=None):
+    """
+        Download and apply patch.
+    """
+
+    requests = []
+    if bug:
+        requests = request_by_bug(bug)
+    if review:
+        requests += request_by_id(review)
+
+    for request in requests:
+        diffs = request.get_diffs()
+        diff_revision = diffs.total_results
+        diff = diffs.get_item(diff_revision)
+        diff_body = diff.get_patch().data
+        tmp_patch_file = make_tempfile(diff_body)
+        run('cd %s; patch -p1 -m < %s' %(module, tmp_patch_file))
+
+
+

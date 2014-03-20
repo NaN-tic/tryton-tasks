@@ -357,8 +357,11 @@ def git_base_diff(path):
 
 def hg_base_diff(path):
     files = " ".join(hg_stat(path))
+    branch = run('cd %s; hg branch'%path, hide=True)
+    branch= branch.stdout.split('\n')[0]
     diff = run( 'cd %s; hg diff --git %s' % (path, files), hide=True)
-    base_diff = run( 'cd %s; hg diff --git -r null:-1 %s' % (path,files), hide=True)
+    base_diff = run( 'cd %s; hg diff --git -r null:%s %s' %
+        (path, branch, files), hide=True)
     return diff.stdout, base_diff.stdout
 
 @task
