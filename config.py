@@ -1,6 +1,6 @@
 import os
 import ConfigParser
-from invoke import task
+from invoke import task, run
 from .utils import read_config_file, get_config_files
 
 
@@ -38,3 +38,22 @@ def set_branch(branch, config=None):
         Config.write(f_d)
         f_d.close()
 
+
+@task
+def add_module(config, path):
+    """ Add module to specified config file """
+    Config = read_config_file(config, type='all', unstable=True)
+    module = os.path.basename(path)
+    url = run('hg paths default').stdout.split('\n')[0]
+    branch = run('hg branch').stdout.split('\n')[0]
+    cfile = open(config, 'w+')
+    if Config.has_section(module):
+        print "This module already Exists"
+
+    Config.add_section(module)
+    Config.set(module, 'branch', branch)
+    Config.set(module, 'repo', 'hg')
+    Config.set(module, 'url', url)
+    Config.set(module, 'path', './trytond/trytond/modules')
+    Config.write(cfile)
+    cfile.close()
