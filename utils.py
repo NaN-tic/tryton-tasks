@@ -53,6 +53,17 @@ def _check_required_file(filename, directory_name, directory_path):
                 directory_name, directory_path))
 
 
+def get_config_files():
+    """ Return all config files paths """
+    config_files = []
+    for r, d, f in os.walk("./config"):
+        for files in f:
+            if not files.endswith(".cfg"):
+                continue
+            config_files.append(os.path.join(r, files))
+    return config_files
+
+
 def read_config_file(config_file=None, type='repos', unstable=True):
     assert type in ('repos', 'patches', 'all'), "Invalid 'type' param"
 
