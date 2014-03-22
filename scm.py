@@ -355,10 +355,18 @@ def stat(module):
 def git_base_diff(path):
     print "git_base_diff not implemented yet"
 
+def get_branch(path):
+    branch = run('cd %s; hg branch'%path, hide=True)
+    branch= branch.stdout.split('\n')[0]
+    return branch
+
+
 def hg_base_diff(path):
     files = " ".join(hg_stat(path))
-    diff = run( 'cd %s; hg diff --git %s' % (path, files), hide=True)
-    base_diff = run( 'cd %s; hg diff --git -r null:-1 %s' % (path,files), hide=True)
+    branch = get_branch(path)
+    diff = run( 'cd %s; hg diff --git %s' % (path, files, branch), hide=True)
+    base_diff = run( 'cd %s; hg diff --git -r null:%s  %s' % (path, branch,
+        files), hide=True)
     return diff.stdout, base_diff.stdout
 
 @task
@@ -370,12 +378,14 @@ def module_diff(module, base=False):
         repo = get_repo(section, Config, 'base_diff')
         return repo['function'](repo['path'])
 
+def git_diff(module, path, verbose, rev1, rev2):
+    print "Git diff not implented"
 
 def hg_diff(module, path, verbose, rev1, rev2):
     t = Terminal()
     try:
         msg = []
-        path_repo = os.path.join(path, module)
+        path_repo = path
         if not os.path.exists(path_repo):
             print >> sys.stderr, (t.red("Missing repositori:")
                 + t.bold(path_repo))
@@ -389,6 +399,8 @@ def hg_diff(module, path, verbose, rev1, rev2):
                 print "\n".join(msg)
             return
         repo = hgapi.Repo(path_repo)
+        if rev2 is None:
+            rev2 = get_branch(path_repo)
         msg = []
         for diff in repo.hg_diff(rev1, rev2):
             if diff:
@@ -412,12 +424,13 @@ def hg_diff(module, path, verbose, rev1, rev2):
 
 
 @task
-def diff(config=None, unstable=True, verbose=True, rev1='default', rev2=None):
+def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
-        path = Config.get(section, 'path')
-        p = Process(target=hg_diff, args=(section, path, verbose, rev1, rev2))
+        repo = get_repo(section, Config, 'diff')
+        p = Process(target=repo['function'], args=(section, repo['path'],
+                verbose, rev1, rev2))
         p.start()
         processes.append(p)
         wait_processes(processes)
