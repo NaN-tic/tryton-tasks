@@ -52,7 +52,8 @@ def create(module, summary, description, bug, review=None):
     else:
         review_request = root.get_review_requests().create(
             repository=get_repository())
-    review_request.get_diffs().upload_diff(diff, base_diff)
+    review_request.get_diffs().upload_diff(diff.encode('utf-8'),
+        base_diff.encode('utf-8'))
     draft = review_request.get_draft()
     draft.update(
         summary=summary,
@@ -63,8 +64,12 @@ def create(module, summary, description, bug, review=None):
     draft = draft.update(target_people=user.username)
     draft.update(public=True)
 
+
 @task
 def list():
+    """
+    List your reviews in Review Board
+    """
     root = get_root()
     requests = root.get_review_requests()
     for request in requests:
