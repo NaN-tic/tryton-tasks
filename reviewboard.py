@@ -45,7 +45,7 @@ def create(module, summary, description, bug, review=None):
         Create  or update review
     """
 
-    diff, base_diff = module_diff(module)
+    diff, base_diff = module_diff(module, show=False)
     root = get_root()
     if review:
         review_request = root.get_review_request(review_request_id=review)

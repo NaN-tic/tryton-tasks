@@ -364,14 +364,24 @@ def hg_base_diff(path):
         (path, branch, files), hide=True)
     return diff.stdout, base_diff.stdout
 
+
 @task
-def module_diff(module, base=False):
+def module_diff(module, base=False, show=True):
     Config = read_config_file()
     for section in Config.sections():
         if section != module:
             continue
         repo = get_repo(section, Config, 'base_diff')
-        return repo['function'](repo['path'])
+        diff, base_diff = repo['function'](repo['path'])
+        if show:
+            print t.bold(module + " module diff:")
+            if diff:
+                print diff
+            print t.bold(module + " module base diff:")
+            if base_diff:
+                print base_diff
+            print ""
+        return diff, base_diff
 
 
 def hg_diff(module, path, verbose, rev1, rev2):
