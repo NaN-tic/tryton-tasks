@@ -23,7 +23,8 @@ class Issue(ActiveResource):
 def unapply(issue, fdir='features'):
     Config = read_config_file(None, type='patches')
     for section in Config.sections():
-        if section[1:] == issue:
+        current_issue = section if issue[0] == 'i' else section[1:]
+        if current_issue == issue:
             url = Config.get(section, 'url')
             diff_file = url.split('/')[-1]
             run('patch -p0 -R -i %s' % (fdir + "/" + diff_file), echo=True)
@@ -34,11 +35,30 @@ def unapply(issue, fdir='features'):
 def apply(issue, fdir='features'):
     Config = read_config_file(None, type='patches')
     for section in Config.sections():
-        if section[1:] == issue:
+        current_issue = section if issue[0] == 'i' else section[1:]
+        if current_issue == issue:
             url = Config.get(section, 'url')
             diff_file = url.split('/')[-1]
             run('patch -p0 -i %s' % (fdir + "/" + diff_file), echo=True)
             break
+
+
+@task
+def unapply_all(unstable=True, fdir='features'):
+    Config = read_config_file(None, type='patches', unstable=unstable)
+    for section in Config.sections():
+        url = Config.get(section, 'url')
+        diff_file = url.split('/')[-1]
+        run('patch -p0 -R -i %s' % (fdir + "/" + diff_file), echo=True)
+
+
+@task
+def apply_all(unstable=True, fdir='features'):
+    Config = read_config_file(None, type='patches', unstable=unstable)
+    for section in Config.sections():
+        url = Config.get(section, 'url')
+        diff_file = url.split('/')[-1]
+        run('patch -p0 -i %s' % (fdir + "/" + diff_file), echo=True)
 
 
 @task
