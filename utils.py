@@ -228,9 +228,41 @@ def export_translations(database, modules, langs=None,
                 % (module.name, language.code))
 
 
+@task
+def account_reconcile(database, lines=2, months=6):
+
+    pref = config.set_trytond(database_type='postgresql',
+        database_name=database)
+
+    Module = Model.get('ir.module.module')
+    Company = Model.get('company.company')
+
+    modules = Module.find([
+                ('name', '=', 'account_reconcile'),
+                ])
+    if not modules:
+        print t.bold('Module account_reconcile not found')
+        return
+    reconcile, = modules
+    if reconcile.state != 'installed':
+        Module.install([reconcile.id], pref.context)
+        Wizard('ir.module.module.install_upgrade').execute('upgrade')
+
+    for company in Company.find([]):
+        print t.bold('Start reconcile for company %s (Lines %s, Months %s)'
+            % (company.rec_name, lines, months))
+        with pref.set_context({'company': company.id}):
+            reconcile = Wizard('account.move_reconcile')
+            reconcile.form.max_lines = str(lines)
+            reconcile.form.max_months = months
+            reconcile.form.start_date = None
+            reconcile.form.end_date = None
+            reconcile.execute('reconcile')
+
+
 def _check_database(database, host=None, port=None, dbuser=None,
         dbpassword=None):
-    connection_params = { 'dbname': database }
+    connection_params = {'dbname': database}
     if host:
         connection_params['host'] = host
     if port:
