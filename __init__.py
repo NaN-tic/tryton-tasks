@@ -7,6 +7,7 @@ from invoke import Collection
 import reviewboard
 import tests
 import config
+import gal
 
 
 ns = Collection()
@@ -32,3 +33,4 @@ ns.add_collection(Collection.from_module(tryton))
 ns.add_collection(Collection.from_module(tests))
 ns.add_collection(Collection.from_module(reviewboard), 'rb')
 ns.add_collection(Collection.from_module(config))
+ns.add_collection(Collection.from_module(gal))
