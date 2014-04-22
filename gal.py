@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
-import logging
 import time
 import subprocess
 import hgapi
-from invoke import task, run, Task
+from invoke import task
 
-from .utils import t, read_config_file, NO_MODULE_REPOS
+from .utils import t
 
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
@@ -20,40 +19,6 @@ if os.path.isdir(proteus_directory):
     sys.path.insert(0, proteus_directory)
 
 from proteus import config as pconfig, Model, Wizard
-
-#def gal_action2(action, kwargs):
-    #msg = ', '.join(['%s=%s' % (k, v) for k, v in kwargs.iteritems()])
-    #msg = '%s(%s)' % (action, msg)
-    #gal_repo().hg_commit(msg)
-#
-#def gal(function):
-    #def inner(*args, **kwargs):
-        #res = function((args, kwargs), *args, **kwargs)
-        #gal_action(function.func_name, kwargs)
-        #return res
-    #return inner
-#
-#class GalTask(Task):
-#
-    #def __init__(self, args, **kwargs):
-        #super(GalTask, self).__init__(args, kwargs)
-#
-    #def __call__(self, *args, **kwargs):
-        #tmp = self.body
-        #self.body = self.gal
-        #super(GalTask, self).__call__(args, kwargs)
-        #self.body = tmp
-#
-#def gal_task(function):
-    #def inner(*args, **kwargs):
-        ##res = function((args, kwargs), *args, **kwargs)
-        #print "GAL: ", kwargs
-        #res = function(*args, **kwargs)
-        #gal_action(function.func_name, kwargs)
-        #return res
-    #task = GalTask(function)
-    #task.gal = inner
-    #return task
 
 
 def check_output(*args):
@@ -131,6 +96,37 @@ def replay(commit=None):
     for revision in repo.revisions(slice(0, 'tip')):
         # TODO: This is not safe. Run with care.
         eval(revision.desc)
+
+def upgrade_modules(modules=None, all=False):
+    '''
+    Function get from tryton_demo.py in tryton-tools repo:
+    http://hg.tryton.org/tryton-tools
+    '''
+    assert all or modules
+
+    Module = Model.get('ir.module.module')
+    if all:
+        modules = Module.find([
+                ('state', '=', 'installed'),
+                ])
+    else:
+        modules = Module.find([
+                ('name', 'in', modules),
+                ('state', '=', 'installed'),
+                ])
+
+    Module.upgrade([x.id for x in modules], config.context)
+    Wizard('ir.module.module.install_upgrade').execute('upgrade')
+
+    ConfigWizardItem = Model.get('ir.module.module.config_wizard.item')
+    for item in ConfigWizardItem.find([('state', '!=', 'done')]):
+        item.state = 'done'
+        item.save()
+
+    upgraded_modules = [x.name for x in Module.find([
+                ('state', '=', 'to_upgrade'),
+                ])]
+    return upgraded_modules
 
 @task
 def set_active_languages(lang_codes=None):
