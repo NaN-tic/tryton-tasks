@@ -20,7 +20,10 @@ if os.path.isdir(directory):
 if os.path.isdir(proteus_directory):
     sys.path.insert(0, proteus_directory)
 
-from proteus import config as pconfig, Model, Wizard
+try:
+    from proteus import config as pconfig, Model, Wizard
+except:
+    pass
 
 
 def check_output(*args):
