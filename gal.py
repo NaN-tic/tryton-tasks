@@ -164,6 +164,27 @@ def set(name):
     dump(name)
     gal_commit(do_dump=False)
 
+@task
+def build(filename=None):
+    """
+    Creates a database with the commands found in the specified filename.
+
+    If no filename is given it will search for a file named 'Galfile'
+    """
+    if filename is None:
+        filename = 'Galfile'
+    print "Building %s..." % filename
+    with open(filename, 'r') as f:
+        for line in f:
+            if line:
+                print t.bold(line)
+                eval(line)
+
+
+#
+# Extension commands
+#
+
 def upgrade_modules(modules=None, all=False):
     '''
     Function get from tryton_demo.py in tryton-tools repo:
