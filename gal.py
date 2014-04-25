@@ -566,6 +566,12 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
 
 @task
 def create_fiscal_year(company, year=None):
+    """
+    It creates a new fiscal year with monthly periods and the appropriate
+    invoice sequences for the given company.
+
+    If no year specified the current year is used.
+    """
     gal_action('create_fiscal_year', company=company, year=None)
     restore()
     connect_database()
