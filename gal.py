@@ -322,15 +322,15 @@ def create_party(name, street=None, zip=None, city=None,
     return party
 
 @task
-def create_parties():
+def create_parties(count=4000):
     """
-    Create 4000 parties taking random information from the following files:
+    Create 'count' parties taking random information from the following files:
     - companies.txt
     - streets.txt
     - names.txt
     - surnames.txt
     """
-    gal_action('create_parties')
+    gal_action('create_parties', count=count)
     restore()
     connect_database()
 
@@ -343,7 +343,7 @@ def create_parties():
     with open('tasks/surnames.txt', 'r') as f:
         surnames = f.read().split('\n')
     phones = ['93', '972', '973', '977', '6', '900']
-    for x in xrange(4000):
+    for x in xrange(count):
         company = random.choice(companies)
         name = random.choice(names)
         surname1 = random.choice(surnames)
@@ -418,27 +418,23 @@ def create_product(name, code="", template=None, cost_price=None,
     return product
 
 @task
-def create_products():
+def create_products(count=400):
     """
-    Creates the 400 first products from the icecat database in catalog.xml.
+    Creates the 'count' first products from the icecat database in catalog.xml.
     """
-    gal_action('create_parties')
+    gal_action('create_products', count=count)
     restore()
     connect_database()
 
     import xmltodict
     with open('tasks/catalog.xml', 'r') as f:
         xml = xmltodict.parse(f.read())
-    count = 0
+    i = 0
     for item in xml.get('ICECAT-interface').get('files.index').get('file'):
         name = item.get('@Model_Name')
         create_product(name)
-        count += 1
-        if count >= 400:
+        i += 1
+        if i >= count:
             break
 
     gal_commit()
-
-
-# TODO: Add get and set functions to allow dumping a database with a given name
-# and adding to the repository a snapshot of a given database
