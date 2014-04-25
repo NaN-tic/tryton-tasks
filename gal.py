@@ -6,6 +6,8 @@ import subprocess
 import hgapi
 import random
 import json
+import datetime
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from invoke import task
 
@@ -25,6 +27,8 @@ try:
     from proteus import config as pconfig, Model, Wizard
 except:
     pass
+
+TODAY = datetime.date.today()
 
 commits_enabled = True
 
@@ -560,4 +564,74 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
 
     gal_commit()
 
+@task
+def create_fiscal_year(company, year=None):
+    gal_action('create_fiscal_year', company=company, year=None)
+    restore()
+    connect_database()
+
+    FiscalYear = Model.get('account.fiscalyear')
+    Module = Model.get('ir.module.module')
+    Sequence = Model.get('ir.sequence')
+    SequenceStrict = Model.get('ir.sequence.strict')
+    Company = Model.get('company.company')
+
+    if year is None:
+        year = TODAY.year
+
+    company, = Company.find([('party.name', '=', company)])
+
+    installed_modules = [m.name
+        for m in Module.find([('state', '=', 'installed')])]
+
+    post_move_sequence = Sequence.find([
+            ('name', '=', '%s' % year),
+            ('code', '=', 'account_move'),
+            ('company', '=', company.id),
+            ])
+    if post_move_sequence:
+        post_move_sequence = post_move_sequence[0]
+    else:
+        post_move_sequence = Sequence(name='%s' % year,
+            code='account.move', company=company)
+        post_move_sequence.save()
+
+    fiscalyear = FiscalYear.find([
+            ('name', '=', '%s' % year),
+            ('company', '=', company.id),
+            ])
+    if fiscalyear:
+        fiscalyear = fiscalyear[0]
+    else:
+        fiscalyear = FiscalYear(name='%s' % year)
+        fiscalyear.start_date = TODAY + relativedelta(month=1, day=1)
+        fiscalyear.end_date = TODAY + relativedelta(month=12, day=31)
+        fiscalyear.company = company
+        fiscalyear.post_move_sequence = post_move_sequence
+        if 'account_invoice' in installed_modules:
+            for attr, name in (('out_invoice_sequence', 'Customer Invoice'),
+                    ('in_invoice_sequence', 'Supplier Invoice'),
+                    ('out_credit_note_sequence', 'Customer Credit Note'),
+                    ('in_credit_note_sequence', 'Supplier Credit Note')):
+                sequence = SequenceStrict.find([
+                        ('name', '=', '%s %s' % (name, year)),
+                        ('code', '=', 'account.invoice'),
+                        ('company', '=', company.id),
+                        ])
+                if sequence:
+                    sequence = sequence[0]
+                else:
+                    sequence = SequenceStrict(
+                        name='%s %s' % (name, year),
+                        code='account.invoice',
+                        company=company)
+                    sequence.save()
+                setattr(fiscalyear, attr, sequence)
+        fiscalyear.save()
+
+    if not fiscalyear.periods:
+        FiscalYear.create_period([fiscalyear.id], config.context)
+
+    gal_commit()
+    return fiscalyear
 
