@@ -110,6 +110,22 @@ def replay(commit=None):
         # TODO: This is not safe. Run with care.
         eval(revision.desc)
 
+@task
+def get(name):
+    """
+    Restores current gal database with the given database name
+    """
+    restore(name)
+
+@task
+def set(name):
+    """
+    Saves the given database as current gal database
+    """
+    gal_action('set')
+    dump(name)
+    gal_commit()
+
 def upgrade_modules(modules=None, all=False):
     '''
     Function get from tryton_demo.py in tryton-tools repo:
