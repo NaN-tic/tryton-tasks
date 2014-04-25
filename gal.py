@@ -276,8 +276,7 @@ def install_modules(modules):
 
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
-        address_name=None,
-        account_payable=None, account_receivable=None):
+        address_name=None, account_payable=None, account_receivable=None):
     Address = Model.get('party.address')
     ContactMechanism = Model.get('party.contact_mechanism')
     Country = Model.get('country.country')
@@ -438,3 +437,127 @@ def create_products(count=400):
             break
 
     gal_commit()
+
+@task
+def create_company(name, street=None, zip=None, city=None,
+        subdivision_code=None, country_code='ES', currency_code='EUR',
+        phone=None, website=None):
+    '''
+    Creates a company in current gal database.
+
+    Based on tryton_demo.py in tryton-tools repo:
+    http://hg.tryton.org/tryton-tools
+    '''
+    gal_action('create_company', name=name, street=street, zip=zip, city=city,
+        subdivision_code=subdivision_code, country_code=country_code,
+        currency_code=currency_code, phone=phone, website=website)
+    restore()
+    connect_database()
+
+    Company = Model.get('company.company')
+    Currency = Model.get('currency.currency')
+
+    party = create_party(name, street=street, zip=zip, city=city,
+        subdivision_code=subdivision_code, country_code=country_code,
+        phone=phone, website=website)
+
+    companies = Company.find([('party', '=', party.id)])
+    if companies:
+        return companies[0]
+
+    currency, = Currency.find([('code', '=', currency_code)])
+
+    company_config = Wizard('company.company.config')
+    company_config.execute('company')
+    company = company_config.form
+    company.party = party
+    company.currency = currency
+    company_config.execute('add')
+
+    # Reload context
+    User = Model.get('res.user')
+    config._context = User.get_preferences(True, config.context)
+
+    company, = Company.find([('party', '=', party.id)])
+
+    gal_commit()
+    return company
+
+@task
+def create_account_chart(company, module=None, fs_id=None, digits=None):
+    """
+    Creates the chart of accounts defined by module and fs_id for the given
+    company.
+
+    If no 'module' and 'fs_id' are given, the last template chart created is
+    used.
+    """
+    gal_action('create_account_chart', company=company, module=module,
+        fs_id=fs_id, digits=digits)
+    restore()
+    connect_database()
+
+    AccountTemplate = Model.get('account.account.template')
+    Account = Model.get('account.account')
+    Company = Model.get('company.company')
+    ModelData = Model.get('ir.model.data')
+
+    root_accounts = Account.find([('parent', '=', None)])
+    if root_accounts:
+        return
+
+    if module and fs_id:
+        data = ModelData.find([
+                ('module', '=', module),
+                ('fs_id', '=', fs_id),
+                ], limit=1)
+
+        assert len(data) == 1, ('Unexpected num of root templates '
+            'with name "%s": %s' % (module, fs_id))
+        template = data[0].db_id
+        template = AccountTemplate(template)
+    else:
+        template, = AccountTemplate.find([('parent', '=', None)],
+            order=[('id', 'DESC')], limit=1)
+
+    company, = Company.find([
+            ('party.name', '=', company),
+            ])
+
+    create_chart = Wizard('account.create_chart')
+    create_chart.execute('account')
+    create_chart.form.account_template = template
+    create_chart.form.company = company
+    if digits:
+        create_chart.form.account_code_digits = digits
+    create_chart.execute('create_account')
+
+    receivable = Account.find([
+            ('kind', '=', 'receivable'),
+            ('company', '=', company.id),
+            ])
+    receivable = receivable[0]
+    payable = Account.find([
+            ('kind', '=', 'payable'),
+            ('company', '=', company.id),
+            ])[0]
+    #revenue, = Account.find([
+    #        ('kind', '=', 'revenue'),
+    #        ('company', '=', company.id),
+    #        ])
+    #expense, = Account.find([
+    #        ('kind', '=', 'expense'),
+    #        ('company', '=', company.id),
+    #        ])
+    #cash, = Account.find([
+    #        ('kind', '=', 'other'),
+    #        ('company', '=', company.id),
+    #        ('name', '=', 'Main Cash'),
+    #        ])
+    create_chart.form.account_receivable = receivable
+    create_chart.form.account_payable = payable
+    create_chart.execute('create_properties')
+
+    gal_commit()
+
+
