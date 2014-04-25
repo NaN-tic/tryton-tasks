@@ -5,6 +5,7 @@ import time
 import subprocess
 import hgapi
 import random
+import json
 from decimal import Decimal
 from invoke import task
 
@@ -25,9 +26,10 @@ try:
 except:
     pass
 
+commits_enabled = True
 
 def check_output(*args):
-    t.bold(' '.join(args))
+    print t.bold(' '.join(args))
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     process.wait()
@@ -39,7 +41,7 @@ def connect_database(database=None, password='admin',
         database_type='postgresql'):
     if database is None:
         database = 'gal'
-    global config 
+    global config
     config = pconfig.set_trytond(database, database_type=database_type,
         password=password, config_file='trytond.conf')
 
@@ -51,13 +53,13 @@ def database_name():
 def dump(dbname=None):
     if dbname is None:
         dbname = 'gal'
-    from trytond import backend
-    Database = backend.get('Database')
-    Database(dbname).close()
+        from trytond import backend
+        Database = backend.get('Database')
+        Database(dbname).close()
     # Sleep to let connections close
     time.sleep(1)
     dump_file = 'gal.sql'
-    check_output('pg_dump', '-f', gal_path(dump_file), dbname)
+    print check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
 
 def restore(dbname=None):
@@ -77,10 +79,10 @@ def gal_path(path=None):
 def gal_repo():
     path = gal_path()
     if os.path.exists(path) and not os.path.isdir(path):
-        t.red('Error: gal file exists')
+        print >>sys.stderr, t.red('Error: gal file exists')
         sys.exit(1)
     if os.path.isdir(path) and not os.path.isdir(os.path.join(path, '.hg')):
-        t.red('Invalid gal repository')
+        print >>sys.stderr, t.red('Invalid gal repository')
         sys.exit(1)
     repo = hgapi.Repo(path)
     if not os.path.exists(path):
@@ -90,25 +92,57 @@ def gal_repo():
 
 def gal_action(action, **kwargs):
     global commit_msg
-    commit_msg = ', '.join(["%s='%s'" % (k, v) for k, v in kwargs.iteritems()])
-    commit_msg = '%s(%s)' % (action, commit_msg)
+    commit_msg = json.dumps((action, kwargs))
 
-def gal_commit():
-    dump()
+def gal_commit(do_dump=True):
+    if not commits_enabled:
+        return
+    if do_dump:
+        dump()
     gal_repo().hg_commit(commit_msg)
 
 @task
 def create(language=None, password=None):
+    """
+    Creates a new tryton database and stores it in the gal repository.
+    """
+    gal_repo()
     gal_action('create', language=language, password=password)
     connect_database()
     gal_commit()
 
 @task
-def replay(commit=None):
+def replay(name):
+    """
+    Executes all steps needed to create a database like the one in the gal
+    repository.
+    """
     repo = gal_repo()
+    print 'Actions to replay:'
+    has_set = False
     for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        if action == 'set':
+            has_set = True
+        print t.bold('%s(%s)' % (action, parameters))
+
+    print
+    if has_set:
+        print >>sys.stderr, t.red('It is not possible to replay tip '
+            'version because there is a set() operation in the list of '
+            'commands to execute')
+        sys.exit(1)
+
+    # Disable commits before replaying
+    commits_enabled = False
+    print 'Replaying actions:'
+    for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        print t.bold('%s(%s)' % (action, parameters))
         # TODO: This is not safe. Run with care.
-        eval(revision.desc)
+        eval('%s(%s)' % (action, parameters))
 
 @task
 def get(name):
@@ -124,7 +158,7 @@ def set(name):
     """
     gal_action('set')
     dump(name)
-    gal_commit()
+    gal_commit(do_dump=False)
 
 def upgrade_modules(modules=None, all=False):
     '''
@@ -159,6 +193,12 @@ def upgrade_modules(modules=None, all=False):
 
 @task
 def set_active_languages(lang_codes=None):
+    """
+    Sets the given languages (for example 'ca_ES,es_ES') as active languages
+    in the database.
+
+    If no languages are given 'ca_ES,es_ES' are used by default.
+    """
     gal_action('set_active_languages', lang_codes=lang_codes)
     restore()
     connect_database()
@@ -201,6 +241,9 @@ def set_active_languages(lang_codes=None):
 @task
 def install_modules(modules):
     '''
+    Installs the given modules (for example, 'party,product') to current gal
+    database.
+
     Function taken from tryton_demo.py in tryton-tools repo:
     http://hg.tryton.org/tryton-tools
     '''
@@ -280,6 +323,13 @@ def create_party(name, street=None, zip=None, city=None,
 
 @task
 def create_parties():
+    """
+    Create 4000 parties taking random information from the following files:
+    - companies.txt
+    - streets.txt
+    - names.txt
+    - surnames.txt
+    """
     gal_action('create_parties')
     restore()
     connect_database()
@@ -369,6 +419,9 @@ def create_product(name, code="", template=None, cost_price=None,
 
 @task
 def create_products():
+    """
+    Creates the 400 first products from the icecat database in catalog.xml.
+    """
     gal_action('create_parties')
     restore()
     connect_database()
