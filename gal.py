@@ -39,6 +39,8 @@ def check_output(*args):
     process.wait()
     data = process.stdout.read()
     data += process.stderr.read()
+    if process.returncode:
+        print t.red(data)
     return data
 
 def connect_database(database=None, password='admin',
@@ -70,9 +72,9 @@ def restore(dbname=None):
     if dbname is None:
         dbname = 'gal'
     dump_file = 'gal.sql'
-    print check_output('dropdb', dbname)
-    print check_output('createdb', dbname)
-    print check_output('psql', '-f', gal_path(dump_file), dbname)
+    check_output('dropdb', dbname)
+    check_output('createdb', dbname)
+    check_output('psql', '-f', gal_path(dump_file), dbname)
 
 def gal_path(path=None):
     res = 'gal'
