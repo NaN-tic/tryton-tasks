@@ -36,11 +36,12 @@ def check_output(*args):
     print t.bold(' '.join(args))
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
-    process.wait()
-    data = process.stdout.read()
-    data += process.stderr.read()
+    stdout, stderr = process.communicate()
+    data = stdout + stderr
     if process.returncode:
-        print t.red(data)
+        print stdout, t.red(stderr)
+    else:
+        print t.green('Ok')
     return data
 
 def connect_database(database=None, password='admin',
