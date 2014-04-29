@@ -387,6 +387,23 @@ def create_parties(count=4000):
 
     gal_commit()
 
+@task
+def create_product_categories(count=20):
+    """
+    Creates 'count' (20 by default) product categories.
+    """
+    gal_action('create_product_categories', count=count)
+    restore()
+    connect_database()
+
+    Category = Model.get('product.category')
+    for name in ('A', 'B', 'C', 'D', 'E'):
+        category = Category(name=name)
+        category.save()
+
+    gal_commit()
+
+
 def create_product(name, code="", template=None, cost_price=None,
         list_price=None, type='goods', unit=None, consumable=False):
 
@@ -394,8 +411,12 @@ def create_product(name, code="", template=None, cost_price=None,
     Product = Model.get('product.product')
     ProductTemplate = Model.get('product.template')
     Account = Model.get('account.account')
+    Category = Model.get('product.category')
     Company = Model.get('company.company')
     company = Company(1)
+
+    categories = Category.find([])
+    category = random.choice(categories)
 
     product = Product.find([('name', '=', name), ('code', '=', code)])
     if product:
@@ -418,6 +439,7 @@ def create_product(name, code="", template=None, cost_price=None,
         template.consumable = consumable
         template.list_price = Decimal(str(list_price))
         template.cost_price = Decimal(str(cost_price))
+        template.category = category
 
         if hasattr(template, 'account_expense'):
             expense = Account.find([
