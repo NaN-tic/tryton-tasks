@@ -45,12 +45,12 @@ def check_output(*args):
     return data
 
 def connect_database(database=None, password='admin',
-        database_type='postgresql'):
+        database_type='postgresql', language=None):
     if database is None:
         database = 'gal'
     global config
     config = pconfig.set_trytond(database, database_type=database_type,
-        password=password, config_file='trytond.conf')
+        password=password, language=language, config_file='trytond.conf')
 
 def database_name():
     import uuid
@@ -69,11 +69,16 @@ def dump(dbname=None):
     print check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
 
+def dropdb(dbname=None):
+    if dbname is None:
+        dbname = 'gal'
+    check_output('dropdb', dbname)
+
 def restore(dbname=None):
     if dbname is None:
         dbname = 'gal'
     dump_file = 'gal.sql'
-    check_output('dropdb', dbname)
+    dropdb(dbname)
     check_output('createdb', dbname)
     check_output('psql', '-f', gal_path(dump_file), dbname)
 
@@ -115,7 +120,8 @@ def create(language=None, password=None):
     """
     gal_repo()
     gal_action('create', language=language, password=password)
-    connect_database()
+    dropdb()
+    connect_database(language=language)
     gal_commit()
 
 @task
