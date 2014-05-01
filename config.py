@@ -3,6 +3,7 @@ import ConfigParser
 from invoke import task, run
 from .utils import read_config_file, get_config_files
 
+from collections import OrderedDict
 
 def get_config():
     """ Get config file for tasks module """
@@ -47,13 +48,14 @@ def add_module(config, path):
     url = run('hg paths default').stdout.split('\n')[0]
     branch = run('hg branch').stdout.split('\n')[0]
     cfile = open(config, 'w+')
-    if Config.has_section(module):
-        print "This module already Exists"
+    if not Config.has_section(module):
+        Config.add_section(module)
+        Config.set(module, 'branch', branch)
+        Config.set(module, 'repo', 'hg')
+        Config.set(module, 'url', url)
+        Config.set(module, 'path', './trytond/trytond/modules')
 
-    Config.add_section(module)
-    Config.set(module, 'branch', branch)
-    Config.set(module, 'repo', 'hg')
-    Config.set(module, 'url', url)
-    Config.set(module, 'path', './trytond/trytond/modules')
+
+    Config._sections = OrderedDict(sorted(Config._sections.iteritems(), key=lambda x: x[0]))
     Config.write(cfile)
     cfile.close()
