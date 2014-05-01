@@ -44,9 +44,9 @@ def set_branch(branch, config=None):
 def add_module(config, path):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
-    module = os.path.basename(path)
-    url = run('hg paths default').stdout.split('\n')[0]
-    branch = run('hg branch').stdout.split('\n')[0]
+    module = os.path.basename(path)    
+    url = run('cd %s; hg paths default'%(path)).stdout.split('\n')[0]
+    branch = run('cd %s;hg branch'%(path)).stdout.split('\n')[0]
     cfile = open(config, 'w+')
     if not Config.has_section(module):
         Config.add_section(module)
@@ -54,7 +54,6 @@ def add_module(config, path):
         Config.set(module, 'repo', 'hg')
         Config.set(module, 'url', url)
         Config.set(module, 'path', './trytond/trytond/modules')
-
 
     Config._sections = OrderedDict(sorted(Config._sections.iteritems(), key=lambda x: x[0]))
     Config.write(cfile)
