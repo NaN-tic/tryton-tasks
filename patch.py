@@ -22,9 +22,10 @@ class Issue(ActiveResource):
 @task
 def unapply(issue, fdir='features'):
     Config = read_config_file(None, type='patches')
+    if issue[0] == 'i':
+        issue = issue[1:]
     for section in Config.sections():
-        current_issue = section if issue[0] == 'i' else section[1:]
-        if current_issue == issue:
+        if section[0] == 'i' and section[1:] == issue or section == issue:
             url = Config.get(section, 'url')
             diff_file = url.split('/')[-1]
             run('patch -p0 -R -i %s' % (fdir + "/" + diff_file), echo=True)
@@ -34,9 +35,10 @@ def unapply(issue, fdir='features'):
 @task
 def apply(issue, fdir='features'):
     Config = read_config_file(None, type='patches')
+    if issue[0] == 'i':
+        issue = issue[1:]
     for section in Config.sections():
-        current_issue = section if issue[0] == 'i' else section[1:]
-        if current_issue == issue:
+        if section[0] == 'i' and section[1:] == issue or section == issue:
             url = Config.get(section, 'url')
             diff_file = url.split('/')[-1]
             run('patch -p0 -i %s' % (fdir + "/" + diff_file), echo=True)
