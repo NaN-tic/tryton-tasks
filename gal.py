@@ -885,7 +885,9 @@ def process_purchases():
 @task
 def create_inventory(maxquantity=1000):
     """
-    It randomly makes an inventory of all existing products.
+    It randomly makes an inventory of 80% of existing products.
+
+    The remaining 20% is left with existing stock (usually 0).
 
     A random value between 0 and maxquantity (1000 by default) will be used.
     """
@@ -903,10 +905,13 @@ def create_inventory(maxquantity=1000):
     inventory = Inventory()
     inventory.location = location
     inventory.save()
-    for product in Product.find([
-                ('type', '=', 'goods'),
-                ('consumable', '=', False),
-                ]):
+    products = Product.find([
+            ('type', '=', 'goods'),
+            ('consumable', '=', False),
+            ])
+    products = random.sample(products, int(0.8 * len(products)))
+
+    for product in products:
         inventory_line = InventoryLine()
         inventory.lines.append(inventory_line)
         inventory_line.product = product
