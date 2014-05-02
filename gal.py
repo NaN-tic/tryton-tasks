@@ -881,3 +881,38 @@ def process_purchases():
     Purchase.confirm([x.id for x in purchases], config.context)
 
     gal_commit()
+
+@task
+def create_inventory(maxquantity=1000):
+    """
+    It randomly makes an inventory of all existing products.
+
+    A random value between 0 and maxquantity (1000 by default) will be used.
+    """
+    gal_action('create_inventory', maxquantity=maxquantity)
+    restore()
+    connect_database()
+
+    Inventory = Model.get('stock.inventory')
+    InventoryLine = Model.get('stock.inventory.line')
+    Location = Model.get('stock.location')
+    Product = Model.get('product.product')
+
+    location = Location.find([('type', '=', 'warehouse')])[0].storage_location
+
+    inventory = Inventory()
+    inventory.location = location
+    inventory.save()
+    for product in Product.find([
+                ('type', '=', 'goods'),
+                ('consumable', '=', False),
+                ]):
+        inventory_line = InventoryLine()
+        inventory.lines.append(inventory_line)
+        inventory_line.product = product
+        inventory_line.quantity = random.randrange(maxquantity)
+        inventory_line.expected_quantity = 0.0
+    inventory.save()
+    Inventory.confirm([inventory.id], config.context)
+
+    gal_commit()
