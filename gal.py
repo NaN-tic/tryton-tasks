@@ -45,7 +45,7 @@ def check_output(*args):
     return data
 
 def connect_database(database=None, password='admin',
-        database_type='postgresql', language=None):
+        database_type='postgresql', language='en_US'):
     if database is None:
         database = 'gal'
     global config
@@ -350,6 +350,13 @@ def create_party(name, street=None, zip=None, city=None,
         party.account_payable = account_payable
     if account_receivable:
         party.account_receivable = account_receivable
+    if hasattr(party, 'customer_payment_term'):
+        Term = Model.get('account.invoice.payment_term')
+        terms = Term.find([])
+        if terms:
+            term = random.choice(terms)
+            party.customer_payment_term = term
+            party.supplier_payment_term = term
 
     party.save()
     return party
@@ -422,7 +429,9 @@ def create_product(name, code="", template=None, cost_price=None,
     company = Company(1)
 
     categories = Category.find([])
-    category = random.choice(categories)
+    category = None
+    if categories:
+        category = random.choice(categories)
 
     product = Product.find([('name', '=', name), ('code', '=', code)])
     if product:
@@ -446,6 +455,10 @@ def create_product(name, code="", template=None, cost_price=None,
         template.list_price = Decimal(str(list_price))
         template.cost_price = Decimal(str(cost_price))
         template.category = category
+        if hasattr(template, 'salable'):
+            template.salable = True
+        if hasattr(template, 'purchasable'):
+            template.purchasable = True
 
         if hasattr(template, 'account_expense'):
             expense = Account.find([
@@ -693,3 +706,178 @@ def create_fiscal_year(company, year=None):
     gal_commit()
     return fiscalyear
 
+@task
+def create_payment_terms():
+    """
+    It cretes 3 payment terms:
+    - 30 days
+    - 60 days
+    - 90 days
+    """
+    gal_action('create_payment_terms')
+    restore()
+    connect_database()
+
+    Term = Model.get('account.invoice.payment_term')
+    TermLine = Model.get('account.invoice.payment_term.line')
+
+    term = Term()
+    term.name = '30 D'
+    term.active = True
+    line = TermLine()
+    line.months = 1
+    term.lines.append(line)
+    term.save()
+
+    term = Term()
+    term.name = '60 D'
+    line = TermLine()
+    line.months = 2
+    term.lines.append(line)
+    term.save()
+
+    term = Term()
+    term.name = '90 D'
+    line = TermLine()
+    line.months = 3
+    term.lines.append(line)
+    term.save()
+
+    gal_commit()
+
+@task
+def create_sales(count=100, linecount=10):
+    """
+    It creates 'count' sales using random products (linecount maximum)
+    and parties.
+
+    If 'count' is not specified 100 is used by default.
+    If 'linecount' is not specified 10 is used by default.
+    """
+    gal_action('create_sales', count=count, linecount=linecount)
+    restore()
+    connect_database()
+
+    Sale = Model.get('sale.sale')
+    SaleLine = Model.get('sale.line')
+    Party = Model.get('party.party')
+    Product = Model.get('product.product')
+    Term = Model.get('account.invoice.payment_term')
+
+    parties = Party.find([])
+    products = Product.find([('salable', '=', True)])
+    terms = Term.find([])
+
+    for c in xrange(count):
+        sale = Sale()
+        sale.party = random.choice(parties)
+        if not sale.payment_term:
+            sale.payment_term = random.choice(terms)
+
+        for lc in xrange(random.randrange(1, linecount)):
+            line = SaleLine()
+            sale.lines.append(line)
+            line.product = random.choice(products)
+            line.quantity = random.randrange(1, 20)
+        sale.save()
+
+    gal_commit()
+
+
+@task
+def process_sales():
+    """
+    It randomly processes some sales:
+
+    10% of existing draft sales are left in draft state
+    10% of existing draft sales are left in quotation state
+    10% of existing draft sales are left in confirmed state
+    70% of existing draft sales are left in processed state
+    """
+    gal_action('create_payment_terms')
+    restore()
+    connect_database()
+
+    Sale = Model.get('sale.sale')
+
+    sales = Sale.find([('state', '=', 'draft')])
+
+    # Change 90% to quotation state
+    sales = random.sample(sales, int(0.9 * len(sales)))
+    Sale.quote([x.id for x in sales], config.context)
+
+    # Change 90% to confirmed state
+    sales = random.sample(sales, int(0.9 * len(sales)))
+    Sale.confirm([x.id for x in sales], config.context)
+
+    # Change 90% to processed state
+    sales = random.sample(sales, int(0.9 * len(sales)))
+    Sale.process([x.id for x in sales], config.context)
+
+    gal_commit()
+
+@task
+def create_purchases(count=100, linecount=10):
+    """
+    It creates 'count' purchases using random products (linecount maximum)
+    and parties.
+
+    If 'count' is not specified 100 is used by default.
+    If 'linecount' is not specified 10 is used by default.
+    """
+    gal_action('create_purchases', count=count, linecount=linecount)
+    restore()
+    connect_database()
+
+    Purchase = Model.get('purchase.purchase')
+    PurchaseLine = Model.get('purchase.line')
+    Party = Model.get('party.party')
+    Product = Model.get('product.product')
+    Term = Model.get('account.invoice.payment_term')
+
+    parties = Party.find([])
+    products = Product.find([('purchasable', '=', True)])
+    terms = Term.find([])
+
+    for c in xrange(count):
+        purchase = Purchase()
+        purchase.party = random.choice(parties)
+        if not purchase.payment_term:
+            purchase.payment_term = random.choice(terms)
+
+        for lc in xrange(random.randrange(1, linecount)):
+            line = PurchaseLine()
+            purchase.lines.append(line)
+            line.product = random.choice(products)
+            line.quantity = random.randrange(1, 20)
+        purchase.save()
+
+    gal_commit()
+
+
+@task
+def process_purchases():
+    """
+    It randomly processes some purchases:
+
+    10% of existing draft purchases are left in draft state
+    10% of existing draft purchases are left in quotation state
+    80% of existing draft purchases are left in confirmed state
+    """
+    gal_action('create_payment_terms')
+    restore()
+    connect_database()
+
+    Purchase = Model.get('purchase.purchase')
+
+    purchases = Purchase.find([('state', '=', 'draft')])
+
+    # Change 90% to quotation state
+    purchases = random.sample(purchases, int(0.9 * len(purchases)))
+    Purchase.quote([x.id for x in purchases], config.context)
+
+    # Change 90% to confirmed state
+    purchases = random.sample(purchases, int(0.9 * len(purchases)))
+    Purchase.confirm([x.id for x in purchases], config.context)
+
+    gal_commit()
