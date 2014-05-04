@@ -63,8 +63,9 @@ def dump(dbname=None):
         from trytond import backend
         Database = backend.get('Database')
         Database(dbname).close()
-    # Sleep to let connections close
-    time.sleep(1)
+        Database('template1').close()
+        # Sleep to let connections close
+        time.sleep(1)
     dump_file = 'gal.sql'
     print check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
