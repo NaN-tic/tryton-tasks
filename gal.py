@@ -189,6 +189,33 @@ def build(filename=None):
                 print t.bold(line)
                 eval(line)
 
+@task
+def get_galfile():
+    """
+    Prints the Galfile to be used to reproduce current gal database.
+
+    The result can be used by gal.build operation.
+    """
+    repo = gal_repo()
+    has_set = False
+    for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        if action == 'set':
+            has_set = True
+
+    if has_set:
+        print >>sys.stderr, t.red('It is not possible to replay tip '
+            'version because there is a set() operation in the list of '
+            'commands to execute')
+        sys.exit(1)
+
+    # Disable commits before replaying
+    for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        print '%s(**%s)' % (action, parameters)
+
 
 #
 # Extension commands
