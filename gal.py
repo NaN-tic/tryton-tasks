@@ -921,3 +921,30 @@ def create_inventory(maxquantity=1000):
     Inventory.confirm([inventory.id], config.context)
 
     gal_commit()
+
+@task
+def process_customer_shipments():
+    """
+    It randomly processes waiting customer shipments.
+
+    20% of existing waiting customer shipments are left in waiting state
+    80% are tried to be assigned (may not be assigned if stock is not enough)
+    90% of the assigned ones are packed
+    90% of the packed ones are done
+    """
+    gal_action('process_customer_shipments')
+    restore()
+    connect_database()
+    Shipment = Model.get('stock.shipment.out')
+    shipments = Shipment.find([('state', '=', 'waiting')])
+    shipments = [x.id for x in shipments]
+
+    shipments = random.sample(shipments, int(0.8 * len(shipments)))
+    for shipment in shipments:
+        Shipment.assign_try([shipment], config.context)
+    shipments = random.sample(shipments, int(0.9 * len(shipments)))
+    Shipment.pack(shipments, config.context)
+    shipments = random.sample(shipments, int(0.9 * len(shipments)))
+    Shipment.done(shipments, config.context)
+
+    gal_commit()
