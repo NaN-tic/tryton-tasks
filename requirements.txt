@@ -12,3 +12,6 @@ psutil
 # bitbucket-api dependencies
 configobj
 PyHamcrest
+
+# gal
+dateutils
