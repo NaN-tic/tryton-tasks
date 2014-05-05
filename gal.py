@@ -63,8 +63,9 @@ def dump(dbname=None):
         from trytond import backend
         Database = backend.get('Database')
         Database(dbname).close()
-    # Sleep to let connections close
-    time.sleep(1)
+        Database('template1').close()
+        # Sleep to let connections close
+        time.sleep(1)
     dump_file = 'gal.sql'
     print check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
@@ -188,6 +189,33 @@ def build(filename=None):
             if line:
                 print t.bold(line)
                 eval(line)
+
+@task
+def get_galfile():
+    """
+    Prints the Galfile to be used to reproduce current gal database.
+
+    The result can be used by gal.build operation.
+    """
+    repo = gal_repo()
+    has_set = False
+    for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        if action == 'set':
+            has_set = True
+
+    if has_set:
+        print >>sys.stderr, t.red('It is not possible to replay tip '
+            'version because there is a set() operation in the list of '
+            'commands to execute')
+        sys.exit(1)
+
+    # Disable commits before replaying
+    for revision in repo.revisions(slice(0, 'tip')):
+        description = revision.desc
+        action, parameters = json.loads(description)
+        print '%s(**%s)' % (action, parameters)
 
 
 #
@@ -920,4 +948,52 @@ def create_inventory(maxquantity=1000):
     inventory.save()
     Inventory.confirm([inventory.id], config.context)
 
+    gal_commit()
+
+@task
+def process_customer_shipments():
+    """
+    It randomly processes waiting customer shipments.
+
+    20% of existing waiting customer shipments are left in waiting state
+    80% are tried to be assigned (may not be assigned if stock is not enough)
+    90% of the assigned ones are packed
+    90% of the packed ones are done
+    """
+    gal_action('process_customer_shipments')
+    restore()
+    connect_database()
+    Shipment = Model.get('stock.shipment.out')
+    shipments = Shipment.find([('state', '=', 'waiting')])
+    shipments = [x.id for x in shipments]
+
+    shipments = random.sample(shipments, int(0.8 * len(shipments)))
+    for shipment in shipments:
+        Shipment.assign_try([shipment], config.context)
+    shipments = random.sample(shipments, int(0.9 * len(shipments)))
+    Shipment.pack(shipments, config.context)
+    shipments = random.sample(shipments, int(0.9 * len(shipments)))
+    Shipment.done(shipments, config.context)
+
+    gal_commit()
+
+@task
+def process_customer_invoices():
+    """
+    It randomly confirms customer invoices.
+
+    90% of customer invoices are confirmed.
+    """
+    gal_action('process_customer_invoices')
+    restore()
+    connect_database()
+
+    Invoice = Model.get('account.invoice')
+    invoices = Invoice.find([
+            ('type', '=', 'out_invoice'),
+            ('state', '=', 'draft'),
+            ])
+    invoices = random.sample(invoices, int(0.9 * len(invoices)))
+
+    Invoice.post([x.id for x in invoices], config.context)
     gal_commit()
