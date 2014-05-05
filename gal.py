@@ -976,3 +976,24 @@ def process_customer_shipments():
     Shipment.done(shipments, config.context)
 
     gal_commit()
+
+@task
+def process_customer_invoices():
+    """
+    It randomly confirms customer invoices.
+
+    90% of customer invoices are confirmed.
+    """
+    gal_action('process_customer_invoices')
+    restore()
+    connect_database()
+
+    Invoice = Model.get('account.invoice')
+    invoices = Invoice.find([
+            ('type', '=', 'out_invoice'),
+            ('state', '=', 'draft'),
+            ])
+    invoices = random.sample(invoices, int(0.9 * len(invoices)))
+
+    Invoice.post([x.id for x in invoices], config.context)
+    gal_commit()
