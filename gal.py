@@ -636,7 +636,7 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
     create_chart.form.account_template = template
     create_chart.form.company = company
     if digits:
-        create_chart.form.account_code_digits = digits
+        create_chart.form.account_code_digits = int(digits)
     create_chart.execute('create_account')
 
     receivable = Account.find([
