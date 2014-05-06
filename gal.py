@@ -8,6 +8,7 @@ import random
 import json
 import datetime
 from dateutil.relativedelta import relativedelta
+from datetime import timedelta
 from decimal import Decimal
 from invoke import task
 
@@ -31,6 +32,17 @@ except:
 TODAY = datetime.date.today()
 
 commits_enabled = True
+
+
+def random_datetime(start, end):
+    """
+    This function will return a random datetime between two datetime
+    objects.
+    """
+    delta = end - start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = random.randrange(int_delta)
+    return start + timedelta(seconds=random_second)
 
 def check_output(*args):
     print t.bold(' '.join(args))
@@ -796,6 +808,8 @@ def create_sales(count=100, linecount=10):
 
     for c in xrange(count):
         sale = Sale()
+        sale.sale_date = random_datetime(TODAY + relativedelta(months=-12),
+            TODAY)
         sale.party = random.choice(parties)
         if not sale.payment_term:
             sale.payment_term = random.choice(terms)
