@@ -206,10 +206,8 @@ def get_galfile():
             has_set = True
 
     if has_set:
-        print >>sys.stderr, t.red('It is not possible to replay tip '
-            'version because there is a set() operation in the list of '
-            'commands to execute')
-        sys.exit(1)
+        print >>sys.stderr, t.red('It will not be possible to build the '
+            'generated Galfile because it contains at least one set command.')
 
     # Disable commits before replaying
     for revision in repo.revisions(slice(0, 'tip')):
