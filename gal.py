@@ -414,12 +414,16 @@ def create_parties(count=4000):
 
     with open('tasks/companies.txt', 'r') as f:
         companies = f.read().split('\n')
+    companies = [x.strip() for x in companies if x.strip()]
     with open('tasks/streets.txt', 'r') as f:
         streets = f.read().split('\n')
+    streets = [x.strip() for x in streets if x.strip()]
     with open('tasks/names.txt', 'r') as f:
         names = f.read().split('\n')
+    names = [x.strip() for x in names if x.strip()]
     with open('tasks/surnames.txt', 'r') as f:
         surnames = f.read().split('\n')
+    surnames = [x.strip() for x in surnames if x.strip()]
     phones = ['93', '972', '973', '977', '6', '900']
     for x in xrange(count):
         company = random.choice(companies)
