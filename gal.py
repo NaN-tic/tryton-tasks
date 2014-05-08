@@ -677,7 +677,7 @@ def create_fiscal_year(company, year=None):
     It creates a new fiscal year with monthly periods and the appropriate
     invoice sequences for the given company.
 
-    If no year specified the current year is used.
+    If no year is specified the current year is used.
     """
     gal_action('create_fiscal_year', company=company, year=None)
     restore()
@@ -1013,3 +1013,41 @@ def process_customer_invoices():
 
     Invoice.post([x.id for x in invoices], config.context)
     gal_commit()
+
+@task
+def process_supplier_shipments():
+    """
+    It randomly processes waiting supplier shipments.
+
+    10% of existing purchase orders are left processing
+    90% are added to a shipment and set as received
+    90% of those shipments are set as done
+    """
+    gal_action('process_supplier_shipments')
+    restore()
+    connect_database()
+    Move = Model.get('stock.move')
+    Shipment = Model.get('stock.shipment.in')
+    Purchase = Model.get('purchase.purchase')
+
+    purchases = Purchase.find([('state', '=', 'confirmed')])
+    purchases = random.sample(purchases, int(0.9 * len(purchases)))
+    for purchase in purchases:
+        shipment = Shipment()
+        shipment.supplier = purchase.party
+        shipment.save()
+        lines = []
+        for line in purchase.lines:
+            for move in line.moves:
+                # TODO: Improve performance, but append crashes
+                #shipment.incoming_moves.append(move)
+                move.shipment = shipment
+                move.save()
+        #shipment.save()
+
+    Shipment.receive([x.id for x in purchases], config.context)
+    purchases = random.sample(purchases, int(0.9 * len(purchases)))
+    Shipment.done([x.id for x in purchases], config.context)
+
+    gal_commit()
+
