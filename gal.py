@@ -203,7 +203,7 @@ def build(filename=None):
                 eval(line)
 
 @task
-def get_galfile():
+def galfile():
     """
     Prints the Galfile to be used to reproduce current gal database.
 
