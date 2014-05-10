@@ -18,13 +18,13 @@ Just take a look at the sample session to get a quick introduction.
 Sample session
 --------------
 
-First let’s create a new database with English as default language::
+First let’s create a new database with Catalan as default language::
 
-  $ invoke gal.create --language en_US
+  $ invoke gal.create --language ca_ES
 
-Let’s make all modules to install Catalan and Spanish languages too::
+Let’s make all modules to install English and Spanish languages too::
 
-  $ invoke gal.set_active_languages -l ca_ES,es_ES
+  $ invoke gal.set_active_languages -l en_US,es_ES
 
 And now let’s install party module (and its dependencies)::
 
