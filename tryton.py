@@ -240,10 +240,10 @@ def forgotten(database, config_file=None, delete=False, delete_installed=False,
             print ""
 
     if delete and forgotten_uninstalled:
-        delete_modules(database, forgotten_uninstalled)
+        delete_modules(database, forgotten_uninstalled, config_file=config_file)
 
     if delete_installed and forgotten_installed:
-        delete_modules(database, forgotten_installed, True)
+        delete_modules(database, forgotten_installed, config_file=config_file, force=True)
 
     return forgotten_uninstalled, forgotten_installed
 
@@ -280,7 +280,7 @@ def lost(database, config_file=None, delete=False, show=True):
             print ""
 
     if delete and lost_uninstalled:
-        delete_modules(database, lost_uninstalled)
+        delete_modules(database, lost_uninstalled, config_file=config_file)
 
     return lost_uninstalled, lost_installed
 
