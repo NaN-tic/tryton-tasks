@@ -9,6 +9,5 @@ psycopg2
 psutil
 
 -e hg+https://bitbucket.org/DavidVilla/python-bitbucket-api#egg=bitbucket-api
-# bitbucket-api dependencies
 configobj
 PyHamcrest

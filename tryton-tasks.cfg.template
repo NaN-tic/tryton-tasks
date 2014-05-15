@@ -1,5 +1,10 @@
 [reviewboard]
 server = http://git.nan-tic.com/reviews/
 user = angel
-password = 
+password =
+
+[tryton]
+server = http://user:pass@server:port/database
+
+
 
