@@ -7,6 +7,8 @@ from invoke import Collection
 import reviewboard
 import tests
 import tryton_component
+import project
+
 
 ns = Collection()
 ns.add_task(clone)
@@ -31,3 +33,4 @@ ns.add_collection(Collection.from_module(tryton))
 ns.add_collection(Collection.from_module(tests))
 ns.add_collection(Collection.from_module(reviewboard), 'rb')
 ns.add_collection(Collection.from_module(tryton_component), 'component')
+ns.add_collection(Collection.from_module(project), 'project')
