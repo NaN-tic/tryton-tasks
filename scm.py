@@ -679,7 +679,11 @@ def update(config=None, unstable=True, clean=False):
         if repo != 'hg':
             print >> sys.stderr, "Not developed yet"
             continue
-        p = Process(target=func, args=(section, path, clean))
+        branch = None
+        if clean:
+            # Force branch only when clean is set
+            branch = Config.get(section, 'branch')
+        p = Process(target=func, args=(section, path, clean, branch))
         p.start()
         processes.append(p)
         wait_processes(processes)
