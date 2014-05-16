@@ -370,13 +370,17 @@ def hg_base_diff(path):
     return diff.stdout, base_diff.stdout
 
 @task
-def module_diff(module, base=False):
-    Config = read_config_file()
-    for section in Config.sections():
-        if section != module:
-            continue
-        repo = get_repo(section, Config, 'base_diff')
-        return repo['function'](repo['path'])
+def module_diff(path, base=True, show=True, fun=hg_base_diff):
+    diff, base_diff = fun(path)
+    if show:
+        print t.bold(path + " module diff:")
+        if diff:
+            print diff
+        print t.bold(path+ " module base diff:")
+        if base_diff:
+            print base_diff
+        print ""
+    return diff, base_diff
 
 def git_diff(module, path, verbose, rev1, rev2):
     print "Git diff not implented"

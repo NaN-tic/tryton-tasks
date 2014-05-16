@@ -357,3 +357,5 @@ def delete_modules(database, modules, config_file=None, force=False):
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     cursor.commit()
+
+
