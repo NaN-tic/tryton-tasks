@@ -46,8 +46,6 @@ def create(module, summary, description, bug, review=None):
     """
         Create  or update review
     """
-
-    print "review"
     diff, base_diff = module_diff(module, show=False)
     root = get_root()
     if review:
@@ -59,14 +57,13 @@ def create(module, summary, description, bug, review=None):
         base_diff.encode('utf-8'))
     draft = review_request.get_draft()
     draft.update(
-        summary=summary,
-        description=description,
+        summary=summary.encode('utf-8'),
+        description=description.encode('utf-8'),
         bugs_closed=bug,
         )
     user = root.get_session().get_user()
     draft = draft.update(target_people=user.username)
     draft.update(public=True)
-    print "review2"
     return draft
 
 
@@ -97,17 +94,23 @@ def request_by_id(review_id):
     review_request = root.get_review_request(review_request_id=review_id)
     return [review_request]
 
+def get_requests(bug=None, review=None):
+    requests = []
+    if bug:
+        requests = request_by_bug(bug)
+    if review:
+        requests += request_by_id(review)
+
+    return requests
+
+
 @task
 def fetch(module, bug=None, review=None):
     """
         Download and apply patch.
     """
 
-    requests = []
-    if bug:
-        requests = request_by_bug(bug)
-    if review:
-        requests += request_by_id(review)
+    requests = requests(bug, review)
 
     for request in requests:
         diffs = request.get_diffs()
@@ -118,4 +121,11 @@ def fetch(module, bug=None, review=None):
         run('cd %s; patch -p1 -m < %s' %(module, tmp_patch_file))
 
 
+@task
+def close(bug=None, review=None, close_type='submitted'):
+    """ @type submitted | discarded """
+
+    requests = get_requests(bug, review)
+    for request in requests:
+        request = request.update(status=close_type)
 

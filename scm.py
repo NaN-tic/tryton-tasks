@@ -18,11 +18,12 @@ DEFAULT_BRANCH = {
     'hg': 'default'
 }
 
+
 def get_repo(section, config, function=None):
     repository = {}
     repository['type'] = config.get(section, 'repo')
     repository['url'] = config.get(section, 'url')
-    repository['path'] = os.path.join(config.get(section, 'path'),section)
+    repository['path'] = os.path.join(config.get(section, 'path'), section)
     repository['branch'] = DEFAULT_BRANCH[repository['type']]
     if config.has_option(section, 'branch'):
         repository['branch'] = config.get(section, 'branch')
@@ -407,13 +408,13 @@ def hg_diff(module, path, verbose, rev1, rev2):
         print >> sys.stderr, "\n".join(msg)
 
 @task
-def module_diff(path, base=False, show=True, fun=hg_base_diff):
+def module_diff(path, base=True, show=True, fun=hg_base_diff):
     diff, base_diff = fun(path)
     if show:
-        print t.bold(module + " module diff:")
+        print t.bold(path + " module diff:")
         if diff:
             print diff
-        print t.bold(module + " module base diff:")
+        print t.bold(path+ " module base diff:")
         if base_diff:
             print base_diff
         print ""
