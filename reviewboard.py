@@ -28,16 +28,18 @@ def make_tempfile(content=None):
 
 
 def get_root():
-    settings =  get_config()
+    settings = get_config()
     review = settings['reviewboard']
     client = RBClient(review['server'])
     client.login(review['user'], review['password'])
     return client.get_root()
 
+
 def get_repository():
     root = get_root()
     repository = root.get_repositories()[-1].id
     return repository
+
 
 @task
 def create(module, summary, description, bug, review=None):
@@ -45,6 +47,7 @@ def create(module, summary, description, bug, review=None):
         Create  or update review
     """
 
+    print "review"
     diff, base_diff = module_diff(module, show=False)
     root = get_root()
     if review:
@@ -63,6 +66,8 @@ def create(module, summary, description, bug, review=None):
     user = root.get_session().get_user()
     draft = draft.update(target_people=user.username)
     draft.update(public=True)
+    print "review2"
+    return draft
 
 
 @task

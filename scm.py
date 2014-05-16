@@ -365,23 +365,6 @@ def hg_base_diff(path):
     return diff.stdout, base_diff.stdout
 
 
-@task
-def module_diff(module, base=False, show=True):
-    Config = read_config_file()
-    for section in Config.sections():
-        if section != module:
-            continue
-        repo = get_repo(section, Config, 'base_diff')
-        diff, base_diff = repo['function'](repo['path'])
-        if show:
-            print t.bold(module + " module diff:")
-            if diff:
-                print diff
-            print t.bold(module + " module base diff:")
-            if base_diff:
-                print base_diff
-            print ""
-        return diff, base_diff
 
 
 def hg_diff(module, path, verbose, rev1, rev2):
@@ -422,6 +405,19 @@ def hg_diff(module, path, verbose, rev1, rev2):
         msg.insert(0, t.bold('\n[' + module + "]\n"))
         msg.append(str(sys.exc_info()[1]))
         print >> sys.stderr, "\n".join(msg)
+
+@task
+def module_diff(path, base=False, show=True, fun=hg_base_diff):
+    diff, base_diff = fun(path)
+    if show:
+        print t.bold(module + " module diff:")
+        if diff:
+            print diff
+        print t.bold(module + " module base diff:")
+        if base_diff:
+            print base_diff
+        print ""
+    return diff, base_diff
 
 
 @task
