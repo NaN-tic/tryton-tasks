@@ -465,10 +465,7 @@ def create_product(name, code="", template=None, cost_price=None,
     ProductUom = Model.get('product.uom')
     Product = Model.get('product.product')
     ProductTemplate = Model.get('product.template')
-    Account = Model.get('account.account')
     Category = Model.get('product.category')
-    Company = Model.get('company.company')
-    company = Company(1)
 
     categories = Category.find([])
     category = None
@@ -502,7 +499,12 @@ def create_product(name, code="", template=None, cost_price=None,
         if hasattr(template, 'purchasable'):
             template.purchasable = True
 
+        if (hasattr(template, 'account_expense')
+                or hasattr(template, 'account_revenue')):
+            Company = Model.get('company.company')
+            company = Company(1)
         if hasattr(template, 'account_expense'):
+            Account = Model.get('account.account')
             expense = Account.find([
                 ('kind', '=', 'expense'),
                 ('company', '=', company.id),
@@ -510,6 +512,7 @@ def create_product(name, code="", template=None, cost_price=None,
             if expense:
                 template.account_expense = expense[0]
         if hasattr(template, 'account_revenue'):
+            Account = Model.get('account.account')
             revenue = Account.find([
                 ('kind', '=', 'revenue'),
                 ('company', '=', company.id),
