@@ -69,3 +69,36 @@ _--collection/-c_ option with the path to _tryton-tasks_ directory:
 ..
       > invoke --root=../tryton-tasks
 
+
+
+ReviewBoard
+===========
+
+To setup task to work with reviewboard just copy tryton-tasks.cfg.template to
+~/.tryton-tasks.cfg and configure user, password  and server
+
+You need to install python-rbtools package not available on pip.
+
+
+Tryton
+======
+
+To setup task to work with reviewboard just copy tryton-tasks.cfg.template to
+~/.tryton-tasks.cfg and configure url to production server.
+
+To create new review.
+---------------------
+This create a new review on reviewboard and a review on tryton attached to task
+
+inv project.review -p _path_to_module_ -t _tryton_task_code_
+
+Task List.
+----------
+
+inv project.list
+inv project.list --party nantic%  #to filter all task of nantic party.
+inv project.list --assigned angel%  #to filter all task assigned to angel
+
+
+
+
