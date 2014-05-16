@@ -364,7 +364,7 @@ def get_branch(path):
 def hg_base_diff(path):
     files = " ".join(hg_stat(path))
     branch = get_branch(path)
-    diff = run( 'cd %s; hg diff --git %s' % (path, files, branch), hide=True)
+    diff = run( 'cd %s; hg diff --git %s ' % (path, files), hide=True)
     base_diff = run( 'cd %s; hg diff --git -r null:%s  %s' % (path, branch,
         files), hide=True)
     return diff.stdout, base_diff.stdout

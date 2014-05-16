@@ -13,6 +13,8 @@ try:
 except:
     pass
 
+def review_file(review_id):
+    pass
 
 def make_tempfile(content=None):
     """

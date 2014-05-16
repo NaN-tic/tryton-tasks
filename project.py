@@ -4,6 +4,7 @@ import sys
 from invoke import task
 from .config import get_config
 import reviewboard
+from scm import get_branch
 
 try:
     from proteus import config as pconfig, Model
@@ -42,7 +43,7 @@ def list(party=None, user=None):
 
 
 @task
-def review(task, path, branch, review=None):
+def review(task, path, review=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -58,6 +59,6 @@ def review(task, path, branch, review=None):
     review.name = t.rec_name
     review.url = 'http://git.nan-tic.com/reviews/r/%s'%review_id
     review.work = t
-    review.branch = branch
+    review.branch = get_branch(path)
     review.component = component and component[0]
     review.save()
