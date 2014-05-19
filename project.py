@@ -49,7 +49,6 @@ def close_review(task):
     reviews = Review.find([('work.code', '=', task)])
     for review in reviews:
         reviewboard.close(review.review_id)
-        review.
 
 @task
 def fetch_review(task):
