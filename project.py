@@ -43,7 +43,29 @@ def list(party=None, user=None):
 
 
 @task
-def review(task, path, review=None):
+def close_review(task):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    reviews = Review.find([('work.code', '=', task)])
+    for review in reviews:
+        reviewboard.close(review.review_id)
+        review.
+
+@task
+def fetch_review(task):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    reviews = Review.find([('work.code', '=', task)])
+    for review in reviews:
+        if review.component:
+           path = os.path.join('modules', review.component.name)
+        else:
+            path = ''
+        reviewboard.fetch(path, review.review_id)
+
+
+@task
+def upload_review(task, path, review=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -53,10 +75,14 @@ def review(task, path, review=None):
     tasks = Task.find( [('code', '=', task)])
     t = tasks and tasks[0]
     review_id = reviewboard.create(path, t.rec_name,
-        t.comment, t.id, review)['id']
+        t.comment, t.code, review)
 
-    review = Review()
+    review = Review.find([('id', '=', str(review_id))])
+    if not review:
+        review = Review()
+
     review.name = t.rec_name
+    review.review_id = str(review_id)
     review.url = 'http://git.nan-tic.com/reviews/r/%s'%review_id
     review.work = t
     review.branch = get_branch(path)

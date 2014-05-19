@@ -18,11 +18,12 @@ DEFAULT_BRANCH = {
     'hg': 'default'
 }
 
+
 def get_repo(section, config, function=None):
     repository = {}
     repository['type'] = config.get(section, 'repo')
     repository['url'] = config.get(section, 'url')
-    repository['path'] = os.path.join(config.get(section, 'path'),section)
+    repository['path'] = os.path.join(config.get(section, 'path'), section)
     repository['branch'] = DEFAULT_BRANCH[repository['type']]
     if config.has_option(section, 'branch'):
         repository['branch'] = config.get(section, 'branch')
@@ -30,6 +31,7 @@ def get_repo(section, config, function=None):
     if function:
         repository['function'] = eval("%s_%s" % (repository['type'], function))
     return repository
+
 
 def get_virtualenv():
     if os.environ.get('VIRTUAL_ENV'):
