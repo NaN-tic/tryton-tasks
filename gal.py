@@ -1040,12 +1040,14 @@ def process_supplier_shipments():
     Shipment = Model.get('stock.shipment.in')
     Purchase = Model.get('purchase.purchase')
 
+    shipments = []
     purchases = Purchase.find([('state', '=', 'confirmed')])
     purchases = random.sample(purchases, int(0.9 * len(purchases)))
     for purchase in purchases:
         shipment = Shipment()
         shipment.supplier = purchase.party
         shipment.save()
+        shipments.append(shipment)
         lines = []
         for line in purchase.lines:
             for move in line.moves:
@@ -1055,9 +1057,9 @@ def process_supplier_shipments():
                 move.save()
         #shipment.save()
 
-    Shipment.receive([x.id for x in purchases], config.context)
-    purchases = random.sample(purchases, int(0.9 * len(purchases)))
-    Shipment.done([x.id for x in purchases], config.context)
+    Shipment.receive([x.id for x in shipments], config.context)
+    shipments = random.sample(shipments, int(0.9 * len(shipments)))
+    Shipment.done([x.id for x in shipments], config.context)
 
     gal_commit()
 
