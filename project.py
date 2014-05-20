@@ -5,6 +5,7 @@ from invoke import task
 from .config import get_config
 import reviewboard
 from scm import get_branch
+from .utils import t
 
 try:
     from proteus import config as pconfig, Model
@@ -72,18 +73,21 @@ def upload_review(task, path, review=None):
     module = path.split('/')[-1]
     component = Component.find([('name', '=', module)])
     tasks = Task.find( [('code', '=', task)])
-    t = tasks and tasks[0]
-    review_id = reviewboard.create(path, t.rec_name,
-        t.comment, t.code, review)
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % task)
+        sys.exit(1)
+    task = tasks and tasks[0]
+    review_id = reviewboard.create(path, task.rec_name,
+        task.comment, task.code, review)
 
     review = Review.find([('id', '=', str(review_id))])
     if not review:
         review = Review()
 
-    review.name = t.rec_name
+    review.name = task.rec_name
     review.review_id = str(review_id)
-    review.url = 'http://git.nan-tic.com/reviews/r/%s'%review_id
-    review.work = t
+    review.url = 'http://git.nan-tic.com/reviews/r/%s' % review_id
+    review.work = task
     review.branch = get_branch(path)
     review.component = component and component[0]
     review.save()
