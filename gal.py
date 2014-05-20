@@ -598,6 +598,47 @@ def create_company(name, street=None, zip=None, city=None,
     return company
 
 @task
+def create_employee(name, company=None, user=None):
+    """
+    Creates the employee with the given name in the given company and links
+    it with the given user.
+
+    If company is not set the first company found on the system is used.
+    If user is not set, 'admin' user is used.
+    """
+    gal_action('create_employee', name=name, company=company, user=user)
+    restore()
+    connect_database()
+
+    Company = Model.get('company.company')
+    Employee = Model.get('company.employee')
+    Party = Model.get('party.party')
+    User = Model.get('res.user')
+
+    if user is None:
+        user = 'admin'
+    if company:
+        company, = Company.find([('name', '=', company)])
+    else:
+        company, = Company.find([], limit=1)
+
+    party = Party()
+    party.name = name
+    party.save()
+
+    employee = Employee()
+    employee.party = party
+    employee.company = company
+    employee.save()
+
+    user, = User.find([('login', '=', user)], limit=1)
+    user.employees.append(employee)
+    user.employee = employee
+    user.save()
+
+    gal_commit()
+
+@task
 def create_account_chart(company, module=None, fs_id=None, digits=None):
     """
     Creates the chart of accounts defined by module and fs_id for the given
