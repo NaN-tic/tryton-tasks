@@ -65,7 +65,7 @@ def get_repository():
 
 
 @task
-def create(module, summary, description, bug, review=None):
+def create(module, summary, description, bug, review=None, group='NaN'):
     """
         Create  or update review
     """
@@ -87,11 +87,11 @@ def create(module, summary, description, bug, review=None):
     draft = review_request.get_draft()
     draft.update(
         summary=summary.encode('utf-8'),
-        description=description.encode('utf-8'),
+        description=description.encode('utf-8') or summary.encode('utf-8'),
         bugs_closed=bug,
         )
     user = root.get_session().get_user()
-    draft = draft.update(target_people=user.username)
+    draft = draft.update(target_people=user.username, target_groups=group)
     draft.update(public=True)
     return review_request['id']
 
