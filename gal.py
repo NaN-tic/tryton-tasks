@@ -874,6 +874,8 @@ def create_opportunities(count=100, linecount=10):
             line.quantity = random.randrange(1, 20)
         opp.save()
 
+    gal_commit()
+
 @task
 def create_sales(count=100, linecount=10):
     """
