@@ -198,7 +198,7 @@ def build(filename=None):
     print "Building %s..." % filename
     with open(filename, 'r') as f:
         for line in f:
-            if line:
+            if line and not line.strip().startswith('#'):
                 print t.bold(line)
                 eval(line)
 
