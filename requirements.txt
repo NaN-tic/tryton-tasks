@@ -7,6 +7,9 @@ pyactiveresource
 python-sql>=0.2
 psycopg2
 psutil
+--allow-external RBTools
+--allow-unverified RBTools
+RBTools
 
 -e hg+https://bitbucket.org/DavidVilla/python-bitbucket-api#egg=bitbucket-api
 configobj
