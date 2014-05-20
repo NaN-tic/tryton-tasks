@@ -833,6 +833,48 @@ def create_payment_terms():
     gal_commit()
 
 @task
+def create_opportunities(count=100, linecount=10):
+    """
+    It randomly creates leads and opportunities
+
+    It creates 'count' leads.
+    - It converts 80% of the converted leads into opportunities
+    - It converts 40% of the opportunities as lost
+    - It sets 80% of the remaining opportunities are converted. 
+    """
+    gal_action('create_opportunities', count=count, linecount=linecount)
+    restore()
+    connect_database()
+
+    Opportunity = Model.get('sale.opportunity')
+    OpportunityLine = Model.get('sale.opportunity.line')
+    Product = Model.get('product.product')
+    Party = Model.get('party.party')
+    Term = Model.get('account.invoice.payment_term')
+
+    parties = Party.find([])
+    products = Product.find([('salable', '=', True)])
+    terms = Term.find([])
+
+    for x in xrange(count):
+        opp = Opportunity()
+        party = random.choice(parties)
+        product = random.choice(products)
+        opp.description = '%s - %s' % (party.rec_name, product.rec_name)
+        opp.party = party
+        opp.start_date = random_datetime(TODAY + relativedelta(months=-12),
+            TODAY)
+        if not opp.payment_term:
+            opp.payment_term = random.choice(terms)
+
+        for lc in xrange(random.randrange(1, linecount)):
+            line = OpportunityLine()
+            opp.lines.append(line)
+            line.product = random.choice(products)
+            line.quantity = random.randrange(1, 20)
+        opp.save()
+
+@task
 def create_sales(count=100, linecount=10):
     """
     It creates 'count' sales using random products (linecount maximum)
