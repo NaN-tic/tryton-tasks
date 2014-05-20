@@ -694,6 +694,7 @@ def create_fiscal_year(company, year=None):
 
     if year is None:
         year = TODAY.year
+    date = datetime.date(int(year), 1, 1)
 
     company, = Company.find([('party.name', '=', company)])
 
@@ -720,8 +721,8 @@ def create_fiscal_year(company, year=None):
         fiscalyear = fiscalyear[0]
     else:
         fiscalyear = FiscalYear(name='%s' % year)
-        fiscalyear.start_date = TODAY + relativedelta(month=1, day=1)
-        fiscalyear.end_date = TODAY + relativedelta(month=12, day=31)
+        fiscalyear.start_date = date + relativedelta(month=1, day=1)
+        fiscalyear.end_date = date + relativedelta(month=12, day=31)
         fiscalyear.company = company
         fiscalyear.post_move_sequence = post_move_sequence
         if 'account_invoice' in installed_modules:
