@@ -357,19 +357,21 @@ def stat(module):
 def git_base_diff(path):
     print "git_base_diff not implemented yet"
 
+
 def get_branch(path):
-    branch = run('cd %s; hg branch'%path, hide=True)
-    branch= branch.stdout.split('\n')[0]
+    branch = run('cd %s; hg branch' % path, hide=True)
+    branch = branch.stdout.split('\n')[0]
     return branch
 
 
 def hg_base_diff(path):
     files = " ".join(hg_stat(path))
     branch = get_branch(path)
-    diff = run( 'cd %s; hg diff --git %s ' % (path, files), hide=True)
-    base_diff = run( 'cd %s; hg diff --git -r null:%s  %s' % (path, branch,
-        files), hide=True)
+    diff = run('cd %s; hg diff --git %s ' % (path, files), hide=True)
+    base_diff = run('cd %s; hg diff --git -r null:%s  %s' % (path, branch,
+        files), hide=True, warn=True)
     return diff.stdout, base_diff.stdout
+
 
 @task
 def module_diff(path, base=True, show=True, fun=hg_base_diff):
@@ -378,11 +380,12 @@ def module_diff(path, base=True, show=True, fun=hg_base_diff):
         print t.bold(path + " module diff:")
         if diff:
             print diff
-        print t.bold(path+ " module base diff:")
+        print t.bold(path + " module base diff:")
         if base_diff:
             print base_diff
         print ""
     return diff, base_diff
+
 
 def git_diff(module, path, verbose, rev1, rev2):
     print "Git diff not implented"

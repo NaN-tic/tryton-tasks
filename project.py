@@ -35,7 +35,7 @@ def list(party=None, user=None):
 
     projects = Project.find(domain)
     for project in projects:
-        print "(%s) %s - (%s) %s [%s]" %(
+        print "(%s) %s - (%s) %s [%s]" % (
             project.assigned_employees,
             project.rec_name,
             project.effort,
@@ -51,6 +51,7 @@ def close_review(task):
     for review in reviews:
         reviewboard.close(review.review_id)
 
+
 @task
 def fetch_review(task):
     get_tryton_connection()
@@ -58,7 +59,7 @@ def fetch_review(task):
     reviews = Review.find([('work.code', '=', task)])
     for review in reviews:
         if review.component:
-           path = os.path.join('modules', review.component.name)
+            path = os.path.join('modules', review.component.name)
         else:
             path = ''
         reviewboard.fetch(path, review.review_id)
@@ -71,12 +72,17 @@ def upload_review(task, path, review=None):
     Task = Model.get('project.work')
     Component = Model.get('project.work.component')
     module = path.split('/')[-1]
-    component = Component.find([('name', '=', module)])
-    tasks = Task.find( [('code', '=', task)])
+    tasks = Task.find([('code', '=', task)])
     if not tasks:
         print >>sys.stderr, t.red('Error: Task %s was not found.' % task)
         sys.exit(1)
-    task = tasks and tasks[0]
+    task = tasks[0]
+    components = Component.find([('name', '=', module)])
+    if not components:
+        component = Component(name=module)
+        component.save()
+    else:
+        component = components[0]
     review_id = reviewboard.create(path, task.rec_name,
         task.comment, task.code, review)
 
@@ -89,5 +95,5 @@ def upload_review(task, path, review=None):
     review.url = 'http://git.nan-tic.com/reviews/r/%s' % review_id
     review.work = task
     review.branch = get_branch(path)
-    review.component = component and component[0]
+    review.component = component
     review.save()
