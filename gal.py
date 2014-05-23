@@ -1140,11 +1140,9 @@ def process_supplier_shipments():
                 #shipment.incoming_moves.append(move)
                 move.shipment = shipment
                 move.save()
-        #shipment.save()
 
     Shipment.receive([x.id for x in shipments], config.context)
     shipments = random.sample(shipments, int(0.9 * len(shipments)))
     Shipment.done([x.id for x in shipments], config.context)
 
     gal_commit()
-
