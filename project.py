@@ -86,9 +86,11 @@ def upload_review(task, path, review=None):
     review_id = reviewboard.create(path, task.rec_name,
         task.comment, task.code, review)
 
-    review = Review.find([('id', '=', str(review_id))])
+    review = Review.find([('review_id', '=', str(review_id))])
     if not review:
         review = Review()
+    else:
+        review = review[0]
 
     review.name = task.rec_name
     review.review_id = str(review_id)
