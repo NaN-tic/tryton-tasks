@@ -877,6 +877,41 @@ def create_opportunities(count=100, linecount=10):
     gal_commit()
 
 @task
+def process_opportunities():
+    """
+    It randomly processes leads
+
+    - It converts 80% of the leads into opportunities
+    - It converts 40% of the opportunities as lost
+    - It sets 80% of the remaining opportunities as converted (sale created)
+    """
+    gal_action('process_opportunities')
+    restore()
+    connect_database()
+
+    Opportunity = Model.get('sale.opportunity')
+    opps = Opportunity.find([('state', '=', 'lead')])
+    opps = [x.id for x in opps]
+    opps = random.sample(opps, int(0.8 * len(opps)))
+    Opportunity.opportunity(opps, config.context)
+
+    lost = random.sample(opps, int(0.4 * len(opps)))
+    Opportunity.lost(lost, config.context)
+
+    # Only convert non-lost opportunities
+    nopps = []
+    for opp in opps:
+        if opp in lost:
+            continue
+        nopps.append(opp)
+    opps = nopps
+    opps = random.sample(opps, int(0.8 * len(opps)))
+    opps = [Opportunity(opp) for x in opps]
+    # TODO: Doesn't work!
+    wizard = Wizard('sale.opportunity.convert_opportunity', opps)
+    gal_commit()
+
+@task
 def create_sales(count=100, linecount=10):
     """
     It creates 'count' sales using random products (linecount maximum)
