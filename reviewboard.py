@@ -116,16 +116,6 @@ def request_by_id(review_id):
     return [review_request]
 
 
-# def get_requests(bug=None, review=None):
-#     requests = []
-#     if bug:
-#         requests = request_by_bug(bug)
-#     if review:
-#         requests += request_by_id(review)
-
-#     return requests
-
-
 @task
 def fetch(module, review):
     """
@@ -138,6 +128,8 @@ def fetch(module, review):
         diff = diffs.get_item(diff_revision)
         diff_body = diff.get_patch().data
         tmp_patch_file = make_tempfile(diff_body)
+        if not os.path.exists(module):
+            run('mkdir %s'%module)  
         run('cd %s; patch -p1 -m < %s' % (module, tmp_patch_file), echo=True)
 
 
