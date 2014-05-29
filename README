@@ -101,4 +101,22 @@ inv project.list --assigned angel%  #to filter all task assigned to angel
 
 
 
+Bitbucket
+==========
+
+Facilities to work with Bitbucket.
+
+To work with clone https://github.com/angelnan/bitbucketcli and install.
+
+To login:
+bitbucket login
+
+To logout:
+bitbucket logout
+
+Examples to create new repository.
+
+inv bb.create repository_name -d description
+
+
 
