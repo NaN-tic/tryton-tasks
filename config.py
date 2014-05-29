@@ -5,6 +5,7 @@ from .utils import read_config_file, get_config_files
 
 from collections import OrderedDict
 
+
 def get_config():
     """ Get config file for tasks module """
     parser = ConfigParser.ConfigParser()
@@ -41,12 +42,14 @@ def set_branch(branch, config=None):
 
 
 @task
-def add_module(config, path):
+def add_module(config, path, url=None):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
-    module = os.path.basename(path)    
-    url = run('cd %s; hg paths default'%(path)).stdout.split('\n')[0]
-    branch = run('cd %s;hg branch'%(path)).stdout.split('\n')[0]
+    module = os.path.basename(path)
+    url = run('cd %s; hg paths default' % (path)).stdout.split('\n')[0]
+    if 'http' in url:
+        url = 'ssh://hg@bitbucket.org/nantic/trytond-%s' % module
+    branch = run('cd %s;hg branch' % (path)).stdout.split('\n')[0]
     cfile = open(config, 'w+')
     if not Config.has_section(module):
         Config.add_section(module)
@@ -55,6 +58,7 @@ def add_module(config, path):
         Config.set(module, 'url', url)
         Config.set(module, 'path', './trytond/trytond/modules')
 
-    Config._sections = OrderedDict(sorted(Config._sections.iteritems(), key=lambda x: x[0]))
+    Config._sections = OrderedDict(sorted(Config._sections.iteritems(),
+        key=lambda x: x[0]))
     Config.write(cfile)
     cfile.close()
