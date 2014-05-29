@@ -448,6 +448,73 @@ def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     wait_processes(processes, 0)
 
 
+def hg_compare_branches(module, path, first_branch, second_branch):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+    #Shows all commits from the last point where both branches converged
+    revisions = "'max(ancestor(%s, %s)):tip'" % (first_branch, second_branch)
+    cmd = ['hg', 'log', '-r', revisions, '--template',
+        "'{branch} ### {desc}\n'"]
+    result = run(' '.join(cmd), warn=True, hide='both')
+    commits = {
+        first_branch: [],
+        second_branch: [],
+        }
+    for line in result.stdout.split('\n'):
+        try:
+            branch, desc = line.split(' ### ')
+        except ValueError:
+            continue
+        #Skip branch commits
+        if 'branch' in desc.lower():
+            continue
+        if not branch in commits:
+            continue
+        commits[branch].append(desc)
+
+    printed_header = False
+    for desc in commits[first_branch]:
+        if desc in commits[second_branch]:
+            continue
+        if not printed_header:
+            printed_header = True
+            print t.bold("= " + module + ": Missing commits on Branch "
+                + first_branch + "=")
+        print desc
+
+    os.chdir(cwd)
+
+
+@task
+def compare_branches(first_branch, second_branch, config=None, unstable=True):
+    '''
+    Finds commits that exist on first branch but doesn't exist on
+    second_branch. In order to identify a commit, its description is used as
+    the revision_id may change when grafting commits from branches
+    '''
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        if repo == 'git':
+            continue
+        if repo != 'hg':
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=hg_compare_branches, args=(section, path,
+                first_branch, second_branch))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
+
 def hg_summary(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
@@ -612,6 +679,46 @@ def branch(branch, clean=False, config=None, unstable=True):
         print err
 
 
+def hg_missing_branch(module, path, branch_name, closed=True):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+    cmd = ['hg', 'branches']
+    if closed:
+        cmd.append('-c')
+    result = run(' '.join(cmd), warn=True, hide='both')
+    if branch_name not in result.stdout:
+        print t.bold(module) + " misses branch %s" % branch_name
+    os.chdir(cwd)
+
+
+@task()
+def missing_branch(branch_name, config=None, unstable=True):
+    '''
+    List all modules doesn't containt a branch named branc_name
+    '''
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        if repo == 'git':
+            continue
+        if repo != 'hg':
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=hg_missing_branch, args=(section, path,
+                branch_name))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+
+
 def hg_create_branch(module, path, branch_name):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
@@ -658,8 +765,6 @@ def create_branch(branch_name, config=None, unstable=True):
         if repo != 'hg':
             print >> sys.stderr, "Not developed yet"
             continue
-        if section != 'analytic_asset':
-            continue
         p = Process(target=hg_create_branch, args=(section, path, branch_name))
         p.start()
         processes.append(p)
@@ -691,6 +796,56 @@ def pull(config=None, unstable=True, update=True):
             print >> sys.stderr, "Not developed yet"
             continue
         p = Process(target=func, args=(section, path, update))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
+
+def hg_push(module, path, url, new_branches=False):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+
+    cmd = ['hg', 'push', url]
+    if new_branches:
+        cmd.append('--new-branch')
+    result = run(' '.join(cmd), warn=True, hide='both')
+
+    print t.bold("= " + module + " =")
+    print result.stdout
+    os.chdir(cwd)
+
+
+@task
+def push(config=None, unstable=True, new_branches=False):
+    '''
+    Pushes all pending commits to the repo url.
+
+    url that start with http are excluded.
+    '''
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        #Don't push to repos that start with http as we don't have access to
+        url = Config.get(section, 'url')
+        if url[:4] == 'http':
+            continue
+        if repo == 'hg':
+            func = hg_push
+        elif repo == 'git':
+            continue
+        else:
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=func, args=(section, path, url, new_branches))
         p.start()
         processes.append(p)
         wait_processes(processes)
@@ -758,6 +913,7 @@ def update(config=None, unstable=True, clean=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
+
 
 @task()
 def fetch():
