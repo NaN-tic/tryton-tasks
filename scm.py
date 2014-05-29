@@ -612,6 +612,69 @@ def branch(branch, clean=False, config=None, unstable=True):
         print err
 
 
+def hg_create_branch(module, path, branch_name):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+
+    cmd = ['hg', 'branches']
+    result = run(' '.join(cmd), warn=True, hide='both')
+    if branch_name not in result.stdout:
+        cmd = ['hg', 'branch', branch_name]
+        result = run(' '.join(cmd), warn=True, hide='both')
+        cmd = ['hg', 'commit', '-m', '"Create branch ' + branch_name + '"']
+        result = run(' '.join(cmd), warn=True, hide='both')
+
+    os.chdir(cwd)
+
+
+@task()
+def create_branch(branch_name, config=None, unstable=True):
+    '''
+    Create a branch with name branch_name to all the repositories that don't
+    contain a branch with the same name.
+
+    WARNING: This will clear all the uncommited changes in order to not
+    add this changes to the new branch.
+    '''
+    print t.bold('Reverting patches...')
+    bashCommand = ['quilt', 'pop', '-fa']
+    output, err = execBashCommand(bashCommand)
+    print t.bold('Cleaning all changes...')
+    Config = read_config_file(config, unstable=unstable)
+    update(config, unstable=True, clean=True)
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        if repo == 'git':
+            continue
+        if repo != 'hg':
+            print >> sys.stderr, "Not developed yet"
+            continue
+        if section != 'analytic_asset':
+            continue
+        p = Process(target=hg_create_branch, args=(section, path, branch_name))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+
+    print t.bold('Applying patches...')
+    bashCommand = ['quilt', 'push', '-a']
+    output, err = execBashCommand(bashCommand)
+    if not err:
+        print output
+    else:
+        print "It's not possible to apply patche(es)"
+        print err
+
+
 @task
 def pull(config=None, unstable=True, update=True):
     Config = read_config_file(config, unstable=unstable)
