@@ -7,5 +7,6 @@ when you get the sources directly from VCS repositories.
 
 .. toctree::
    :maxdepth: 2
-
+   codereview
+   version_migration
    gal
