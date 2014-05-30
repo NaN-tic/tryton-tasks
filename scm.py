@@ -16,7 +16,7 @@ MAX_PROCESSES = 20
 DEFAULT_BRANCH = {
     'git': 'master',
     'hg': 'default'
-}
+    }
 
 
 def get_repo(section, config, function=None):
@@ -41,7 +41,6 @@ def get_virtualenv():
 
 @task()
 def add2virtualenv():
-
     virtualenv = get_virtualenv()
     aux = run(virtualenv + ' lssitepackages', hide=True)
     Config = read_config_file()
@@ -648,6 +647,10 @@ def git_pull(module, path, update):
 
 @task()
 def branch(branch, clean=False, config=None, unstable=True):
+    if not branch_name:
+        print >> sys.stderr, t.red("Missing required branch parameter")
+        return
+
     print t.bold('Reverting patches...')
     bashCommand = ['quilt', 'pop', '-fa']
     output, err = execBashCommand(bashCommand)
@@ -701,6 +704,10 @@ def missing_branch(branch_name, config=None, unstable=True):
     '''
     List all modules doesn't containt a branch named branc_name
     '''
+    if not branch_name:
+        print >> sys.stderr, t.red("Missing required branch parameter")
+        return
+
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
@@ -748,6 +755,10 @@ def create_branch(branch_name, config=None, unstable=True):
     WARNING: This will clear all the uncommited changes in order to not
     add this changes to the new branch.
     '''
+    if not branch_name:
+        print >> sys.stderr, t.red("Missing required branch parameter")
+        return
+
     print t.bold('Reverting patches...')
     bashCommand = ['quilt', 'pop', '-fa']
     output, err = execBashCommand(bashCommand)
