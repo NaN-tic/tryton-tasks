@@ -647,7 +647,7 @@ def git_pull(module, path, update):
 
 @task()
 def branch(branch, clean=False, config=None, unstable=True):
-    if not branch_name:
+    if not branch:
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
 
