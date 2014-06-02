@@ -248,11 +248,12 @@ def git_status(module, path, verbose, url):
 
 
 @task
-def status(config=None, unstable=True, verbose=False):
+def status(config=None, unstable=True, no_quilt_pop=False, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
-    run('quilt pop -fa > /dev/null')
+    if not no_quilt_pop:
+    	run('quilt pop -fa > /dev/null')
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         if not os.path.exists(repo['path']):
@@ -265,7 +266,8 @@ def status(config=None, unstable=True, verbose=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-    run('quilt push -fa > /dev/null')
+    if not no_quilt_pop:
+    	run('quilt push -fa > /dev/null')
 
 
 def hg_resolve(module, path, verbose, action, tool, nostatus, include,
