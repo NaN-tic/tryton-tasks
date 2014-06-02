@@ -246,6 +246,7 @@ def git_status(module, path, verbose, url):
     print_status(module, files)
     return files
 
+
 @task
 def status(config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
@@ -335,16 +336,19 @@ def resolve(config=None, unstable=True, verbose=False, action='merge',
         wait_processes(processes)
     wait_processes(processes, 0)
 
+
 def hg_stat(path):
-    result = run( 'cd %s; hg diff --stat' % path, hide=True )
+    result = run('cd %s; hg diff --stat' % path, hide=True)
     lines = result.stdout.split('\n')[:-2]
     files = []
     for line in lines:
         files.append(line.split('|')[0].strip())
     return files
 
+
 def git_stat(path):
     print "git_stat not implemented yet"
+
 
 @task
 def stat(module):
@@ -354,6 +358,7 @@ def stat(module):
             continue
         repo = get_repo(section, Config, 'stat')
         return repo['function'](repo['path'])
+
 
 def git_base_diff(path):
     print "git_base_diff not implemented yet"
@@ -390,6 +395,7 @@ def module_diff(path, base=True, show=True, fun=hg_base_diff):
 
 def git_diff(module, path, verbose, rev1, rev2):
     print "Git diff not implented"
+
 
 def hg_diff(module, path, verbose, rev1, rev2):
     t = Terminal()
@@ -979,6 +985,63 @@ def fetch():
 
     print "Update virtualenv paths"
     add2virtualenv()
+
+
+def increase_module_version(module, path, version):
+    '''
+    Increase version of module
+    Cred: http://hg.tryton.org/tryton-tools/file/5f31cfd7e596/increase_version
+    '''
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cfg_file = os.path.join(path_repo, 'tryton.cfg')
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing tryton.cfg file:") + t.bold(
+            cfg_file)
+        return
+
+    def increase(line):
+        if line.startswith('version='):
+            return 'version=%s\n' % version
+        return line
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+
+    content = ''
+    filename = 'tryton.cfg'
+    with open(filename) as fp:
+        for line in fp:
+            content += increase(line)
+    with open(filename, 'w') as fp:
+        fp.write(content)
+
+    os.chdir(cwd)
+
+
+@task
+def increase_version(version, config=None, unstable=True, clean=False):
+    '''
+    Modifies all tryton.cfg files in order to set version to <version>
+    '''
+    if not version:
+        print >> sys.stderr, t.red("Missing required version parameter")
+        return
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        path = Config.get(section, 'path')
+        p = Process(target=increase_module_version, args=(section, path,
+                version))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
 
 def execBashCommand(bashCommand):
     """

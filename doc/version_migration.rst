@@ -21,3 +21,8 @@ If not especified mercurial will fail on pushing.
 Show all commits from first branch that doesn't exist on second branch::
 
   $ invoke compare_branches -f 3.0 -s default
+
+
+Increase version of new migrated modules::
+
+  $ invoke increase_version 3.2.0 -c config/nan-tic-unstable.cfg
