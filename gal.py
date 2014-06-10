@@ -796,7 +796,7 @@ def create_fiscal_year(company, year=None):
 @task
 def create_payment_terms():
     """
-    It cretes 3 payment terms:
+    It creates 3 payment terms:
     - 30 days
     - 60 days
     - 90 days
@@ -840,7 +840,7 @@ def create_opportunities(count=100, linecount=10):
     It creates 'count' leads.
     - It converts 80% of the converted leads into opportunities
     - It converts 40% of the opportunities as lost
-    - It sets 80% of the remaining opportunities are converted. 
+    - It sets 80% of the remaining opportunities are converted.
     """
     gal_action('create_opportunities', count=count, linecount=linecount)
     restore()
