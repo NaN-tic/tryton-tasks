@@ -63,10 +63,10 @@ def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
     if not os.path.exists(doc_path):
         run("mkdir %(doc_path)s" % locals())
 
-    path = os.path.dirname(__file__)
+    current_path = os.path.dirname(__file__)
     requirement_file = os.path.join(user_doc_path, 'requirements.txt')
     install_requirements(requirement_file, True)
-    template = "%(path)s/templates/conf.py.template" % locals()
+    template = "%(current_path)s/templates/conf.py.template" % locals()
     run("cp %(template)s %(source_doc)s/conf.py" % locals(), echo=True)
     remove_link = True
     # create symlinks from modules.

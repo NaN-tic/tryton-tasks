@@ -13,7 +13,6 @@ import project
 import bbucket
 import userdoc
 
-
 ns = Collection()
 ns.add_task(clone)
 ns.add_task(status)
@@ -47,3 +46,5 @@ ns.add_collection(Collection.from_module(tryton_component), 'component')
 ns.add_collection(Collection.from_module(project), 'project')
 ns.add_collection(Collection.from_module(bbucket), 'bb')
 ns.add_collection(Collection.from_module(userdoc), 'doc')
+
+
