@@ -28,11 +28,9 @@ def create_symlinks(origin, destination, lang='es', remove=True):
         # Removing existing symlinks
         for link_file in path(destination).listdir():
             if link_file.islink():
-                print "removing %s" % link_file
                 link_file.remove()
 
     for module_doc_dir in glob.glob('%s/*/doc/%s' % (origin, lang)):
-        print "symlink to %s" % module_doc_dir
         module_name = str(path(module_doc_dir).parent.parent.basename())
         symlink = path(destination).joinpath(module_name)
         if not symlink.exists():
@@ -48,15 +46,21 @@ def update_modules(userdocpath='userdoc'):
 
 @task(default=True)
 def compile(builder='html', source='source-doc',
-        destination="public_data/userdoc"):
+        destination="public_data/doc"):
 
     run("sphinx-build  -b %(builder)s %(source)s %(destination)s" % locals(),
         echo=True)
 
 
+def make_link(origin, destination):
+    directory = os.path.dirname(destination)
+    if not os.path.exists(destination):
+        path(directory).relpathto(path(origin)).symlink(destination)
+
+
 @task()
 def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
-        doc_path="public_data/userdoc", lang="es"):
+        doc_path="public_data/doc", lang="es"):
 
     if not os.path.exists(source_doc):
         run("mkdir %(source_doc)s" % locals())
@@ -66,16 +70,23 @@ def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
     current_path = os.path.dirname(__file__)
     requirement_file = os.path.join(user_doc_path, 'requirements.txt')
     install_requirements(requirement_file, True)
-    template = "%(current_path)s/templates/conf.py.template" % locals()
-    run("cp %(template)s %(source_doc)s/conf.py" % locals(), echo=True)
+
+    
     remove_link = True
     # create symlinks from modules.
     create_symlinks(modules, source_doc, lang, remove_link)
     # create symlinks from core modeules.
     create_symlinks(user_doc_path, source_doc, lang, remove_link)
+    # create symlink for conf.py
+    template = "%(current_path)s/templates/conf.py.template" % locals()
+    conf_file = './conf.py'
+    if not os.path.exists(conf_file):
+        run("cp %(template)s %(conf_file)s" % locals(), echo=True)
+    conf_file_link = os.path.join(source_doc, 'conf.py')
+    make_link(conf_file, conf_file_link)
+
     # create symlink for index
     index = os.path.join(user_doc_path, 'index.rst')
     link = os.path.join(source_doc, 'index.rst')
-    if not os.path.exists(link):
-        path(source_doc).relpathto(path(index)).symlink(link)
-
+    make_link(index, link)
+    

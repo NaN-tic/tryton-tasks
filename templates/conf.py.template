@@ -14,6 +14,7 @@
 import sys
 import os
 import subprocess
+import ConfigParser
 
 
 # Auxiliary functions
@@ -128,8 +129,8 @@ pygments_style = 'sphinx'
 # -- Configuration of inheritance ---------------------------------------------
 
 inheritance_autoreferences = False
-inheritance_debug = True
-verbose = True
+inheritance_debug = False
+verbose = False
 
 inheritance_modules = [
     'trytond_doc',
@@ -141,14 +142,14 @@ if 'sphinxcontrib.trydoc' in extensions:
     from proteus import config,  Model
     sys.path.insert(0, '../trytond')
     config_file = get_config_file()
-    config.set_trytond(config_file=config_file)
+    parser = ConfigParser.ConfigParser()
+    parser.read([config_file])
+    dbname = parser.get('options', 'db_name')
+    config.set_trytond(dbname, config_file=config_file)
     Module = Model.get('ir.module.module')
     modules = Module.find([('state', '=', 'installed')])
     inheritance_modules += [module.name for module in modules]
-
-
-
-
+    
 
 # -- Options for HTML output ---------------------------------------------------
 
