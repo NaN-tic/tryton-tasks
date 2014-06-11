@@ -29,14 +29,14 @@ def list(party=None, user=None):
     domain = [('state', '=', 'opened')]
 
     if party:
-        domain.append(('party.name', 'like', party))
+        domain.append(('party.name', 'ilike', "%" + party + "%"))
     if user:
-        domain.append(('assigned_employees', 'like', user))
+        domain.append(('assigned_employee', 'ilike', "%" + user + "%"))
 
     projects = Project.find(domain)
     for project in projects:
         print "(%s) %s - (%s) %s [%s]" % (
-            project.assigned_employees,
+            project.assigned_employee and project.assigned_employee.rec_name,
             project.rec_name,
             project.effort,
             project.task_phase.name,
@@ -56,7 +56,7 @@ def close_review(task):
 def fetch_review(task):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
-    reviews = Review.find([('work.code', '=', task)])
+    reviews = Review.find([('work.code', '=', task), ('state', '=', 'opened')])
     for review in reviews:
         if review.component:
             path = os.path.join('modules', review.component.name)
