@@ -1,7 +1,7 @@
 blessings
 GitPython>=0.3.2.RC1
 hgapi
-invoke>=0.6
+invoke==0.7
 path.py
 pyactiveresource
 python-sql>=0.2
