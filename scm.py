@@ -985,8 +985,9 @@ def fetch():
         print err
     print t.bold('Fetched.')
 
-    print "Update virtualenv paths"
-    add2virtualenv()
+    #print "Update virtualenv paths"
+    #add2virtualenv()
+    #print "Virtualenv paths updated."
 
 
 def increase_module_version(module, path, version):
