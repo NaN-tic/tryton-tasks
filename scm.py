@@ -51,7 +51,7 @@ def add2virtualenv():
         project_path = os.path.dirname(__file__).split('tasks')[-1]
         abspath = os.path.join(project_path, repo_path, section)
         if not abspath in str(aux):
-            run(virtualenv + ' add2virtualenv ' + abspath)
+            run(virtualenv + ' add2virtualenv ' + abspath, warn=True)
 
 
 @task()
@@ -985,9 +985,7 @@ def fetch():
         print err
     print t.bold('Fetched.')
 
-    #print "Update virtualenv paths"
-    #add2virtualenv()
-    #print "Virtualenv paths updated."
+    add2virtualenv()
 
 
 def increase_module_version(module, path, version):
