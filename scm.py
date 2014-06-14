@@ -983,9 +983,11 @@ def fetch():
     else:
         print "It's not possible to apply patche(es)"
         print err
-    print t.bold('Fetched.')
 
+    print t.bold('Updating virtualenv paths...')
     add2virtualenv()
+
+    print t.bold('Fetched.')
 
 
 def increase_module_version(module, path, version):
