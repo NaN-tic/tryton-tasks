@@ -42,7 +42,7 @@ def get_virtualenv():
 @task()
 def add2virtualenv():
     virtualenv = get_virtualenv()
-    aux = run(virtualenv + ' lssitepackages', hide=True)
+    aux = run(virtualenv + ' lssitepackages')
     Config = read_config_file()
     for section in Config.sections():
         if not Config.has_option(section, 'add2virtualenv'):
@@ -984,8 +984,8 @@ def fetch():
         print "It's not possible to apply patche(es)"
         print err
 
-    print t.bold('Updating virtualenv paths...')
-    add2virtualenv()
+    #print t.bold('Updating virtualenv paths...')
+    #add2virtualenv()
 
     print t.bold('Fetched.')
 
