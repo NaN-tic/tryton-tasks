@@ -92,7 +92,7 @@ def upload_review(task, path, review=None):
     else:
         review = review[0]
 
-    review.name = task.rec_name
+    review.name = task.rec_name + "(" + module + ")"
     review.review_id = str(review_id)
     review.url = 'http://git.nan-tic.com/reviews/r/%s' % review_id
     review.work = task
