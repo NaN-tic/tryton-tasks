@@ -593,7 +593,7 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_pull(module, path, update):
+def hg_pull(module, path, update, quiet=False):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
@@ -606,8 +606,11 @@ def hg_pull(module, path, update):
     if update:
         cmd.append('-u')
         cmd.append('-y')  # noninteractive
+    if quiet:
+        cmd.append('-q')  # quiet
     result = run(' '.join(cmd), warn=True, hide='both')
 
+    print result
     if not result.ok:
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
