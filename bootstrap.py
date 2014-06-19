@@ -189,7 +189,7 @@ def create_symlinks():
         print 'Symlinks script not found'
         return
     os.chdir(os.path.join(cwd, 'utils'))
-    run('./script-symlinks.sh')
+    run('./script-symlinks.sh', warn=True)
     os.chdir(cwd)
 
 
@@ -232,7 +232,6 @@ def bootstrap(projectpath='', projectname='',
     fetch()
 
     create_symlinks()
-    add2virtualenv()
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)

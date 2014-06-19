@@ -8,8 +8,8 @@ Creating a codereview (to reviewboard and Tryton)::
 Downloading a review::
 
 
-  $ invoke project.fetch -t 000086
+  $ invoke project.fetch_review -t 000086
 
 Per tancar un codereview::
 
-  $ invoke project.close -t 000086
+  $ invoke project.close_review -t 000086

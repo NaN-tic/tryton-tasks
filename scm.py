@@ -42,7 +42,7 @@ def get_virtualenv():
 @task()
 def add2virtualenv():
     virtualenv = get_virtualenv()
-    aux = run(virtualenv + ' lssitepackages', hide=True)
+    aux = run(virtualenv + ' lssitepackages')
     Config = read_config_file()
     for section in Config.sections():
         if not Config.has_option(section, 'add2virtualenv'):
@@ -51,7 +51,7 @@ def add2virtualenv():
         project_path = os.path.dirname(__file__).split('tasks')[-1]
         abspath = os.path.join(project_path, repo_path, section)
         if not abspath in str(aux):
-            run(virtualenv + ' add2virtualenv ' + abspath)
+            run(virtualenv + ' add2virtualenv ' + abspath, warn=True)
 
 
 @task()
@@ -593,7 +593,7 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_pull(module, path, update):
+def hg_pull(module, path, update, quiet=False):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
@@ -606,8 +606,11 @@ def hg_pull(module, path, update):
     if update:
         cmd.append('-u')
         cmd.append('-y')  # noninteractive
+    if quiet:
+        cmd.append('-q')  # quiet
     result = run(' '.join(cmd), warn=True, hide='both')
 
+    print result
     if not result.ok:
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
@@ -983,10 +986,11 @@ def fetch():
     else:
         print "It's not possible to apply patche(es)"
         print err
-    print t.bold('Fetched.')
 
-    print "Update virtualenv paths"
-    add2virtualenv()
+    #print t.bold('Updating virtualenv paths...')
+    #add2virtualenv()
+
+    print t.bold('Fetched.')
 
 
 def increase_module_version(module, path, version):
