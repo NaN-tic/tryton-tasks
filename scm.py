@@ -610,7 +610,6 @@ def hg_pull(module, path, update, quiet=False):
         cmd.append('-q')  # quiet
     result = run(' '.join(cmd), warn=True, hide='both')
 
-    print result
     if not result.ok:
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
