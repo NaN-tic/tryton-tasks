@@ -59,9 +59,8 @@ def make_link(origin, destination):
 
 
 @task()
-def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
-        doc_path="public_data/doc", lang="es"):
-
+def bootstrap(modules='modules', user_doc_path='tryton-doc',
+        source_doc='source-doc', doc_path="public_data/doc", lang="es"):
     if not os.path.exists(source_doc):
         run("mkdir %(source_doc)s" % locals())
     if not os.path.exists(doc_path):
@@ -71,12 +70,10 @@ def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
     requirement_file = os.path.join(user_doc_path, 'requirements.txt')
     install_requirements(requirement_file, True)
 
-    
-    remove_link = True
     # create symlinks from modules.
-    create_symlinks(modules, source_doc, lang, remove_link)
+    create_symlinks(modules, source_doc, lang, True)
     # create symlinks from core modeules.
-    create_symlinks(user_doc_path, source_doc, lang, remove_link)
+    create_symlinks(user_doc_path, source_doc, lang, False)
     # create symlink for conf.py
     template = "%(current_path)s/templates/conf.py.template" % locals()
     conf_file = './conf.py'
@@ -89,4 +86,3 @@ def bootstrap(modules='', user_doc_path='tryton-doc', source_doc='source-doc',
     index = os.path.join(user_doc_path, 'index.rst')
     link = os.path.join(source_doc, 'index.rst')
     make_link(index, link)
-    
