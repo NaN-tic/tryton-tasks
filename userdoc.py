@@ -46,7 +46,10 @@ def update_modules(userdocpath='userdoc'):
 
 @task(default=True)
 def compile(builder='html', source='source-doc',
-        destination="public_data/doc"):
+        destination="public_data/doc", clean=False):
+    if clean:
+        if path(destination).exists():
+            path(destination).rmtree()
 
     run("sphinx-build  -b %(builder)s %(source)s %(destination)s" % locals(),
         echo=True)
