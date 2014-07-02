@@ -360,6 +360,18 @@ def load_spanish_banks():
     gal_commit()
 
 
+@task
+def load_spanish_zips():
+    '''
+    Execute Load Spanish Zips wizard. Requires country_zip_es module
+    '''
+    gal_action('load_spanish_zips')
+    restore()
+    connect_database()
+    Wizard('load.country.zips').execute('accept')
+    gal_commit()
+
+
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
         address_name=None, account_payable=None, account_receivable=None):
