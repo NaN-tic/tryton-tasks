@@ -468,6 +468,23 @@ def create_parties(count=4000):
 
     gal_commit()
 
+
+@task
+def create_product_category(name):
+    """
+    Creates product category with the supplied name.
+    """
+    gal_action('create_product_category', name=name)
+    restore()
+    connect_database()
+
+    Category = Model.get('product.category')
+    category = Category(name=name)
+    category.save()
+
+    gal_commit()
+
+
 @task
 def create_product_categories(count=20):
     """
