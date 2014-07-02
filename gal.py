@@ -803,7 +803,9 @@ def create_payment_term(name, type='remainder', percentage=None, divisor=None,
     It creates a payment term with the supplied values.
     Default values are to create a Cash payment term
     """
-    gal_action('create_payment_terms')
+    gal_action('create_payment_term', name=name, type=type,
+        percentage=percentage, divisor=divisor, amount=amount, day=day,
+        month=month, weekday=weekday, months=months, weeks=weeks, days=days)
     restore()
     connect_database()
 
