@@ -310,6 +310,7 @@ def set_active_languages(lang_codes=None):
         upgrade_modules(config, all=True)
     gal_commit()
 
+
 @task
 def install_modules(modules):
     '''
@@ -345,6 +346,7 @@ def install_modules(modules):
 
     gal_commit()
     return modules, installed_modules
+
 
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
@@ -792,6 +794,45 @@ def create_fiscal_year(company, year=None):
 
     gal_commit()
     return fiscalyear
+
+@task
+def create_payment_term(name, type='remainder', percentage=None, divisor=None,
+        amount=None, day=None, month=None, weekday=None, months=0, weeks=0,
+        days=0):
+    """
+    It creates a payment term with the supplied values.
+    Default values are to create a Cash payment term
+    """
+    gal_action('create_payment_terms')
+    restore()
+    connect_database()
+
+    Term = Model.get('account.invoice.payment_term')
+    TermLine = Model.get('account.invoice.payment_term.line')
+
+    term = Term()
+    term.name = name
+    term.active = True
+    line = TermLine()
+    line.type = type
+    if percentage is not None:
+        line.percentage = percentage
+    if divisor is not None:
+        line.divisor = divisor
+    if amount is not None:
+        line.amount = amount
+    line.day = day
+    line.month = month
+    line.weekday = weekday
+    line.months = months
+    line.weeks = weeks
+    line.days = days
+    term.lines.append(line)
+    term.save()
+
+    gal_commit()
+    return term
+
 
 @task
 def create_payment_terms():
