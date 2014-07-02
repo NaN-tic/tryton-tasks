@@ -348,6 +348,18 @@ def install_modules(modules):
     return modules, installed_modules
 
 
+@task
+def load_spanish_banks():
+    '''
+    Execute Load Spanish Banks wizard. Requires bank_es module
+    '''
+    gal_action('load_spanish_banks')
+    restore()
+    connect_database()
+    Wizard('load.banks').execute('accept')
+    gal_commit()
+
+
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
         address_name=None, account_payable=None, account_receivable=None):
