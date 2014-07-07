@@ -140,6 +140,7 @@ inheritance_modules = [
 # -- Configuration of trydoc --------------------------------------------------
 if 'sphinxcontrib.trydoc' in extensions:
     from proteus import config,  Model
+    from trytond.modules import create_graph
     sys.path.insert(0, '../trytond')
     config_file = get_config_file()
     parser = ConfigParser.ConfigParser()
@@ -148,8 +149,9 @@ if 'sphinxcontrib.trydoc' in extensions:
     config.set_trytond(dbname, config_file=config_file)
     Module = Model.get('ir.module.module')
     modules = Module.find([('state', '=', 'installed')])
-    inheritance_modules += [module.name for module in modules]
-    
+    graph = create_graph([module.name for module in modules])[0]
+    inheritance_modules += [p.name for p in graph]
+
 
 # -- Options for HTML output ---------------------------------------------------
 
