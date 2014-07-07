@@ -16,3 +16,6 @@ PyHamcrest
 
 # gal
 dateutils
+
+# bitbucket
+git+https://github.com/angelnan/bitbucketcli.git
