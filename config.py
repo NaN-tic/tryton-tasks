@@ -2,7 +2,7 @@ import os
 import ConfigParser
 from invoke import task, run
 from .utils import read_config_file, get_config_files
-
+from .scm import get_repo
 from collections import OrderedDict
 
 
@@ -18,6 +18,29 @@ def get_config():
         for name, value, in parser.items(section):
             settings[usection][name] = value
     return settings
+
+
+@task
+def set_revision(config=None):
+    """ Set branch on repository config files """
+
+    if config is None:
+        config_files = get_config_files()
+    else:
+        config_files = [config]
+
+    for config_file in config_files:
+        Config = read_config_file(config_file, type='all', unstable=True)
+        f_d = open(config_file, 'w+')
+        for section in Config.sections():
+            if Config.has_option(section, 'patch'):
+                continue
+            repo = get_repo(section, Config, 'revision')
+            revision = repo['function'](section, repo['path'], verbose=False)
+            Config.set(section, 'revision', revision)
+
+        Config.write(f_d)
+        f_d.close()
 
 
 @task

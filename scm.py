@@ -936,6 +936,42 @@ def update(config=None, unstable=True, clean=False):
     wait_processes(processes, 0)
 
 
+def git_revision(module, path, verbose):
+    print "Git revision not implented"
+
+
+def hg_revision(module, path, verbose):
+    t = Terminal()
+    path_repo = path
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, (t.red("Missing repositori:")
+            + t.bold(path_repo))
+        return False
+
+    result = run('cd %s;hg parent --template "{rev}"' % path_repo,
+        hide='stdout')
+    if result.stdout:
+        if verbose:
+            print >> sys.stderr, t.bold(module) \
+                + " revision:" + result.stdout
+        return result.stdout
+    return False
+
+
+@task
+def revision(config=None, unstable=True, verbose=True):
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    for section in Config.sections():
+        repo = get_repo(section, Config, 'revision')
+        p = Process(target=repo['function'], args=(section, repo['path'],
+            verbose))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
+
+
 @task()
 def fetch():
     print t.bold('Reverting patches...')
