@@ -5,6 +5,7 @@ import sys
 from blessings import Terminal
 from invoke import task
 from path import path
+import subprocess
 
 try:
     from proteus import config, Wizard, Model
@@ -277,4 +278,24 @@ def _check_database(database, host=None, port=None, dbuser=None,
         print t.bold('Invalid database connection params:')
         print str(e)
         return False
+    return True
+
+
+def execBashCommand(command, success_msg="", fail_msg="", quiet=True):
+    """
+        Execute bash command.
+        @bashCommand: is list with the command and the options
+        return: list with the output and the posible error
+    """
+    process = subprocess.Popen(command, stdout=subprocess.PIPE)
+    output, err = process.communicate()
+
+    if err and fail_msg:
+        print fail_msg
+        print err
+        return False
+    if not err and success_msg:
+        print success_msg
+        if not quiet:
+            print output
     return True
