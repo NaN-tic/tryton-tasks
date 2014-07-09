@@ -231,6 +231,19 @@ def galfile():
 #
 # Extension commands
 #
+@task
+def update_all():
+    """
+    Update all modules. Equivalent to execute trytond with "-u all" parameter
+    """
+    gal_action('update_all')
+    restore()
+    connect_database()
+
+    upgraded_modules = upgrade_modules(all=True)
+
+    gal_commit()
+    return upgraded_modules
 
 def upgrade_modules(modules=None, all=False):
     '''
