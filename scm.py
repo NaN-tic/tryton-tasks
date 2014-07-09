@@ -8,6 +8,7 @@ import subprocess
 from blessings import Terminal
 from multiprocessing import Process
 from path import path
+from .utils import _ask_ok
 
 from .utils import t, read_config_file, NO_MODULE_REPOS
 
@@ -653,6 +654,30 @@ def git_pull(module, path, update):
     print t.bold("= " + module + " =")
     print result.stdout
     os.chdir(cwd)
+
+
+def hg_clean(module, path, url, force=False):
+    st = hg_status(module, path, False, url)
+    if st != {}:
+        if not _ask_ok(
+            'Answer "yes" to clean the "%s" repository '
+                'in "%s" directory. [y/N] ' % (module, path), 'n'):
+            return
+        run('cd %s;hg update -C -y' % path, hide='stdout')
+
+
+@task()
+def clean(force=False, config=None, unstable=True):
+    print t.bold('Reverting patches...')
+    bashCommand = ['quilt', 'pop', '-fa']
+    output, err = execBashCommand(bashCommand)
+    Config = read_config_file(config, unstable=unstable)
+    for section in Config.sections():
+        repo = get_repo(section, Config, 'clean')
+        repo['function'](section, repo['path'], repo['url'])
+
+    print t.bold('Apply patches...')
+    bashCommand = ['quilt', 'push', '-f']
 
 
 @task()
