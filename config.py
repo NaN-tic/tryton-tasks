@@ -1,6 +1,6 @@
 import os
 import ConfigParser
-from invoke import task, run
+from invoke import Collection, task, run
 from .utils import read_config_file, get_config_files
 from .scm import get_repo
 from collections import OrderedDict
@@ -85,3 +85,8 @@ def add_module(config, path, url=None):
         key=lambda x: x[0]))
     Config.write(cfile)
     cfile.close()
+
+ConfigCollection = Collection()
+ConfigCollection.add_task(add_module)
+ConfigCollection.add_task(set_branch)
+ConfigCollection.add_task(set_revision)
