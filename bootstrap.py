@@ -3,7 +3,7 @@
 import ConfigParser
 import os
 from blessings import Terminal
-from invoke import task, run
+from invoke import Collection, task, run
 from path import path
 
 from .utils import _ask_ok, _check_required_file, _exit
@@ -12,6 +12,7 @@ from .scm import hg_clone, hg_pull, clone, fetch
 
 t = Terminal()
 Config = ConfigParser.ConfigParser()
+
 # TODO: l'us que faig del config potser correspon a context
 # http://docs.pyinvoke.org/en/latest/getting_started.html#handling-configuration-state
 
@@ -235,3 +236,17 @@ def bootstrap(projectpath='', projectname='',
 
     if path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
+
+
+__all__ = ['get_tasks', 'get_config', 'get_utils', 'activate_virtualenv',
+    'install_requirements', 'install_proteus', 'create_symlinks', 'bootstrap']
+
+BootstrapCollection = Collection()
+BootstrapCollection.add_task(bootstrap)
+BootstrapCollection.add_task(get_config)
+BootstrapCollection.add_task(get_tasks)
+BootstrapCollection.add_task(get_utils)
+BootstrapCollection.add_task(activate_virtualenv)
+BootstrapCollection.add_task(install_requirements)
+BootstrapCollection.add_task(install_proteus)
+BootstrapCollection.add_task(create_symlinks)

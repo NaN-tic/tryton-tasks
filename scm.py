@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from invoke import task, run
+from invoke import Collection, task, run
 import hgapi
 import git
 import os
@@ -19,13 +19,22 @@ DEFAULT_BRANCH = {
     'hg': 'default'
     }
 
+MASTER_REVISION = {
+    'git': 'master',
+    'hg': 'tip',
+}
 
-def get_repo(section, config, function=None):
+
+def get_repo(section, config, function=None, development=False):
     repository = {}
     repository['type'] = config.get(section, 'repo')
     repository['url'] = config.get(section, 'url')
     repository['path'] = os.path.join(config.get(section, 'path'), section)
     repository['branch'] = DEFAULT_BRANCH[repository['type']]
+    repository['revision'] = MASTER_REVISION[repository['type']]
+    if config.has_option(section, 'revision') and \
+            config.get(section, 'revision') and not development:
+        repository['revision'] = config.get(section, 'revision')
     if config.has_option(section, 'branch'):
         repository['branch'] = config.get(section, 'branch')
     repository['function'] = None
@@ -135,17 +144,18 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
             del processes[i]
 
 
-def hg_clone(url, path, branch="default"):
-    command = 'hg clone -b %s -q %s %s' % (branch, url, path)
+def hg_clone(url, path, branch="default", revision="tip"):
+    command = 'hg clone -b %s -q %s %s -r %s' % (branch, url, path, revision)
     try:
         run(command)
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
         raise
-    print "Repo " + t.bold(path) + t.green(" Cloned")
+    print "Repo " + t.bold(path) + t.green(" Cloned") + \
+        " to Revision:" + revision
 
 
-def git_clone(url, path, branch="master"):
+def git_clone(url, path, branch="master", revision="master"):
     command = 'git clone -b %s -q %s %s' % (branch, url, path)
     if not path.endswith(os.path.sep):
         path += os.path.sep
@@ -161,7 +171,7 @@ def git_clone(url, path, branch="master"):
 
 
 @task()
-def clone(config=None, unstable=True):
+def clone(config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     hg_pull('config', '.', True)
 
@@ -169,10 +179,10 @@ def clone(config=None, unstable=True):
     p = None
     processes = []
     for section in Config.sections():
-        repo = get_repo(section, Config, 'clone')
+        repo = get_repo(section, Config, 'clone', development)
         if not os.path.exists(repo['path']):
             p = Process(target=repo['function'], args=(repo['url'],
-                    repo['path'], repo['branch']))
+                    repo['path'], repo['branch'], repo['revision']))
             p.start()
             processes.append(p)
             wait_processes(processes)
@@ -594,7 +604,9 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_pull(module, path, update, quiet=False):
+def hg_pull(module, path, update, quiet=False, branch='default',
+        revision='tip'):
+
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
@@ -603,13 +615,16 @@ def hg_pull(module, path, update, quiet=False):
     cwd = os.getcwd()
     os.chdir(path_repo)
 
-    cmd = ['hg', 'pull']
+    cmd = ['hg', 'pull', '-b', branch, '-r', revision]
+
     if update:
         cmd.append('-u')
         cmd.append('-y')  # noninteractive
     if quiet:
         cmd.append('-q')  # quiet
-    result = run(' '.join(cmd), warn=True, hide='both')
+
+    print ' '.join(cmd)
+    result = run(' '.join(cmd), warn=True ) #, hide='both')
 
     if not result.ok:
         print >> sys.stderr, t.red("= " + module + " = KO!")
@@ -827,21 +842,14 @@ def create_branch(branch_name, config=None, unstable=True):
 
 
 @task
-def pull(config=None, unstable=True, update=True):
+def pull(config=None, unstable=True, update=True, development=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'hg':
-            func = hg_pull
-        elif repo == 'git':
-            func = git_pull
-        else:
-            print >> sys.stderr, "Not developed yet"
-            continue
-        p = Process(target=func, args=(section, path, update))
+        repo = get_repo(section, Config, 'pull', development)
+        p = Process(target=repo['function'], args=(section, repo['path'],
+            update, repo['revision']))
         p.start()
         processes.append(p)
         wait_processes(processes)
@@ -1118,3 +1126,28 @@ def execBashCommand(bashCommand):
     process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE)
     output, err = process.communicate()
     return output, err
+
+
+ScmCollection = Collection()
+ScmCollection.add_task(clone)
+ScmCollection.add_task(status)
+ScmCollection.add_task(resolve)
+ScmCollection.add_task(diff)
+ScmCollection.add_task(summary)
+ScmCollection.add_task(outgoing)
+ScmCollection.add_task(push)
+ScmCollection.add_task(pull)
+ScmCollection.add_task(update)
+ScmCollection.add_task(repo_list)
+ScmCollection.add_task(fetch)
+ScmCollection.add_task(unknown)
+ScmCollection.add_task(stat)
+ScmCollection.add_task(branch)
+ScmCollection.add_task(missing_branch)
+ScmCollection.add_task(create_branch)
+ScmCollection.add_task(compare_branches)
+ScmCollection.add_task(module_diff)
+ScmCollection.add_task(add2virtualenv)
+ScmCollection.add_task(increase_version)
+ScmCollection.add_task(revision)
+ScmCollection.add_task(clean)

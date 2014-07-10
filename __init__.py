@@ -1,6 +1,7 @@
-import bootstrap
+from .scm import ScmCollection as ns
+from .bootstrap import BootstrapCollection
 import utils
-from .scm import *
+
 import patch
 import tryton
 from invoke import Collection
@@ -13,30 +14,7 @@ import project
 import bbucket
 import userdoc
 
-ns = Collection()
-ns.add_task(clone)
-ns.add_task(status)
-ns.add_task(resolve)
-ns.add_task(diff)
-ns.add_task(summary)
-ns.add_task(outgoing)
-ns.add_task(push)
-ns.add_task(pull)
-ns.add_task(update)
-ns.add_task(repo_list)
-ns.add_task(fetch)
-ns.add_task(unknown)
-ns.add_task(stat)
-ns.add_task(branch)
-ns.add_task(missing_branch)
-ns.add_task(create_branch)
-ns.add_task(compare_branches)
-ns.add_task(module_diff)
-ns.add_task(add2virtualenv)
-ns.add_task(increase_version)
-ns.add_task(revision)
-ns.add_task(clean)
-ns.add_collection(Collection.from_module(bootstrap), 'bs')
+ns.add_collection(BootstrapCollection, 'bs')
 ns.add_collection(Collection.from_module(utils))
 ns.add_collection(Collection.from_module(patch))
 ns.add_collection(Collection.from_module(tryton))
