@@ -10,7 +10,7 @@ from multiprocessing import Process
 from path import path
 from .utils import _ask_ok
 
-from .utils import t, read_config_file, NO_MODULE_REPOS
+from .utils import t, read_config_file, execBashCommand, NO_MODULE_REPOS
 
 MAX_PROCESSES = 20
 

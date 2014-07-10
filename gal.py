@@ -10,7 +10,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from decimal import Decimal
-from invoke import task
+from invoke import task, Collection
 
 from .utils import t
 
@@ -1278,3 +1278,36 @@ def process_supplier_shipments():
     Shipment.done([x.id for x in shipments], config.context)
 
     gal_commit()
+
+GalCollection = Collection()
+GalCollection.add_task(create)
+GalCollection.add_task(replay)
+GalCollection.add_task(get)
+GalCollection.add_task(set)
+GalCollection.add_task(build)
+GalCollection.add_task(galfile)
+GalCollection.add_task(update_all)
+GalCollection.add_task(set_active_languages)
+GalCollection.add_task(install_modules)
+GalCollection.add_task(load_spanish_banks)
+GalCollection.add_task(load_spanish_zips)
+GalCollection.add_task(create_parties)
+GalCollection.add_task(create_product_categories)
+GalCollection.add_task(create_product_category)
+GalCollection.add_task(create_products)
+GalCollection.add_task(create_company)
+GalCollection.add_task(create_employee)
+GalCollection.add_task(create_account_chart)
+GalCollection.add_task(create_fiscal_year)
+GalCollection.add_task(create_payment_term)
+GalCollection.add_task(create_payment_terms)
+GalCollection.add_task(create_opportunities)
+GalCollection.add_task(process_opportunities)
+GalCollection.add_task(create_sales)
+GalCollection.add_task(process_sales)
+GalCollection.add_task(create_purchases)
+GalCollection.add_task(process_purchases)
+GalCollection.add_task(create_inventory)
+GalCollection.add_task(process_customer_shipments)
+GalCollection.add_task(process_customer_invoices)
+GalCollection.add_task(process_supplier_shipments)

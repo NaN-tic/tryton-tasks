@@ -3,7 +3,7 @@
 import ConfigParser
 import os
 from blessings import Terminal
-from invoke import task, run
+from invoke import task, run, Collection
 from path import path
 import glob
 
@@ -45,7 +45,7 @@ def update_modules(userdocpath='userdoc'):
 
 
 @task(default=True)
-def compile(builder='html', source='source-doc',
+def make(builder='html', source='source-doc',
         destination="public_data/doc", clean=False):
     if clean:
         if path(destination).exists():
@@ -89,3 +89,8 @@ def bootstrap(modules='modules', user_doc_path='tryton-doc',
     index = os.path.join(user_doc_path, 'index.rst')
     link = os.path.join(source_doc, 'index.rst')
     make_link(index, link)
+
+DocCollection = Collection()
+DocCollection.add_task(bootstrap)
+DocCollection.add_task(make)
+DocCollection.add_task(install_requirements)

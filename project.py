@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
-from invoke import task
+from invoke import task, Collection
 from .config import get_config
 import reviewboard
 from scm import get_branch
@@ -22,7 +22,7 @@ def get_tryton_connection():
 
 
 @task
-def list(party=None, user=None):
+def tasks(party=None, user=None):
     get_tryton_connection()
 
     Project = Model.get('project.work')
@@ -99,3 +99,10 @@ def upload_review(task, path, review=None):
     review.branch = get_branch(path)
     review.component = component
     review.save()
+
+
+ProjectCollection = Collection()
+ProjectCollection.add_task(upload_review)
+ProjectCollection.add_task(fetch_review)
+ProjectCollection.add_task(close_review)
+ProjectCollection.add_task(tasks)

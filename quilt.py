@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from invoke import task
+from invoke import task, Collection
 from .utils import t, execBashCommand
 
 
@@ -19,3 +19,7 @@ def push():
     success = "patch(es) applied correctly"
     failure = "It's not possible to apply patch(es)"
     return execBashCommand(command, success, failure)
+
+QuiltCollection = Collection()
+QuiltCollection.add_task(pop)
+QuiltCollection.add_task(push)

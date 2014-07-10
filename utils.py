@@ -3,7 +3,7 @@ import os
 import psycopg2
 import sys
 from blessings import Terminal
-from invoke import task
+from invoke import task, Collection
 from path import path
 import subprocess
 
@@ -308,3 +308,10 @@ def execBashCommand(command, success_msg="", fail_msg="", quiet=True):
         if not quiet:
             print output
     return True
+
+
+UtilsCollection = Collection()
+UtilsCollection.add_task(account_reconcile)
+UtilsCollection.add_task(update_parent_left_right)
+UtilsCollection.add_task(prepare_translations)
+UtilsCollection.add_task(export_translations)

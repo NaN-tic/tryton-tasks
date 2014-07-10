@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
-from invoke import task
+from invoke import task, Collection
 from .config import get_config
 from .utils import read_config_file, NO_MODULE_REPOS, BASE_MODULES
 
@@ -44,3 +44,6 @@ def push(config=None):
         c.url = Config.get(section, 'url')
         c.module = modules.get(section, None)
         c.save()
+
+ComponentCollection = Collection()
+ComponentCollection.add_task(push)

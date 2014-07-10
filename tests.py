@@ -1,24 +1,40 @@
 #!/usr/bin/env python
-from invoke import task, run
+from invoke import task, run, Collection
+from scm import unknown
+from bootstrap import bootstrap
 
 
 @task()
-def test(coverage=False, flakes=False, unittest=False, failfast=True,
-    sqlite=False, psql=False):
-    cmd = ['./tryton-tests/runtests.py']
+def test(coverage=False, flakes=False, failfast=True,
+        sqlite=True, postgres=False, mail=False):
+    cmd = ['./test.py']
     if coverage:
         cmd.append('--coverage')
     if flakes:
-        cmd.append('--flakes-only')
-    if unittest:
-        cmd.append('--unittest-only')
+        cmd.append('--flakes')
     if failfast:
-        cmd.append('--failfast')
+        cmd.append('--fail-fast')
     if sqlite:
-        cmd.append('--sqlite-only')
-    if psql:
-        cmd.append('--psql-only')
+        cmd.append('--db-type sqlite')
+    if postgres:
+        cmd.append('--db-type postgres')
+    if mail:
+        cmd.append('--mail')
 
     run(" ".join(cmd), echo=True)
 
 
+@task()
+def clean():
+    without_repo, not_config = unknown(show=False)
+
+
+@task()
+def setup(development=False):
+    pass
+
+
+TestCollection = Collection()
+TestCollection.add_task(test)
+TestCollection.add_task(clean)
+TestCollection.add_task(setup)

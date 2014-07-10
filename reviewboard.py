@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from invoke import task, run
+from invoke import task, run, Collection
 from .scm import module_diff
 from .config import get_config
 import ConfigParser
@@ -97,7 +97,7 @@ def create(module, summary, description, bug, review=None, group='NaN'):
 
 
 @task
-def list():
+def reviews():
     """
     List your reviews in Review Board
     """
@@ -129,7 +129,7 @@ def fetch(module, review):
         diff_body = diff.get_patch().data
         tmp_patch_file = make_tempfile(diff_body)
         if not os.path.exists(module):
-            run('mkdir %s'%module)  
+            run('mkdir %s' % module)
         run('cd %s; patch -p1 -m < %s' % (module, tmp_patch_file), echo=True)
 
 
@@ -140,6 +140,7 @@ def close_all():
     for request in requests:
         request = request.update(status='discarded')
 
+
 @task
 def close(review=None, close_type='submitted'):
     """ @type submitted | discarded """
@@ -147,3 +148,10 @@ def close(review=None, close_type='submitted'):
     request = request_by_id(review)
     request = request.update(status=close_type)
 
+
+ReviewCollection = Collection()
+ReviewCollection.add_task(close)
+ReviewCollection.add_task(close_all)
+ReviewCollection.add_task(fetch)
+ReviewCollection.add_task(reviews)
+ReviewCollection.add_task(create)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from invoke import task, run
+from invoke import task, run, Collection
 
 
 @task()
@@ -21,7 +21,7 @@ def delete(account, repo):
 
 
 @task()
-def list():
+def repos():
     cmd = 'bitbucket repo list'
     run(cmd)
 
@@ -30,3 +30,9 @@ def list():
 def detail(repo):
     cmd = 'bitbucket repo detail -r %(repo)s'
     run(cmd % locals())
+
+BitbucketCollection = Collection()
+BitbucketCollection.add_task(create)
+BitbucketCollection.add_task(delete)
+BitbucketCollection.add_task(repos)
+BitbucketCollection.add_task(detail)

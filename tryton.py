@@ -3,7 +3,7 @@ import contextlib
 import os
 import psycopg2
 import sys
-from invoke import task, run
+from invoke import task, run, Collection
 
 from .utils import t, read_config_file, NO_MODULE_REPOS, BASE_MODULES
 
@@ -354,8 +354,15 @@ def delete_modules(database, modules, config_file=None, force=False):
             print (t.red("Deleting installed supplied modules: ") +
                 ", ".join(installed_modules))
 
-
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     cursor.commit()
 
 
+TrytonCollection = Collection()
+TrytonCollection.add_task(delete_modules)
+TrytonCollection.add_task(uninstall)
+TrytonCollection.add_task(lost)
+TrytonCollection.add_task(forgotten)
+TrytonCollection.add_task(missing)
+TrytonCollection.add_task(parent_compute)
+TrytonCollection.add_task(update_post_move_sequence)
