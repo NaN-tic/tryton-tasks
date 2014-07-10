@@ -13,8 +13,6 @@ from .userdoc import DocCollection
 from .quilt import QuiltCollection
 from .gal import GalCollection
 
-#import patch
-
 ns.add_collection(BootstrapCollection, 'bs')
 ns.add_collection(BitbucketCollection, 'bb')
 ns.add_collection(UtilsCollection, 'utils')
@@ -27,5 +25,3 @@ ns.add_collection(ProjectCollection, 'project')
 ns.add_collection(DocCollection, 'doc')
 ns.add_collection(QuiltCollection, 'quilt')
 ns.add_collection(GalCollection, 'gal')
-
-#ns.add_collection(Collection.from_module(patch))
