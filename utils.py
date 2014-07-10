@@ -130,6 +130,9 @@ def update_parent_left_right(database, table, field, host='localhost',
 @task
 def prepare_translations(database, langs=None, host=None, port=None,
         dbuser=None, dbpassword=None):
+    """
+    Runs the set, clean and update wizards in the given database.
+    """
     print t.bold('export_translations: %s, %s') % (database, langs)
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
@@ -168,6 +171,12 @@ def prepare_translations(database, langs=None, host=None, port=None,
 @task
 def export_translations(database, modules, langs=None,
         host=None, port=None, dbuser=None, dbpassword=None):
+    """
+    Creates translation files for the given modules and the specified languages.
+
+    If no languages are specified, the ones marked as translatable in the
+    database are used.
+    """
     print t.bold('export_translations: %s, %s, %s') % (database, modules,
         langs)
     if not _check_database(database, host, port, dbuser, dbpassword):
