@@ -9,7 +9,7 @@ from multiprocessing import Process
 from path import path
 import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
-    NO_MODULE_REPOS
+    remove_dir, NO_MODULE_REPOS
 
 MAX_PROCESSES = 20
 
@@ -225,12 +225,8 @@ def hg_status(module, path, verbose, url):
     url = str(url).rstrip('/')
     if actual_url != url:
         print >> sys.stderr, (t.bold('[%s]' % module) +
-            t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
-    msg = []
-    if actual_url != url:
-        msg.append(t.red("Repo URL differs: ")
-            + t.bold(actual_url + " != " + url))
-
+            t.red(' URL differs ') + "(Disk!=Cfg) " + t.bold(actual_url +
+                ' !=' + url))
     st = repo.hg_status(empty=True)
     print_status(module, st)
     return st
@@ -262,8 +258,7 @@ def status(config=None, unstable=True, no_quilt_pop=False, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
-    if not no_quilt_pop:
-    	run('quilt pop -fa > /dev/null')
+    quilt.pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         if not os.path.exists(repo['path']):
@@ -276,8 +271,7 @@ def status(config=None, unstable=True, no_quilt_pop=False, verbose=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-    if not no_quilt_pop:
-    	run('quilt push -fa > /dev/null')
+    quilt.push()
 
 
 def hg_resolve(module, path, verbose, action, tool, nostatus, include,
@@ -680,7 +674,6 @@ def hg_clean(module, path, url, force=False):
 
 @task()
 def clean(force=False, config=None, unstable=True):
-    print t.bold('Reverting patches...')
     quilt.pop()
     Config = read_config_file(config, unstable=unstable)
     for section in Config.sections():
@@ -696,7 +689,6 @@ def branch(branch, clean=False, config=None, unstable=True):
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
 
-    print t.bold('Reverting patches...')
     quilt.pop()
     Config = read_config_file(config, unstable=unstable)
 
@@ -797,7 +789,6 @@ def create_branch(branch_name, config=None, unstable=True):
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
 
-    print t.bold('Reverting patches...')
     quilt.pop()
     print t.bold('Cleaning all changes...')
     Config = read_config_file(config, unstable=unstable)
@@ -986,9 +977,36 @@ def revision(config=None, unstable=True, verbose=True):
     wait_processes(processes, 0)
 
 
+@task
+def prefetch(quiet=False):
+    """ Ensures clean enviroment """
+
+    wo_repo, not_in_cfg = unknown(unstable=True, status=False,
+        show=False)
+
+    for repo in wo_repo + not_in_cfg:
+        path = os.path.join('./modules', repo)
+        remove_dir(path)
+
+    clean()
+    Config = read_config_file()
+    for section in Config.sections():
+        repo = get_repo(section, Config, 'status')
+        files = repo['function'](section, repo['path'],
+            verbose=False, url=repo['url'])
+        if files == {}:
+            continue
+        remove_files = [os.path.join(repo['path'], x) for x in files['?']]
+        if _ask_ok(
+            'Answer "yes" to remove untracked files "%s" of "%s" repository '
+                'in "%s" directory. [y/N] ' % (" ".join(remove_files),
+                    section, repo['path']), 'n'):
+            for f in remove_files:
+                os.remove(f)
+
 @task()
 def fetch():
-    print t.bold('Reverting patches...')
+
     if not quilt.pop():
         print "It's not possible to remove patche(es)"
         print t.bold('Not Fetched.')
@@ -1098,3 +1116,4 @@ ScmCollection.add_task(add2virtualenv)
 ScmCollection.add_task(increase_version)
 ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
+ScmCollection.add_task(prefetch)

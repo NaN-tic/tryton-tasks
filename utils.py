@@ -2,6 +2,7 @@ import ConfigParser
 import os
 import psycopg2
 import sys
+import shutil
 from blessings import Terminal
 from invoke import task, Collection
 from path import path
@@ -308,6 +309,14 @@ def execBashCommand(command, success_msg="", fail_msg="", quiet=True):
         if not quiet:
             print output
     return True
+
+
+def remove_dir(path, quiet=False):
+    if not quiet:
+        if not _ask_ok('Answer "yes" to remove path: "%s". [y/N] ' %
+                (path), 'n'):
+            return
+    shutil.rmtree(path)
 
 
 UtilsCollection = Collection()
