@@ -4,13 +4,12 @@ import hgapi
 import git
 import os
 import sys
-import subprocess
 from blessings import Terminal
 from multiprocessing import Process
 from path import path
-from .utils import _ask_ok
-
-from .utils import t, read_config_file, execBashCommand, NO_MODULE_REPOS
+import quilt
+from .utils import t, _ask_ok, read_config_file, execBashCommand, \
+    NO_MODULE_REPOS
 
 MAX_PROCESSES = 20
 
@@ -607,7 +606,6 @@ def outgoing(config=None, unstable=True, verbose=False):
 def hg_pull(module, path, update, quiet=False, branch='default',
         revision='tip'):
 
-    path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
@@ -684,15 +682,13 @@ def hg_clean(module, path, url, force=False):
 @task()
 def clean(force=False, config=None, unstable=True):
     print t.bold('Reverting patches...')
-    bashCommand = ['quilt', 'pop', '-fa']
-    output, err = execBashCommand(bashCommand)
+    quilt.pop()
     Config = read_config_file(config, unstable=unstable)
     for section in Config.sections():
         repo = get_repo(section, Config, 'clean')
         repo['function'](section, repo['path'], repo['url'])
 
-    print t.bold('Apply patches...')
-    bashCommand = ['quilt', 'push', '-f']
+    quilt.push()
 
 
 @task()
@@ -702,8 +698,7 @@ def branch(branch, clean=False, config=None, unstable=True):
         return
 
     print t.bold('Reverting patches...')
-    bashCommand = ['quilt', 'pop', '-fa']
-    output, err = execBashCommand(bashCommand)
+    quilt.pop()
     Config = read_config_file(config, unstable=unstable)
 
     processes = []
@@ -723,13 +718,7 @@ def branch(branch, clean=False, config=None, unstable=True):
     wait_processes(processes, 0)
 
     print t.bold('Applying patches...')
-    bashCommand = ['quilt', 'push', '-a']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to apply patche(es)"
-        print err
+    quilt.push()
 
 
 def hg_missing_branch(module, path, branch_name, closed=True):
@@ -810,8 +799,7 @@ def create_branch(branch_name, config=None, unstable=True):
         return
 
     print t.bold('Reverting patches...')
-    bashCommand = ['quilt', 'pop', '-fa']
-    output, err = execBashCommand(bashCommand)
+    quilt.pop()
     print t.bold('Cleaning all changes...')
     Config = read_config_file(config, unstable=unstable)
     update(config, unstable=True, clean=True)
@@ -832,13 +820,7 @@ def create_branch(branch_name, config=None, unstable=True):
         wait_processes(processes)
 
     print t.bold('Applying patches...')
-    bashCommand = ['quilt', 'push', '-a']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to apply patche(es)"
-        print err
+    quilt.pop()
 
 
 @task
@@ -1008,23 +990,15 @@ def revision(config=None, unstable=True, verbose=True):
 @task()
 def fetch():
     print t.bold('Reverting patches...')
-    bashCommand = ['quilt', 'pop', '-fa']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
+    if not quilt.pop():
         print "It's not possible to remove patche(es)"
-        print err
         print t.bold('Not Fetched.')
         return
+
     print t.bold('Pulling and updated local repository...')
     bashCommand = ['hg', 'pull', '-u']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to pull the local repostory. Err:"
-        print err
+    execBashCommand(bashCommand, '',
+        "It's not possible to pull the local repostory. Err:")
     print t.bold('Pulling...')
     pull()
     print t.bold('Updating...')
@@ -1032,32 +1006,17 @@ def fetch():
     print t.bold('Cloning...')
     clone()
     print t.bold('Applying patches...')
-    bashCommand = ['quilt', 'push', '-a']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to apply patche(es)"
-        print err
+    quilt.pop()
     print t.bold('Updating requirements...')
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to apply patche(es)"
-        print err
+    execBashCommand(bashCommand,
+        'Requirements Installed Succesfully',
+        "It's not possible to apply patche(es)")
+
     bashCommand = ['pip', 'install', '-r', 'tasks/requirements.txt']
-    output, err = execBashCommand(bashCommand)
-    if not err:
-        print output
-    else:
-        print "It's not possible to apply patche(es)"
-        print err
-
-    #print t.bold('Updating virtualenv paths...')
-    #add2virtualenv()
-
+    execBashCommand(bashCommand,
+        'Requirements Installed Succesfully',
+        "It's not possible to apply patche(es)")
     print t.bold('Fetched.')
 
 
@@ -1115,17 +1074,6 @@ def increase_version(version, config=None, unstable=True, clean=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-
-
-def execBashCommand(bashCommand):
-    """
-        Execute bash command.
-        @bashCommand: is list with the command and the options
-        return: list with the output and the posible error
-    """
-    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE)
-    output, err = process.communicate()
-    return output, err
 
 
 ScmCollection = Collection()
