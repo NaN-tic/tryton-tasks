@@ -606,12 +606,12 @@ def outgoing(config=None, unstable=True, verbose=False):
 def hg_pull(module, path, update, quiet=False, branch='default',
         revision='tip'):
 
-    if not os.path.exists(path_repo):
-        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+    if not os.path.exists(path):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return
 
     cwd = os.getcwd()
-    os.chdir(path_repo)
+    os.chdir(path)
 
     cmd = ['hg', 'pull', '-b', branch, '-r', revision]
 
@@ -621,8 +621,7 @@ def hg_pull(module, path, update, quiet=False, branch='default',
     if quiet:
         cmd.append('-q')  # quiet
 
-    print ' '.join(cmd)
-    result = run(' '.join(cmd), warn=True ) #, hide='both')
+    result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
         print >> sys.stderr, t.red("= " + module + " = KO!")
