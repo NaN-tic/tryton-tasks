@@ -1,12 +1,12 @@
-import ConfigParser
-import os
-import psycopg2
-import sys
-import shutil
 from blessings import Terminal
 from invoke import task, Collection
 from path import path
+import ConfigParser
+import os
+import psycopg2
+import shutil
 import subprocess
+import sys
 
 try:
     from proteus import config, Wizard, Model

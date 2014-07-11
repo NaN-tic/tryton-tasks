@@ -53,6 +53,26 @@ def close_review(task):
 
 
 @task
+def fetch_reviews(component=None, exclude_components=None):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    reviews = Review.find([('state', '=', 'opened')])
+    if not exclude_components:
+        exclude_components = []
+    for review in reviews:
+        if component and review.component and \
+                review.component.name != component:
+            continue
+        if review.component and review.component.name in exclude_components:
+            continue
+        if review.component:
+            path = os.path.join('modules', review.component.name)
+        else:
+            path = ''
+        reviewboard.fetch(path, review.review_id)
+
+
+@task
 def fetch_review(task):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
