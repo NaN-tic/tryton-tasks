@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 from invoke import task, run, Collection
-from scm import unknown
-from bootstrap import bootstrap
+from .scm import prefetch, fetch
+
 
 
 @task()
 def test(coverage=False, flakes=False, failfast=True,
-        sqlite=True, postgres=False, mail=False):
+        sqlite=True, postgres=False, mail=False, Module=None):
     cmd = ['./test.py']
     if coverage:
         cmd.append('--coverage')
@@ -24,14 +24,19 @@ def test(coverage=False, flakes=False, failfast=True,
     run(" ".join(cmd), echo=True)
 
 
+
+
 @task()
 def clean():
-    without_repo, not_config = unknown(show=False)
+    prefetch()
 
 
 @task()
-def setup(development=False):
-    pass
+def setup(defevelopment=False):
+    clean()
+    fetch()
+
+
 
 
 TestCollection = Collection()

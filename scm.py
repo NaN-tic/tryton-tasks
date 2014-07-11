@@ -72,10 +72,8 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
         'hg': []
     }
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        url = Config.get(section, 'url')
-        repo_path = Config.get(section, 'path')
-        repos[repo] += [(section, url, repo_path)]
+        repo = get_repo(section, Config, 'revision')
+        repos[repo] += [(section, repo['url'], repo['path'])]
 
     if gitOnly:
         del repos['hg']
@@ -91,7 +89,7 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
 
 
 @task()
-def unknown(unstable=True, status=False, show=True):
+def unknown(unstable=True, status=False, show=True, remove=False):
     """
     Return a list of modules/repositories that exists in filesystem but not in
     config files
@@ -127,6 +125,12 @@ def unknown(unstable=True, status=False, show=True):
             print t.bold("Unknown repository:")
             print "  - " + "\n  - ".join(repo_not_in_cfg)
             print ""
+
+    if remove:
+        for repo in modules_wo_repo + repo_not_in_cfg:
+            path = os.path.join('./modules', repo)
+            remove_dir(path)
+
     return modules_wo_repo, repo_not_in_cfg
 
 
@@ -878,8 +882,8 @@ def push(config=None, unstable=True, new_branches=False):
     wait_processes(processes, 0)
 
 
-def hg_update(module, path, clean, branch=None):
-    path_repo = os.path.join(path, module)
+def hg_update(module, path, clean, branch=None, revision=None):
+    path_repo = path
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
@@ -893,8 +897,15 @@ def hg_update(module, path, clean, branch=None):
     else:
         cmd.append('-y')  # noninteractive
 
+    rev = None
     if branch:
-        cmd.extend(['-r', branch])
+        rev = branch
+    if revision:
+        rev = revision
+
+    if rev:
+        cmd.extend(['-r', rev])
+
     result = run(' '.join(cmd), warn=True, hide='both')
 
     if not result.ok:
@@ -917,24 +928,21 @@ def hg_update(module, path, clean, branch=None):
 
 
 @task
-def update(config=None, unstable=True, clean=False):
+def update(config=None, unstable=True, clean=False, development=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        func = hg_update
-        if repo == 'git':
-            continue
-        if repo != 'hg':
-            print >> sys.stderr, "Not developed yet"
-            continue
+        repo = get_repo(section, Config, 'update')
         branch = None
         if clean:
             # Force branch only when clean is set
-            branch = Config.get(section, 'branch')
-        p = Process(target=func, args=(section, path, clean, branch))
+            branch = repo['branch']
+        revision = repo['revision']
+        if development:
+            revision = None
+        p = Process(target=repo['function'], args=(section, repo['path'],
+            clean, branch, revision))
         p.start()
         processes.append(p)
         wait_processes(processes)
@@ -981,12 +989,7 @@ def revision(config=None, unstable=True, verbose=True):
 def prefetch(quiet=False):
     """ Ensures clean enviroment """
 
-    wo_repo, not_in_cfg = unknown(unstable=True, status=False,
-        show=False)
-
-    for repo in wo_repo + not_in_cfg:
-        path = os.path.join('./modules', repo)
-        remove_dir(path)
+    unknown(unstable=True, status=False, show=False, remove=True)
 
     clean()
     Config = read_config_file()
@@ -1003,6 +1006,7 @@ def prefetch(quiet=False):
                     section, repo['path']), 'n'):
             for f in remove_files:
                 os.remove(f)
+
 
 @task()
 def fetch():
