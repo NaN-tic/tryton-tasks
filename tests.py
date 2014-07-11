@@ -27,21 +27,40 @@ def test(coverage=False, flakes=False, fail_fast=True, dbtype='sqlite',
     run(" ".join(cmd), echo=True)
 
 
-def runtests(test_file=None, development=False, include_reviews=False):
-    config = utils.read_config_file(test_file)
+@task
+def runall(test_file, branch='default'):
+    setup(branch, development=False)
+    runtests(test_file, branch, development=False, include_reviews=False)
+    runtests(test_file, branch, development=False, include_reviews=True)
+    setup(branch, development=True)
+    runtests(test_file, branch, development=True, include_reviews=False)
+    runtests(test_file, branch, development=True, include_reviews=True)
+
+
+@task
+def runtests(test_file=None, branch='default', development=False,
+        include_reviews=False):
+
+    sections = []
+    if test_file:
+        config = utils.read_config_file(test_file)
+        sections = config.sections()
+
     coverage = True
     flakes = True
     fail_fast = True
     mail = True
 
     if include_reviews:
-        project.fetch_reviews(exclude_components=config.sections())
+        project.fetch_reviews(branch, exclude_components=config.sections())
 
     test(False, False, fail_fast, 'sqlite', mail)
     test(coverage, flakes, fail_fast, 'postgresql', mail)
 
-    for section in config.sections():
+    for section in sections:
         repo = utils.get_repo(section, config, 'clone', development)
+        if repo['branch'] != branch:
+            continue
         func = eval('scm.%s', repo['function'])
         func(repo['url'], repo['path'], repo['branch'], repo['revision'])
         if include_reviews:
@@ -50,6 +69,8 @@ def runtests(test_file=None, development=False, include_reviews=False):
         test(coverage, flakes, fail_fast, 'postgresql', mail, section)
         utils.remove_dir(repo['path'], quiet=True)
 
+    clean()
+
 
 @task()
 def clean():
@@ -57,7 +78,9 @@ def clean():
 
 
 @task()
-def setup(defevelopment=False):
+def setup(branch='default', development=False):
+    clean()
+    scm.branch(branch, clean=True)
     clean()
     scm.fetch()
 
