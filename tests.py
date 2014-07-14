@@ -29,9 +29,11 @@ def test(coverage=False, flakes=False, fail_fast=True, dbtype='sqlite',
 
 @task
 def runall(test_file, branch='default'):
+    print "Setup & testing stable revision of branch: %s " % branch
     setup(branch, development=False)
     runtests(test_file, branch, development=False, include_reviews=False)
     runtests(test_file, branch, development=False, include_reviews=True)
+    print "Setup & testing development revision of branch: %s " % branch
     setup(branch, development=True)
     runtests(test_file, branch, development=True, include_reviews=False)
     runtests(test_file, branch, development=True, include_reviews=True)
@@ -73,15 +75,15 @@ def runtests(test_file=None, branch='default', development=False,
 
 
 @task()
-def clean():
-    scm.prefetch()
+def clean(force=True):
+    scm.prefetch(force=force)
 
 
 @task()
-def setup(branch='default', development=False):
-    clean()
-    scm.branch(branch, clean=True)
-    clean()
+def setup(branch='default', development=False, force=True):
+    clean(force=force)
+    scm.branch(branch, clean=force)
+    clean(force=force)
     scm.fetch()
 
 

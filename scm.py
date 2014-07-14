@@ -671,7 +671,7 @@ def hg_clean(module, path, url, force=False):
     if st != {}:
         if not _ask_ok(
             'Answer "yes" to clean the "%s" repository '
-                'in "%s" directory. [y/N] ' % (module, path), 'n'):
+                'in "%s" directory. [y/N] ' % (module, path), 'n') or not force:
             return
         run('cd %s;hg update -C -y' % path, hide='stdout')
 
@@ -682,8 +682,7 @@ def clean(force=False, config=None, unstable=True):
     Config = read_config_file(config, unstable=unstable)
     for section in Config.sections():
         repo = get_repo(section, Config, 'clean')
-        repo['function'](section, repo['path'], repo['url'])
-
+        repo['function'](section, repo['path'], repo['url'], force)
     quilt.push()
 
 
@@ -986,13 +985,14 @@ def revision(config=None, unstable=True, verbose=True):
 
 
 @task
-def prefetch(quiet=False):
+def prefetch(force=False):
     """ Ensures clean enviroment """
 
     unknown(unstable=True, status=False, show=False, remove=True)
 
-    clean()
+    clean(force=force)
     Config = read_config_file()
+    quilt.pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         files = repo['function'](section, repo['path'],
@@ -1004,9 +1004,10 @@ def prefetch(quiet=False):
         if _ask_ok(
             'Answer "yes" to remove untracked files "%s" of "%s" repository '
                 'in "%s" directory. [y/N] ' % (" ".join(remove_files),
-                    section, repo['path']), 'n'):
+                    section, repo['path']), 'n') or force:
             for f in remove_files:
                 os.remove(f)
+    quilt.push()
 
 
 @task()
