@@ -90,3 +90,6 @@ TestCollection.add_task(test)
 TestCollection.add_task(clean)
 TestCollection.add_task(setup)
 TestCollection.add_task(runtests)
+TestCollection.add_task(runall)
+
+

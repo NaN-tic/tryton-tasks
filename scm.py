@@ -6,7 +6,7 @@ import os
 import sys
 from blessings import Terminal
 from multiprocessing import Process
-from path import path
+from path import path as lpath
 import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
@@ -101,7 +101,7 @@ def unknown(unstable=True, status=False, show=True, remove=False):
 
     modules_wo_repo = []
     repo_not_in_cfg = []
-    for module_path in path('./modules').dirs():
+    for module_path in lpath('./modules').dirs():
         module_name = module_path.basename()
         if module_name in configs_module_list:
             continue
@@ -999,7 +999,8 @@ def prefetch(quiet=False):
             verbose=False, url=repo['url'])
         if files == {}:
             continue
-        remove_files = [os.path.join(repo['path'], x) for x in files['?']]
+        remove_files = [os.path.join(repo['path'], x) for x in
+            files.get('?', [])]
         if _ask_ok(
             'Answer "yes" to remove untracked files "%s" of "%s" repository '
                 'in "%s" directory. [y/N] ' % (" ".join(remove_files),
