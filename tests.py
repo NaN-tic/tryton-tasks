@@ -10,11 +10,10 @@ import project
 
 
 @task()
-def test(name, output=None, coverage=False, flakes=False,
+def test(output=None, coverage=False, flakes=False,
         fail_fast=True, dbtype='sqlite', mail=False, module=None):
 
     cmd = ['python' 'test.py']
-    cmd += ['--name', name]
     if output:
         cmd += ['--output', output]
 
@@ -61,8 +60,8 @@ def runtests(test_file=None, output=None, branch='default', development=False,
     if include_reviews:
         project.fetch_reviews(branch, exclude_components=config.sections())
 
-    test(False, False, fail_fast, 'sqlite', mail)
-    test(coverage, flakes, fail_fast, 'postgresql', mail)
+    test(output, False, False, fail_fast, 'sqlite', mail)
+    test(output, coverage, flakes, fail_fast, 'postgresql', mail)
 
     for section in sections:
         repo = utils.get_repo(section, config, 'clone', development)
@@ -72,8 +71,8 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         func(repo['url'], repo['path'], repo['branch'], repo['revision'])
         if include_reviews:
             project.fetch_reviews(component=section)
-        test(False, False, fail_fast, 'sqlite', mail, section)
-        test(coverage, flakes, fail_fast, 'postgresql', mail, section)
+        test(output, False, False, fail_fast, 'sqlite', mail, section)
+        test(output, coverage, flakes, fail_fast, 'postgresql', mail, section)
         utils.remove_dir(repo['path'], quiet=True)
 
     clean()
