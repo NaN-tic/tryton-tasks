@@ -672,9 +672,9 @@ def git_pull(module, path, update):
 def hg_clean(module, path, url, force=False):
     st = hg_status(module, path, False, url)
     if st != {}:
-        if not _ask_ok(
+        if not force or not _ask_ok(
             'Answer "yes" to clean the "%s" repository '
-                'in "%s" directory. [y/N] ' % (module, path), 'n') or not force:
+                'in "%s" directory. [y/N] ' % (module, path), 'n'):
             return
         run('cd %s;hg update -C -y' % path, hide='stdout')
 
