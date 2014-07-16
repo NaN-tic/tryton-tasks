@@ -148,7 +148,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
 
 
 def hg_clone(url, path, branch="default", revision="tip"):
-    command = 'hg clone -b %s -q %s %s -r %s' % (branch, url, path, revision)
+    command = 'hg clone -b %s -q %s %s' % (branch, url, path)
     try:
         run(command)
     except:
@@ -156,6 +156,9 @@ def hg_clone(url, path, branch="default", revision="tip"):
         raise
     print "Repo " + t.bold(path) + t.green(" Cloned") + \
         " to Revision:" + revision
+
+    if revision != 'tip':
+        run('hg update -r %s' % revision)
 
 
 def git_clone(url, path, branch="master", revision="master"):
