@@ -13,7 +13,7 @@ import project
 def test(output=None, coverage=False, flakes=False,
         fail_fast=True, dbtype='sqlite', mail=False, module=None):
 
-    cmd = ['python' 'test.py']
+    cmd = ['python','test.py']
     if output:
         cmd += ['--output', output]
 
