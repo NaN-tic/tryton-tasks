@@ -1004,10 +1004,10 @@ def prefetch(force=False):
             continue
         remove_files = [os.path.join(repo['path'], x) for x in
             files.get('?', [])]
-        if _ask_ok(
+        if force or _ask_ok(
             'Answer "yes" to remove untracked files "%s" of "%s" repository '
                 'in "%s" directory. [y/N] ' % (" ".join(remove_files),
-                    section, repo['path']), 'n') or force:
+                    section, repo['path']), 'n'):
             for f in remove_files:
                 os.remove(f)
     quilt.push()
