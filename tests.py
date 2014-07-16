@@ -10,10 +10,14 @@ import project
 
 
 @task()
-def test(coverage=False, flakes=False, fail_fast=True, dbtype='sqlite',
-         mail=False, module=None):
+def test(name, output=None, coverage=False, flakes=False,
+        fail_fast=True, dbtype='sqlite', mail=False, module=None):
 
-    cmd = ['./test.py']
+    cmd = ['python' 'test.py']
+    cmd += ['--name', name]
+    if output:
+        cmd += ['--output', output]
+
     if coverage:
         cmd.append('--coverage')
     if flakes:
@@ -28,19 +32,20 @@ def test(coverage=False, flakes=False, fail_fast=True, dbtype='sqlite',
 
 
 @task
-def runall(test_file, branch='default'):
+def runall(test_file, output, branch='default'):
     print "Setup & testing stable revision of branch: %s " % branch
     setup(branch, development=False)
-    runtests(test_file, branch, development=False, include_reviews=False)
-    runtests(test_file, branch, development=False, include_reviews=True)
+    runtests(test_file, output, branch, development=False,
+        include_reviews=False)
+    runtests(test_file, output, branch, development=False, include_reviews=True)
     print "Setup & testing development revision of branch: %s " % branch
     setup(branch, development=True)
-    runtests(test_file, branch, development=True, include_reviews=False)
-    runtests(test_file, branch, development=True, include_reviews=True)
+    runtests(test_file, output, branch, development=True, include_reviews=False)
+    runtests(test_file, output, branch, development=True, include_reviews=True)
 
 
 @task
-def runtests(test_file=None, branch='default', development=False,
+def runtests(test_file=None, output=None, branch='default', development=False,
         include_reviews=False):
 
     sections = []
