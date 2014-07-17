@@ -149,15 +149,18 @@ def wait_processes(processes, maximum=MAX_PROCESSES):
 
 def hg_clone(url, path, branch="default", revision="tip"):
     command = 'hg clone -b %s -q %s %s' % (branch, url, path)
+    print command
     try:
         run(command)
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
         raise
-    print "Repo " + t.bold(path) + t.green(" Cloned") + \
-        " to Revision:" + revision
+    print "Repo " + t.bold(path) + t.green(" Cloned")
 
     if revision != 'tip':
+        print "Repo " + t.bold(path) + t.green(" Updated") + \
+            " to Revision:" + revision
+        print 'hg update -r %s' % revision
         run('hg update -r %s' % revision)
 
 
@@ -604,8 +607,8 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_pull(module, path, update, quiet=False, branch='default',
-        revision='tip'):
+def hg_pull(module, path, update, quiet=False, branch=None,
+        revision=None):
 
     if not os.path.exists(path):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
@@ -614,7 +617,12 @@ def hg_pull(module, path, update, quiet=False, branch='default',
     cwd = os.getcwd()
     os.chdir(path)
 
-    cmd = ['hg', 'pull', '-b', branch, '-r', revision]
+    cmd = ['hg', 'pull']
+    if branch:
+        cmd += ['-b', branch]
+
+    if revision:
+        cmd += ['-r', revision]
 
     if update:
         cmd.append('-u')
@@ -630,7 +638,7 @@ def hg_pull(module, path, update, quiet=False, branch='default',
         os.chdir(cwd)
         return
 
-    if "no changes found" in result.stdout:
+    if "no changes found" in result.stdout or result.stdout == '':
         os.chdir(cwd)
         return
 
