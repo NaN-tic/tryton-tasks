@@ -268,7 +268,7 @@ def status(config=None, unstable=True, no_quilt=False, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
-    if no_quilt:
+    if not no_quilt:
         quilt.pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
@@ -282,7 +282,7 @@ def status(config=None, unstable=True, no_quilt=False, verbose=False):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-    if no_quilt:
+    if not no_quilt:
         quilt.push()
 
 
