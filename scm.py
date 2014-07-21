@@ -1041,8 +1041,7 @@ def fetch():
     update()
     print t.bold('Cloning...')
     clone()
-    print t.bold('Applying patches...')
-    quilt.pop()
+    quilt.push()
     print t.bold('Updating requirements...')
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
     execBashCommand(bashCommand,
