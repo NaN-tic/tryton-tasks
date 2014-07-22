@@ -895,7 +895,7 @@ def push(config=None, unstable=True, new_branches=False):
 
 
 def hg_update(module, path, clean, branch=None, revision=None):
-    path_repo = path
+    path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
