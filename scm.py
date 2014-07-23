@@ -711,14 +711,14 @@ def branch(branch, clean=False, config=None, unstable=True):
     processes = []
     p = None
     for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'git':
+        repo = get_repo(section, Config)
+        if repo['type'] == 'git':
             continue
-        if repo != 'hg':
+        if repo['type'] != 'hg':
             print >> sys.stderr, "Not developed yet"
             continue
-        p = Process(target=hg_update, args=(section, path, clean, branch))
+        p = Process(target=hg_update, args=(section, repo['path'], clean,
+                branch))
         p.start()
         processes.append(p)
         wait_processes(processes)
@@ -895,13 +895,12 @@ def push(config=None, unstable=True, new_branches=False):
 
 
 def hg_update(module, path, clean, branch=None, revision=None):
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+    if not os.path.exists(path):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return
 
     cwd = os.getcwd()
-    os.chdir(path_repo)
+    os.chdir(path)
 
     cmd = ['hg', 'update']
     if clean:
