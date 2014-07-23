@@ -5,7 +5,8 @@ import psycopg2
 import sys
 from invoke import task, run, Collection
 
-from .utils import t, read_config_file, NO_MODULE_REPOS, BASE_MODULES
+from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
+    BASE_MODULES)
 
 try:
     from trytond.transaction import Transaction
@@ -65,9 +66,9 @@ def check_database(database, connection_params):
 def set_context(database_name, config_file=None):
     CONFIG.update_etc(config_file)
     if not Transaction().cursor:
-        Transaction().start(database_name, 0)
+        return Transaction().start(database_name, 0)
     else:
-        contextlib.nested(Transaction().new_cursor(),
+        return contextlib.nested(Transaction().new_cursor(),
             Transaction().set_user(0),
             Transaction().reset_context())
 
@@ -118,7 +119,7 @@ def create_graph(module_list):
 
 @task()
 def update_post_move_sequence(database, fiscalyear, sequence,
-    host='localhost', port='5432',  user='angel', password='password'):
+        host='localhost', port='5432', user='angel', password='password'):
     ''' Force update of post_move_sequence on fiscalyears '''
     db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
         password=password)
@@ -133,6 +134,7 @@ def update_post_move_sequence(database, fiscalyear, sequence,
     db.commit()
     db.close()
 
+
 @task()
 def parent_compute(database, table, field, host='localhost', port='5432',
         user='angel', password='password'):
@@ -142,7 +144,7 @@ def parent_compute(database, table, field, host='localhost', port='5432',
             where = field + '=' + str(root)
 
             if not root:
-                where = parent_field + 'IS NULL'
+                where = field + 'IS NULL'
 
             cr.execute('SELECT id FROM %s WHERE %s \
                 ORDER BY %s' % (table, where, field))
@@ -188,7 +190,7 @@ def missing(database, config_file=None, install=False, show=True):
     modules_iteration = 0
     while len(module_list) != modules_iteration:
         modules_iteration = len(module_list)
-        graph, packages, later, missing = create_graph(module_list)
+        _, _, _, missing = create_graph(module_list)
         miss |= missing
         module_list.update(miss)
 
@@ -200,21 +202,31 @@ def missing(database, config_file=None, install=False, show=True):
 
     if install:
         configfile = config_file and "-c %s" % config_file or ""
-        run('trytond/bin/trytond -d %s %s -i %s' % (database, configfile, miss))
+        run('trytond/bin/trytond -d %s %s -i %s'
+            % (database, configfile, miss))
 
     return miss
 
 
-@task()
-def forgotten(database, config_file=None, delete=False, delete_installed=False,
-        show=True, unstable=True):
+@task(help={
+        'uninstall': 'Uninstall installed forgotten and lost modules.',
+        'delete': 'Delete forgotten and lost modules form ir_module_module '
+            'table of database (except installed modules if "uninstall" param '
+            'is not set).',
+        'remove': 'Remove directory of forgotten modules (except installed '
+            'modules if "uninstall" param is not set).'
+        })
+def forgotten(database, config_file=None, uninstall=False, delete=False,
+        remove=False, show=True, unstable=True):
     """
-    Return a list of modules that exists in the DB but not in *.cfg files
+    Return a list of modules that exists in the DB but not in *.cfg files.
+    If some of these modules don't exists in filesystem (lost modules), they
+    are specifically listed.
     """
-    set_context(database, config_file)
-    cursor = Transaction().cursor
-    cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
-    db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
+    with set_context(database, config_file):
+        cursor = Transaction().cursor
+        cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
+        db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
 
     config = read_config_file(unstable=unstable)
     configs_module_list = [section for section in config.sections()
@@ -222,8 +234,19 @@ def forgotten(database, config_file=None, delete=False, delete_installed=False,
 
     forgotten_uninstalled = []
     forgotten_installed = []
+    lost_uninstalled = []
+    lost_installed = []
     for module, state in db_module_list:
         if module not in BASE_MODULES and module not in configs_module_list:
+            try:
+                get_module_info(module)
+            except IOError:
+                if state in ('installed', 'to install', 'to upgrade'):
+                    lost_installed.append(module)
+                else:
+                    lost_uninstalled.append(module)
+                continue
+
             if state in ('installed', 'to install', 'to upgrade'):
                 forgotten_installed.append(module)
             else:
@@ -231,73 +254,92 @@ def forgotten(database, config_file=None, delete=False, delete_installed=False,
 
     if show:
         if forgotten_uninstalled:
-            print t.bold("Forgotten modules:")
+            print t.bold("Forgotten modules (in DB but not in config files):")
             print "  - " + "\n  - ".join(forgotten_uninstalled)
             print ""
         if forgotten_installed:
-            print t.red("Forgotten installed modules:")
+            print t.red("Forgotten installed modules (in DB but not in config "
+                "files):")
             print "  - " + "\n  - ".join(forgotten_installed)
             print ""
-
-    if delete and forgotten_uninstalled:
-        delete_modules(database, forgotten_uninstalled, config_file=config_file)
-
-    if delete_installed and forgotten_installed:
-        delete_modules(database, forgotten_installed, config_file=config_file, force=True)
-
-    return forgotten_uninstalled, forgotten_installed
-
-
-@task()
-def lost(database, config_file=None, delete=False, show=True):
-    """
-    Return a list of modules that exists in the DB but not in filesystem
-    """
-    set_context(database, config_file)
-    cursor = Transaction().cursor
-    cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
-    db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
-
-    lost_uninstalled = []
-    lost_installed = []
-    for module, state in db_module_list:
-        try:
-            get_module_info(module)
-        except IOError:
-            if state in ('installed', 'to install', 'to upgrade'):
-                lost_installed.append(module)
-            else:
-                lost_uninstalled.append(module)
-
-    if show:
         if lost_uninstalled:
-            print t.bold("Lost modules:")
+            print t.bold("Lost modules (in DB but no in filesystem):")
             print "  - " + "\n  - ".join(lost_uninstalled)
             print ""
         if lost_installed:
-            print t.red("Lost installed modules:")
+            print t.red("Lost installed modules (in DB but no in filesystem):")
             print "  - " + "\n  - ".join(lost_installed)
             print ""
 
-    if delete and lost_uninstalled:
-        delete_modules(database, lost_uninstalled, config_file=config_file)
+    to_uninstall = forgotten_installed + lost_installed
+    to_delete = forgotten_uninstalled + lost_uninstalled
+    to_remove = forgotten_uninstalled if remove else []
+    if uninstall and to_uninstall:
+        if lost_installed:
+            to_remove += create_fake_modules(lost_installed)
+        uninstall_task(database, modules=to_uninstall)
+        to_delete += forgotten_installed + lost_installed
+        if remove:
+            to_remove += forgotten_installed
 
-    return lost_uninstalled, lost_installed
+    if delete and to_delete:
+        delete_modules(database, to_delete, config_file=config_file)
+
+    if to_remove:
+        for module in to_remove:
+            path = os.path.join('./modules', module)
+            remove_dir(path, quiet=True)
+
+    return (forgotten_uninstalled, forgotten_installed, lost_uninstalled,
+        lost_installed)
 
 
-@task()
-def uninstall(database, modules='forgotten', connection_params=None):
+@task(help={'modules': 'module names separated by coma.'})
+def create_fake_modules(modules):
+    """
+    Create fake (empty) modules to allow to uninstall them.
+    """
+    if not modules:
+        return
+
+    if isinstance(modules, basestring):
+        modules = modules.split(',')
+
+    trytoncfg_content = [
+        "[tryton]",
+        "version=3.2.0",
+        "depends:",
+        "    ir",
+        "    res",
+        "xml:",
+        ]
+
+    print t.bold("Creating fake modules: ") + ", ".join(modules)
+    created = []
+    for module in modules:
+        module_path = os.path.join('./modules', module)
+        if os.path.exists(module_path):
+            print ("  - Module '%s' not created because already exists in "
+                "filesystem" % module_path)
+            continue
+        run('mkdir %s' % module_path)
+        run('echo "%s" > %s/tryton.cfg'
+            % ("\n".join(trytoncfg_content), module_path))
+        run('touch %s/__init__.py' % module_path)
+        print "  - Module '%s' created" % module_path
+        created.append(module)
+    return created
+
+
+@task(help={'modules': 'module names separated by coma'})
+def uninstall_task(database, modules, connection_params=None):
     """
     Uninstall the supplied modules (separated by coma) from database.
-    If modules is 'forgotten' (o it isn't provided) it uninstalls the installed
-    forgotten modules (modules that are installed but aren't in *.cfg files.
     """
     if not database or not modules:
         return
 
-    if modules == 'forgotten':
-        unused, modules = forgotten(database, show=False)
-    else:
+    if isinstance(modules, basestring):
         modules = modules.replace(" ", "").split(',')
     if not modules:
         return
@@ -328,7 +370,7 @@ def uninstall(database, modules='forgotten', connection_params=None):
 @task()
 def delete_modules(database, modules, config_file=None, force=False):
     """
-    Delete the supplied modules (separated by coma) from ir_module_module_
+    Delete the supplied modules (separated by coma) from ir_module_module
     table of database.
     """
     if not database or not modules:
@@ -360,8 +402,8 @@ def delete_modules(database, modules, config_file=None, force=False):
 
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
-TrytonCollection.add_task(uninstall)
-TrytonCollection.add_task(lost)
+TrytonCollection.add_task(uninstall_task, 'uninstall')
+TrytonCollection.add_task(create_fake_modules)
 TrytonCollection.add_task(forgotten)
 TrytonCollection.add_task(missing)
 TrytonCollection.add_task(parent_compute)
