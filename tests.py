@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from invoke import task, run, Collection
+import tempfile
 import scm
 import utils
 import project
@@ -31,22 +32,32 @@ def test(output=None, coverage=False, flakes=False,
 
 
 @task
-def runall(test_file, output, branch='default'):
-    print "Setup & testing stable revision of branch: %s " % branch
-    setup(branch, development=False)
-    runtests(test_file, output, branch, development=False,
-        include_reviews=False)
-    runtests(test_file, output, branch, development=False, include_reviews=True)
-    print "Setup & testing development revision of branch: %s " % branch
-    setup(branch, development=True)
-    runtests(test_file, output, branch, development=True, include_reviews=False)
-    runtests(test_file, output, branch, development=True, include_reviews=True)
+def runall(test_file, output, branch='default', exclude_stable=False,
+        exclude_development=False, exclude_reviews=False):
+    if not exclude_stable:
+        print "Setup & testing stable revision of branch: %s " % branch
+        setup(branch, development=False)
+        runtests(test_file, output, branch, development=False,
+            include_reviews=False)
+        if not exclude_reviews:
+            runtests(test_file, output, branch, development=False,
+                include_reviews=True)
+    if not exclude_development:
+        print "Setup & testing development revision of branch: %s " % branch
+        setup(branch, development=True)
+        runtests(test_file, output, branch, development=True,
+            include_reviews=False)
+        if not exclude_reviews:
+            runtests(test_file, output, branch, development=True,
+                include_reviews=True)
 
 
 @task
 def runtests(test_file=None, output=None, branch='default', development=False,
         include_reviews=False):
 
+    directory = tempfile.mkdtemp()
+    run("cp . %s -R" % directory)
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
@@ -75,7 +86,7 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         test(output, coverage, flakes, fail_fast, 'postgresql', mail, section)
         utils.remove_dir(repo['path'], quiet=True)
 
-    clean()
+    run("rm -Rf %s" % directory)
 
 
 @task()
@@ -85,9 +96,7 @@ def clean(force=True):
 
 @task()
 def setup(branch='default', development=False, force=True):
-    clean(force=force)
     scm.branch(branch, clean=force)
-    clean(force=force)
     scm.fetch()
 
 
