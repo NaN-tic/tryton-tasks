@@ -51,8 +51,15 @@ def make(builder='html', source='source-doc',
         if path(destination).exists():
             path(destination).rmtree()
 
-    run("sphinx-build  -b %(builder)s %(source)s %(destination)s" % locals(),
-        echo=True)
+    if builder == 'pdf':
+        run("sphinx-build  -b latex %s %s/latex" % (source, destination),
+            echo=True)
+        run("make -C %s/latex all-pdf" % (destination, ),
+            echo=True)
+        print "Documentation PDF generated in %s/latex" % (destination, )
+    else:
+        run("sphinx-build  -b %s %s %s" % (builder, source, destination),
+            echo=True)
 
 
 def make_link(origin, destination):
