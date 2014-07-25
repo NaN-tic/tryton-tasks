@@ -31,6 +31,9 @@ def get_repo(section, config, function=None, development=False):
     repository['path'] = os.path.join(config.get(section, 'path'), section)
     repository['branch'] = DEFAULT_BRANCH[repository['type']]
     repository['revision'] = MASTER_REVISION[repository['type']]
+    repository['pypi'] = None
+    if config.has_option(section, 'pypi'):
+        repository['pypi'] = config.get(section, 'pypi')
     if config.has_option(section, 'revision') and \
             config.get(section, 'revision') and not development:
         repository['revision'] = config.get(section, 'revision')
