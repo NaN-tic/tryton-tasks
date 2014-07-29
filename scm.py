@@ -683,13 +683,19 @@ def git_pull(module, path, update):
 
 
 def hg_clean(module, path, url, force=False):
-    st = hg_status(module, path, False, url)
-    if st != {}:
-        if not force or not _ask_ok(
-            'Answer "yes" to clean the "%s" repository '
-                'in "%s" directory. [y/N] ' % (module, path), 'n'):
-            return
-        run('cd %s;hg update -C -y' % path, hide='stdout')
+
+    nointeract = ''
+    update = '-c'
+    if force:
+        nointeract = '-y'
+        update = '-C'
+
+    try:
+        run('cd %s;hg update %s %s' % (path, update, nointeract),
+            hide='stdout')
+        run('cd %s;hg purge %s' % (path, nointeract), hide='stdout')
+    except:
+        print t.bold(module) + " module " + t.red("has uncommited changes")
 
 
 @task()
