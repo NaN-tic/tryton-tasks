@@ -111,7 +111,7 @@ def setup(branch='default', development=False, force=True):
     scm.hg_update('config', 'config', force, branch=branch)
     scm.update(clean=force)
     scm.fetch()
-    scm.remove(force)
+    scm.unknown(remove=True, quiet=force)
 
 
 TestCollection = Collection()
@@ -120,5 +120,3 @@ TestCollection.add_task(clean)
 TestCollection.add_task(setup)
 TestCollection.add_task(runtests)
 TestCollection.add_task(runall)
-
-
