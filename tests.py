@@ -12,7 +12,7 @@ import project
 
 @task()
 def test(output=None, coverage=False, flakes=False,
-        fail_fast=True, dbtype='sqlite', mail=False, module=None):
+        fail_fast=True, dbtype='sqlite', mail=False, name=None):
 
     cmd = ['/usr/bin/env', 'python', 'test.py']
     if output:
@@ -27,6 +27,8 @@ def test(output=None, coverage=False, flakes=False,
     cmd.append('--db-type %s' % dbtype)
     if mail:
         cmd.append('--mail')
+    if name:
+        cmd.append('--name %s' % name)
 
     run(" ".join(cmd), echo=True)
 
@@ -67,23 +69,33 @@ def runtests(test_file=None, output=None, branch='default', development=False,
     flakes = True
     fail_fast = True
     mail = True
+    name_sufix = ''
+    if development:
+        name_sufix += ' - Development'
 
     if include_reviews:
+        name_sufix += ' (with reviews)'
         project.fetch_reviews(branch, exclude_components=config.sections())
+    name = 'Generic Modules'
 
-    test(output, False, False, fail_fast, 'sqlite', mail)
-    test(output, coverage, flakes, fail_fast, 'postgresql', mail)
+    test(output, False, False, fail_fast, 'sqlite', mail, name)
+    test(output, coverage, flakes, fail_fast, 'postgresql', mail, name)
 
     for section in sections:
-        repo = utils.get_repo(section, config, 'clone', development)
+        name = section + name_sufix
+        if development:
+            name = '%s - Development' % name
+        repo = scm.get_repo(section, config, 'clone', development)
         if repo['branch'] != branch:
             continue
         func = eval('scm.%s', repo['function'])
         func(repo['url'], repo['path'], repo['branch'], repo['revision'])
         if include_reviews:
+            name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
-        test(output, False, False, fail_fast, 'sqlite', mail, section)
-        test(output, coverage, flakes, fail_fast, 'postgresql', mail, section)
+        test(output, False, False, fail_fast, 'sqlite', mail, section, name)
+        test(output, coverage, flakes, fail_fast, 'postgresql', mail, section,
+            name)
         utils.remove_dir(repo['path'], quiet=True)
 
     run("rm -Rf %s" % directory)
@@ -99,6 +111,7 @@ def setup(branch='default', development=False, force=True):
     scm.hg_update('config', 'config', force, branch=branch)
     scm.update(clean=force)
     scm.fetch()
+    scm.remove(force)
 
 
 TestCollection = Collection()

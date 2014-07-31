@@ -92,6 +92,24 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
 
 
 @task()
+def remove(unstable=True, quiet=False):
+    Config = read_config_file(unstable=unstable)
+    configs_module_list = [section for section in Config.sections()
+        if section not in NO_MODULE_REPOS]
+
+    modules_wo_repo = []
+    for module_path in lpath('./modules').dirs():
+        module_name = module_path.basename()
+        if module_name in configs_module_list:
+            continue
+        modules_wo_repo.append(module_name)
+
+    for repo in modules_wo_repo:
+        path = os.path.join('./modules', repo)
+        remove_dir(path, quiet)
+
+
+@task()
 def unknown(unstable=True, status=False, show=True, remove=False):
     """
     Return a list of modules/repositories that exists in filesystem but not in
@@ -1143,3 +1161,4 @@ ScmCollection.add_task(increase_version)
 ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
 ScmCollection.add_task(prefetch)
+ScmCollection.add_task(remove)
