@@ -11,8 +11,8 @@ import project
 
 
 @task()
-def test(output=None, coverage=False, flakes=False,
-        fail_fast=True, dbtype='sqlite', mail=False, name=None):
+def test(output=None, coverage=False, flakes=False, fail_fast=True,
+        dbtype='sqlite', mail=False, name=None, module=None):
 
     cmd = ['/usr/bin/env', 'python', 'test.py']
     if output:
@@ -29,6 +29,8 @@ def test(output=None, coverage=False, flakes=False,
         cmd.append('--mail')
     if name:
         cmd.append('--name %s' % name)
+    if module:
+        cmd.append('-m %s' % module)
 
     run(" ".join(cmd), echo=True)
 
@@ -93,9 +95,9 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         if include_reviews:
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
-        test(output, False, False, fail_fast, 'sqlite', mail, section, name)
-        test(output, coverage, flakes, fail_fast, 'postgresql', mail, section,
-            name)
+        test(output, False, False, fail_fast, 'sqlite', mail, name, section)
+        test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
+            section)
         utils.remove_dir(repo['path'], quiet=True)
 
     run("rm -Rf %s" % directory)
