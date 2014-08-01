@@ -142,11 +142,19 @@ if 'sphinxcontrib.trydoc' in extensions:
     from proteus import config,  Model
     from trytond.modules import create_graph
     sys.path.insert(0, '../trytond')
+
     config_file = get_config_file()
     parser = ConfigParser.ConfigParser()
     parser.read([config_file])
+
+    jsonrpc = parser.get('options', 'jsonrpc')
+    if jsonrpc and len(jsonrpc.split(':')) == 2:
+        trytond_host = jsonrpc.split(':')[0]
+        trytond_port = jsonrpc.split(':')[1]
     dbname = parser.get('options', 'db_name')
+
     config.set_trytond(dbname, config_file=config_file)
+
     Module = Model.get('ir.module.module')
     modules = Module.find([('state', '=', 'installed')])
     graph = create_graph([module.name for module in modules])[0]
