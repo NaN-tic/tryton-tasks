@@ -88,7 +88,7 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         repo = scm.get_repo(section, config, 'clone', development)
         if repo['branch'] != branch:
             continue
-        func = eval('scm.%s', repo['function'])
+        func = repo['function']
         func(repo['url'], repo['path'], repo['branch'], repo['revision'])
         if include_reviews:
             name = '%s (with reviews)' % name
