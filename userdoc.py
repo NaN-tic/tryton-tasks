@@ -56,6 +56,9 @@ def make(builder='html', source='source-doc',
             echo=True)
         run("make -C %s/latex all-pdf" % (destination, ),
             echo=True)
+        # Run two times to generate index correctly
+        run("make -C %s/latex all-pdf" % (destination, ),
+            echo=True)
         print "Documentation PDF generated in %s/latex" % (destination, )
     else:
         run("sphinx-build  -b %s %s %s" % (builder, source, destination),
