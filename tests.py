@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from invoke import task, run, Collection
+import os
 import tempfile
 import scm
 import utils
@@ -12,9 +13,12 @@ import project
 
 @task()
 def test(output=None, coverage=False, flakes=False, fail_fast=True,
-        dbtype='sqlite', mail=False, name=None, module=None):
+        dbtype='sqlite', mail=False, name=None, module=None, directory=None):
 
-    cmd = ['/usr/bin/env', 'python', 'test.py']
+    test_file = 'test.py'
+    if directory:
+        test_file = os.path.join(directory, test_file)
+    cmd = ['/usr/bin/env', 'python', test_file]
     if output:
         cmd += ['--output', output]
 
@@ -81,8 +85,10 @@ def runtests(test_file=None, output=None, branch='default', development=False,
             ['OpenERP'])
     name = 'Generic Modules'
 
-    test(output, False, False, fail_fast, 'sqlite', mail, name)
-    test(output, coverage, flakes, fail_fast, 'postgresql', mail, name)
+    test(output, False, False, fail_fast, 'sqlite', mail, name,
+        directory=directory)
+    test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
+        directory=directory)
 
     for section in sections:
         name = section + name_sufix
@@ -96,9 +102,10 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         if include_reviews:
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
-        test(output, False, False, fail_fast, 'sqlite', mail, name, section)
+        test(output, False, False, fail_fast, 'sqlite', mail, name, section,
+            directory=directory)
         test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
-            section)
+            section, directory=directory)
         utils.remove_dir(repo['path'], quiet=True)
 
     run("rm -Rf %s" % directory)
