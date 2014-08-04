@@ -77,7 +77,8 @@ def runtests(test_file=None, output=None, branch='default', development=False,
 
     if include_reviews:
         name_sufix += ' (with reviews)'
-        project.fetch_reviews(branch, exclude_components=config.sections())
+        project.fetch_reviews(branch, exclude_components=config.sections() +
+            ['OpenERP'])
     name = 'Generic Modules'
 
     test(output, False, False, fail_fast, 'sqlite', mail, name)
