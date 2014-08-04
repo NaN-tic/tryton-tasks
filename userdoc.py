@@ -57,6 +57,7 @@ def make(builder='html', source='source-doc',
         run("make -C %s/latex all-pdf" % (destination, ),
             echo=True)
         # Run two times to generate index correctly
+        run("rm %s/latex/*.pdf" % destination)
         run("make -C %s/latex all-pdf" % (destination, ),
             echo=True)
         print "Documentation PDF generated in %s/latex" % (destination, )
