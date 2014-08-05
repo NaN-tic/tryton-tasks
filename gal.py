@@ -990,10 +990,12 @@ def process_opportunities():
     opps = Opportunity.find([('state', '=', 'lead')])
     opps = [x.id for x in opps]
     opps = random.sample(opps, int(0.8 * len(opps)))
-    Opportunity.opportunity(opps, config.context)
+    if opps:
+        Opportunity.opportunity(opps, config.context)
 
     lost = random.sample(opps, int(0.4 * len(opps)))
-    Opportunity.lost(lost, config.context)
+    if lost:
+        Opportunity.lost(lost, config.context)
 
     # Only convert non-lost opportunities
     nopps = []
@@ -1003,9 +1005,9 @@ def process_opportunities():
         nopps.append(opp)
     opps = nopps
     opps = random.sample(opps, int(0.8 * len(opps)))
-    opps = [Opportunity(opp) for x in opps]
-    # TODO: Doesn't work!
-    wizard = Wizard('sale.opportunity.convert_opportunity', opps)
+    opps = [Opportunity(x) for x in opps]
+    if opps:
+        wizard = Wizard('sale.opportunity.convert_opportunity', opps)
     gal_commit()
 
 @task
