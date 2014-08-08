@@ -5,6 +5,7 @@ import tempfile
 import scm
 import utils
 import project
+from ConfigParser import NoOptionError
 
 # from .scm import prefetch, fetch, get_repo, remove_dir,
 #      hg_clone, git_clone
@@ -94,11 +95,18 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         name = section + name_sufix
         if development:
             name = '%s - Development' % name
-        repo = scm.get_repo(section, config, 'clone', development)
-        if repo['branch'] != branch:
-            continue
-        func = repo['function']
-        func(repo['url'], repo['path'], repo['branch'], repo['revision'])
+        repos_to_clone = [section]
+        try:
+            repos_to_clone += config.get(section, 'requires').split(',')
+        except NoOptionError:
+            pass
+
+        for to_clone in repos_to_clone:
+            repo = scm.get_repo(to_clone, config, 'clone', development)
+            if repo['branch'] != branch:
+                continue
+            func = repo['function']
+            func(repo['url'], repo['path'], repo['branch'], repo['revision'])
         if include_reviews:
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
