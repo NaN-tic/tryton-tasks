@@ -74,7 +74,7 @@ def runtests(test_file=None, output=None, branch='default', development=False,
 
     coverage = True
     flakes = True
-    fail_fast = True
+    fail_fast = False
     mail = True
     name_sufix = ''
     if development:
