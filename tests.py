@@ -101,12 +101,14 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         except NoOptionError:
             pass
 
+        repos_to_remove = []
         for to_clone in repos_to_clone:
             repo = scm.get_repo(to_clone, config, 'clone', development)
             if repo['branch'] != branch:
                 continue
             func = repo['function']
             func(repo['url'], repo['path'], repo['branch'], repo['revision'])
+            repos_to_remove.append(repo['path'])
         if include_reviews:
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
@@ -114,7 +116,8 @@ def runtests(test_file=None, output=None, branch='default', development=False,
             directory=directory)
         test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
             section, directory=directory)
-        utils.remove_dir(repo['path'], quiet=True)
+        for to_remove in repos_to_remove:
+            utils.remove_dir(to_remove, quiet=True)
 
     run("rm -Rf %s" % directory)
 
