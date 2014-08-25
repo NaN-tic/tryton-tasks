@@ -959,6 +959,8 @@ def create_opportunities(count=100, linecount=10):
         product = random.choice(products)
         opp.description = '%s - %s' % (party.rec_name, product.rec_name)
         opp.party = party
+        if party.addresses:
+            opp.address = party.addresses[0]
         opp.start_date = random_datetime(TODAY + relativedelta(months=-12),
             TODAY)
         if not opp.payment_term:
