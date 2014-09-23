@@ -82,7 +82,7 @@ def fetch_review(task):
             path = os.path.join('modules', review.component.name)
         else:
             path = ''
-        if not os.path.exist(path):
+        if not os.path.exists(path):
             os.makedirs(path)
 
         reviewboard.fetch(path, review.review_id)
