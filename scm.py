@@ -623,7 +623,7 @@ def hg_pull(module, path, update, quiet=False, branch=None,
 
     if not os.path.exists(path):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
-        return
+        return -1
 
     cwd = os.getcwd()
     os.chdir(path)
@@ -647,15 +647,16 @@ def hg_pull(module, path, update, quiet=False, branch=None,
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
         os.chdir(cwd)
-        return
+        return -1
 
     if "no changes found" in result.stdout or result.stdout == '':
         os.chdir(cwd)
-        return
+        return 0
 
     print t.bold("= " + module + " =")
     print result.stdout
     os.chdir(cwd)
+    return 0
 
 
 def git_pull(module, path, update):
@@ -849,14 +850,16 @@ def pull(config=None, unstable=True, update=True, development=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
+    exit_code = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'pull', development)
         p = Process(target=repo['function'], args=(section, repo['path'],
             update, repo['revision']))
         p.start()
         processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
+        wait_processes(processes, exit_code=exit_code)
+    wait_processes(processes, 0, exit_code=exit_code)
+    return sum(exit_code)
 
 
 def hg_push(module, path, url, new_branches=False):
