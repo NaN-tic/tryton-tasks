@@ -147,7 +147,8 @@ def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
         if p.is_alive():
             i += 1
         else:
-            exit_code.append(processes[i].exitcode)
+            if exit_code is not None:
+                exit_code.append(processes[i].exitcode)
             del processes[i]
 
 
