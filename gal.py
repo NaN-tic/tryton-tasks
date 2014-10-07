@@ -1,3 +1,4 @@
+# encoding: utf-8
 #!/usr/bin/env python
 import os
 import sys
@@ -1283,6 +1284,41 @@ def process_supplier_shipments():
 
     gal_commit()
 
+@task
+def create_marketing_invoices():
+    gal_action('create_marketing_invoices')
+    restore()
+    connect_database()
+
+    Campaign = Model.get('sale.opportunity.campaign')
+    Invoice = Model.get('account.invoice')
+    InvoiceLine = Model.get('account.invoice.line')
+    Term = Model.get('account.invoice.payment_term')
+    term = Term.find([])[0]
+    Product = Model.get('product.product')
+    product = Product.find([('rec_name', 'ilike', 'Hores Tasques')])[0]
+
+    i = 0
+    campaign = Campaign(30)
+    for party in campaign.parties:
+        print "Doing", i + 1, party.rec_name
+        invoice = Invoice()
+        invoice.party = party
+        invoice.payment_term = term
+        invoice.invoice_date = datetime.date.today()
+        line = InvoiceLine()
+        invoice.lines.append(line)
+        line.product = product
+        line.quantity = 50
+        line.description = u'Llicència ERP anual'
+        line.unit_price = Decimal('0')
+        line.gross_unit_price = Decimal('0')
+        line.discount = Decimal('0')
+        invoice.save()
+        i += 1
+    gal_commit()
+
+
 GalCollection = Collection()
 GalCollection.add_task(create)
 GalCollection.add_task(replay)
@@ -1315,3 +1351,4 @@ GalCollection.add_task(create_inventory)
 GalCollection.add_task(process_customer_shipments)
 GalCollection.add_task(process_customer_invoices)
 GalCollection.add_task(process_supplier_shipments)
+GalCollection.add_task(create_marketing_invoices)
