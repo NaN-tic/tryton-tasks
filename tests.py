@@ -6,6 +6,8 @@ import scm
 import utils
 import project
 from ConfigParser import NoOptionError
+import TrytonTestRunner
+import time
 
 # from .scm import prefetch, fetch, get_repo, remove_dir,
 #      hg_clone, git_clone
@@ -13,88 +15,85 @@ from ConfigParser import NoOptionError
 
 
 @task()
-def test(output=None, coverage=False, flakes=False, fail_fast=True,
-        dbtype='sqlite', mail=False, name=None, module=None, directory=None):
+def test(failfast=True, dbtype='sqlite', reviews =False, modules=None,
+        name=None):
 
-    test_file = 'test.py'
-    if directory:
-        test_file = os.path.join(directory, test_file)
-    cmd = ['/usr/bin/env', 'python', test_file]
-    if output:
-        cmd += ['--output', output]
+    from trytond.config import CONFIG
 
-    if coverage:
-        cmd.append('--coverage')
-    if flakes:
-        cmd.append('--flakes')
-    if fail_fast:
-        cmd.append('--fail-fast')
-    cmd.append('--db-type %s' % dbtype)
-    if mail:
-        cmd.append('--mail')
-    if name:
-        cmd.append('--name %s' % name)
-    if module:
-        cmd.append('-m %s' % module)
+    CONFIG['db_type'] = dbtype
+    if not CONFIG['admin_passwd']:
+        CONFIG['admin_passwd'] = 'admin'
 
-    run(" ".join(cmd), echo=True)
+    if dbtype == 'sqlite':
+        database_name = ':memory:'
+    else:
+        database_name = 'test_' + str(int(time.time()))
+
+    name += "("+str(int(time.time()))+")"
+    os.environ['DB_NAME'] = database_name
+
+    from trytond.tests.test_tryton import modules_suite
+    import proteus.tests
+
+    if modules:
+        suite = modules_suite(modules)
+    else:
+        suite = modules_suite()
+        suite.addTests(proteus.tests.test_suite())
+
+
+    runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast)
+    result = runner.run(suite)
+    if modules:
+        name = name + " ["+modules+"]"
+
+    runner.upload_tryton(dbtype, failfast, name, reviews)
 
 
 @task
-def runall(test_file, output, branch='default', exclude_stable=False,
+def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
         exclude_development=False, exclude_reviews=False):
     if not exclude_stable:
         print "Setup & testing stable revision of branch: %s " % branch
-        setup(branch, development=False)
-        runtests(test_file, output, branch, development=False,
-            include_reviews=False)
+        runtests(test_file, branch, development=False, include_reviews=False,
+            dbtype=dbtype)
         if not exclude_reviews:
-            runtests(test_file, output, branch, development=False,
-                include_reviews=True)
+            runtests(test_file, branch, development=False,
+                include_reviews=True, dbtype=dbtype)
     if not exclude_development:
         print "Setup & testing development revision of branch: %s " % branch
-        setup(branch, development=True)
-        runtests(test_file, output, branch, development=True,
-            include_reviews=False)
+        runtests(test_file, branch, development=True,
+            include_reviews=False, dbtype=dbtype)
         if not exclude_reviews:
-            runtests(test_file, output, branch, development=True,
-                include_reviews=True)
+            runtests(test_file, branch, development=True,
+                include_reviews=True, dbtype=dbtype)
 
-
-@task
-def runtests(test_file=None, output=None, branch='default', development=False,
-        include_reviews=False):
+@task()
+def runtests(test_file=None, branch='default', development=False,
+        include_reviews=False, dbtype='sqlite'):
 
     directory = tempfile.mkdtemp()
     run("cp . %s -R" % directory)
+    old_dir = os.getcwd()
+    os.chdir(directory)
+    setup(branch, development)
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
         sections = config.sections()
 
-    coverage = True
-    flakes = True
-    fail_fast = False
-    mail = True
-    name_sufix = ''
-    if development:
-        name_sufix += ' - Development'
-
-    if include_reviews:
-        name_sufix += ' (with reviews)'
+    if test_file and include_reviews:
         project.fetch_reviews(branch, exclude_components=config.sections() +
             ['OpenERP'])
-    name = 'Generic Modules'
 
-    test(output, False, False, fail_fast, 'sqlite', mail, name,
-        directory=directory)
-    test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
-        directory=directory)
+    name = 'Generic Modules'
+    if development:
+            name = '%s - Development' % name
+
+    test(failfast=True, dbtype=dbtype, reviews=include_reviews, name=name)
 
     for section in sections:
-        name = section + name_sufix
-        if development:
-            name = '%s - Development' % name
+        name +=  "/" + section
         repos_to_clone = [section]
         try:
             repos_to_clone += config.get(section, 'requires').split(',')
@@ -112,13 +111,13 @@ def runtests(test_file=None, output=None, branch='default', development=False,
         if include_reviews:
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
-        test(output, False, False, fail_fast, 'sqlite', mail, name, section,
-            directory=directory)
-        test(output, coverage, flakes, fail_fast, 'postgresql', mail, name,
-            section, directory=directory)
+
+        test(failfast=True, dbtype=dbtype, reviews=True, modules=section,
+            name=name)
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
 
+    os.chdir(old_dir)
     run("rm -Rf %s" % directory)
 
 
