@@ -11,7 +11,7 @@ import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
 
-MAX_PROCESSES = 20
+MAX_PROCESSES = 40
 
 DEFAULT_BRANCH = {
     'git': 'master',
@@ -155,7 +155,6 @@ def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
 def hg_clone(url, path, branch="default", revision="tip"):
     command = 'hg clone -b %s -q %s %s' % (branch, url, path)
     res = -1
-    print command
     try:
         res = run(command)
     except:
@@ -853,6 +852,7 @@ def pull(config=None, unstable=True, update=True, development=False):
     p = None
     exit_code = []
     for section in Config.sections():
+        print "module:", section
         repo = get_repo(section, Config, 'pull', development)
         p = Process(target=repo['function'], args=(section, repo['path'],
             update, repo['revision']))
@@ -983,7 +983,7 @@ def git_revision(module, path, verbose):
     print "Git revision not implented"
 
 
-def hg_revision(module, path, verbose):
+def hg_revision(module, path, verbose=False):
     t = Terminal()
     path_repo = path
     if not os.path.exists(path_repo):
