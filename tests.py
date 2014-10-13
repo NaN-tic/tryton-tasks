@@ -90,7 +90,8 @@ def runtests(test_file=None, branch='default', development=False,
     if development:
             name = '%s - Development' % name
 
-    test(failfast=True, dbtype=dbtype, reviews=include_reviews, name=name)
+    failfast=False
+    test(failfast=failfast, dbtype=dbtype, reviews=include_reviews, name=name)
 
     for section in sections:
         name +=  "/" + section
@@ -112,7 +113,7 @@ def runtests(test_file=None, branch='default', development=False,
             name = '%s (with reviews)' % name
             project.fetch_reviews(component=section)
 
-        test(failfast=True, dbtype=dbtype, reviews=True, modules=section,
+        test(failfast=failfast, dbtype=dbtype, reviews=True, modules=section,
             name=name)
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
