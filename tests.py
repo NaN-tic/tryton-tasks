@@ -56,7 +56,7 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
     if not exclude_stable:
         print "Setup & testing stable revision of branch: %s " % branch
         runtests(test_file, branch, development=False, include_reviews=False,
-            dbtype=dbtype, failfast=fail_fast)
+            dbtype=dbtype, fail_fast=fail_fast)
         if not exclude_reviews:
             runtests(test_file, branch, development=False,
                 include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
