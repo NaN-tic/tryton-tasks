@@ -52,25 +52,25 @@ def test(failfast=True, dbtype='sqlite', reviews =False, modules=None,
 
 @task
 def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
-        exclude_development=False, exclude_reviews=False):
+        exclude_development=False, exclude_reviews=False, fail_fast=False):
     if not exclude_stable:
         print "Setup & testing stable revision of branch: %s " % branch
         runtests(test_file, branch, development=False, include_reviews=False,
-            dbtype=dbtype)
+            dbtype=dbtype, fail_fast)
         if not exclude_reviews:
             runtests(test_file, branch, development=False,
-                include_reviews=True, dbtype=dbtype)
+                include_reviews=True, dbtype=dbtype, fail_fast)
     if not exclude_development:
         print "Setup & testing development revision of branch: %s " % branch
         runtests(test_file, branch, development=True,
-            include_reviews=False, dbtype=dbtype)
+            include_reviews=False, dbtype=dbtype, fail_fast)
         if not exclude_reviews:
             runtests(test_file, branch, development=True,
-                include_reviews=True, dbtype=dbtype)
+                include_reviews=True, dbtype=dbtype, fail_fast)
 
 @task()
 def runtests(test_file=None, branch='default', development=False,
-        include_reviews=False, dbtype='sqlite'):
+        include_reviews=False, dbtype='sqlite', fail_fast=False):
 
     directory = tempfile.mkdtemp()
     run("cp . %s -R" % directory)
@@ -90,7 +90,6 @@ def runtests(test_file=None, branch='default', development=False,
     if development:
             name = '%s - Development' % name
 
-    failfast=False
     test(failfast=failfast, dbtype=dbtype, reviews=include_reviews, name=name)
 
     for section in sections:
