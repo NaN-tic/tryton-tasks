@@ -1,4 +1,5 @@
 blessings
+coverage
 GitPython>=0.3.2.RC1
 hgapi
 invoke==0.7
