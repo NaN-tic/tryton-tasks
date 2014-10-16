@@ -40,7 +40,7 @@ def get_repo(section, config, function=None, development=False):
     if config.has_option(section, 'branch'):
         repository['branch'] = config.get(section, 'branch')
     repository['function'] = None
-    if function:
+    if function and not (function == 'update' and repository['type'] == 'git'):
         repository['function'] = eval("%s_%s" % (repository['type'], function))
     return repository
 
