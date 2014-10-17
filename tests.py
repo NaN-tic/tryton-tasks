@@ -128,9 +128,9 @@ def clean(force=True):
 
 @task()
 def setup(branch='default', development=False, force=True):
-    #scm.hg_update('config', 'config', force, branch=branch)
-    #scm.update(clean=force)
-    #scm.fetch()
+    scm.hg_update('config', 'config', force, branch=branch)
+    scm.update(clean=force)
+    scm.fetch()
     scm.unknown(remove=True, quiet=force)
 
 
