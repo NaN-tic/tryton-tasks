@@ -3,11 +3,9 @@ import StringIO
 import sys
 import time
 import unittest
-from xml.sax import saxutils
 import os
 from tasks.config import get_config
 from tasks.scm import hg_revision, get_branch
-import subprocess
 from coverage import coverage
 import re
 
@@ -20,9 +18,11 @@ except ImportError, e:
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
 
+
 def get_tryton_connection():
     tryton = settings['tryton']
     return pconfig.set_xmlrpc(tryton['server'])
+
 
 def get_module_key(filename):
     uppath = lambda _path, n: os.sep.join(_path.split(os.sep)[:-n])
@@ -50,7 +50,6 @@ def get_module_key(filename):
 # e.g.
 #   >>> logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
 #   >>>
-
 class OutputRedirector(object):
     """ Wrapper to redirect stdout or stderr """
     def __init__(self, fp):
@@ -69,12 +68,13 @@ stdout_redirector = OutputRedirector(sys.stdout)
 stderr_redirector = OutputRedirector(sys.stderr)
 
 
-
 TestResult = unittest.TestResult
+
 
 class _TestResult(TestResult):
     # note: _TestResult is a pure representation of results.
-    # It lacks the output and reporting ability compares to unittest._TextTestResult.
+    # It lacks the output and reporting ability compares to unittest._
+    # TextTestResult.
 
     def __init__(self, verbosity=1, failfast=False):
         TestResult.__init__(self)
@@ -95,7 +95,6 @@ class _TestResult(TestResult):
         # )
         self.result = []
 
-
     def startTest(self, test):
         TestResult.startTest(self, test)
         # just one buffer for both stdout and stderr
@@ -106,7 +105,6 @@ class _TestResult(TestResult):
         self.stderr0 = sys.stderr
         sys.stdout = stdout_redirector
         sys.stderr = stderr_redirector
-
 
     def complete_output(self):
         """
@@ -120,13 +118,12 @@ class _TestResult(TestResult):
             self.stderr0 = None
         return self.outputBuffer.getvalue()
 
-
     def stopTest(self, test):
-        # Usually one of addSuccess, addError or addFailure would have been called.
-        # But there are some path in unittest that would bypass this.
-        # We must disconnect stdout in stopTest(), which is guaranteed to be called.
+        # Usually one of addSuccess, addError or addFailure would have been
+        # called. But there are some path in unittest that would bypass this.
+        # We must disconnect stdout in stopTest(), which is guaranteed to be
+        #called.
         self.complete_output()
-
 
     def addSuccess(self, test):
         self.success_count += 1
@@ -183,17 +180,17 @@ class TrytonTestRunner(object):
         self.verbosity = verbosity
         self.failfast = failfast
         self.startTime = datetime.datetime.now()
-        self.tryton = get_tryton_connection()
         self.result = None
         self.coverage = {}
 
-
     def upload_tryton(self, db_type, failfast, name, reviews):
         report = self._generate_report(self.result)
-        TestResult = Model.get('project.test.build.result')
+
+        get_tryton_connection()
         Test = Model.get('project.test.build')
         TestGroup = Model.get('project.test.build.group')
         Component = Model.get('project.work.component')
+        TestResult = Model.get('project.test.build.result')
 
         group = TestGroup()
         group.name = name
@@ -205,7 +202,7 @@ class TrytonTestRunner(object):
         group.save()
         for module in report:
             result = report[module]
-            component = Component.find( [('name','=',module)])
+            component = Component.find([('name', '=', module)])
             component = component and component[0]
             if not component:
                 component = Component(name=module)
@@ -215,9 +212,9 @@ class TrytonTestRunner(object):
             branch = get_branch(path)
             test = Test()
             test.group = group
-            test.coverage = round(self.coverage.get(module,(0,0,0))[2],2)
-            test.lines = self.coverage.get(module,(0,0,0))[0]
-            test.covered_lines = self.coverage.get(module,(0,0,0))[1]
+            test.coverage = round(self.coverage.get(module, (0, 0, 0))[2], 2)
+            test.lines = self.coverage.get(module, (0, 0, 0))[0]
+            test.covered_lines = self.coverage.get(module, (0, 0, 0))[1]
             test.component = component
             test.branch = branch
             test.revision = revision
@@ -233,14 +230,13 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 tr.save()
 
-
     def coverage_report(self, cov):
         f = StringIO.StringIO()
         cov.load()
         cov.report(file=f, show_missing=False)
         output = f.getvalue()
 
-        module_name=None
+        module_name = None
         for line in output.splitlines():
             if ('trytond' in line and
                     (not module_name or 'modules/'+module_name+'/' in line)):
@@ -278,25 +274,24 @@ class TrytonTestRunner(object):
         cov.save()
         self.generateReport(test, result)
         self.coverage_report(cov)
-        print >>sys.stderr, '\nTime Elapsed: %s' % (self.stopTime-self.startTime)
+        print >> sys.stderr, '\nTime Elapsed: %s' % (
+            self.stopTime-self.startTime)
         self.result = result
         return result
-
 
     def sortResult(self, result_list):
         # unittest does not seems to run in any particular order.
         # Here at least we want to group them together by class.
         rmap = {}
         classes = []
-        for n,t,o,e in result_list:
+        for n, t, o, e in result_list:
             cls = t.__class__
             if not rmap.has_key(cls):
                 rmap[cls] = []
                 classes.append(cls)
-            rmap[cls].append((n,t,o,e))
+            rmap[cls].append((n, t, o, e))
         r = [(cls, rmap[cls]) for cls in classes]
         return r
-
 
     def getReportAttributes(self, result):
         """
@@ -306,9 +301,9 @@ class TrytonTestRunner(object):
         startTime = str(self.startTime)[:19]
         duration = str(self.stopTime - self.startTime)
         status = []
-        if result.success_count: status.append('Pass %s'    % result.success_count)
+        if result.success_count: status.append('Pass %s' % result.success_count)
         if result.failure_count: status.append('Failure %s' % result.failure_count)
-        if result.error_count:   status.append('Error %s'   % result.error_count  )
+        if result.error_count:   status.append('Error %s'% result.error_count)
         if status:
             status = ' '.join(status)
         else:
@@ -319,12 +314,12 @@ class TrytonTestRunner(object):
             ('Status', status),
         ]
 
-
     def generateReport(self, test, result):
         report = self._generate_report(result)
 
 
     def _generate_report(self, result):
+
         report = {}
         sortedResult = self.sortResult(result.result)
         for cid, (cls, cls_results) in enumerate(sortedResult):
@@ -343,8 +338,12 @@ class TrytonTestRunner(object):
             doc = cls.__doc__ and cls.__doc__.split("\n")[0] or ""
             desc = doc and '%s: %s' % (name, doc) or name
 
+            if not 'trytond' in name:
+                continue
+
             module = name.split('.tests')[0]
-            path = os.path.join( os.getcwd(), module.replace('.','/'))
+            path = os.path.join(os.getcwd(), module.replace('.', '/'))
+
             if 'modules' in module:
                 module = module.split('.')[-1]
                 path = path.replace('trytond/','')

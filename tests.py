@@ -15,7 +15,7 @@ import time
 
 
 @task()
-def test(failfast=True, dbtype='sqlite', reviews =False, modules=None,
+def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
         name=None):
 
     from trytond.config import CONFIG
@@ -41,9 +41,8 @@ def test(failfast=True, dbtype='sqlite', reviews =False, modules=None,
         suite = modules_suite()
         suite.addTests(proteus.tests.test_suite())
 
-
     runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast)
-    result = runner.run(suite)
+    runner.run(suite)
     if modules:
         name = name + " ["+modules+"]"
 
@@ -67,6 +66,7 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
         if not exclude_reviews:
             runtests(test_file, branch, development=True,
                 include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
+
 
 @task()
 def runtests(test_file=None, branch='default', development=False,
@@ -93,7 +93,7 @@ def runtests(test_file=None, branch='default', development=False,
     test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name)
 
     for section in sections:
-        name +=  "/" + section
+        name2 = name + "/" + section
         repos_to_clone = [section]
         try:
             repos_to_clone += config.get(section, 'requires').split(',')
@@ -109,16 +109,16 @@ def runtests(test_file=None, branch='default', development=False,
             func(repo['url'], repo['path'], repo['branch'], repo['revision'])
             repos_to_remove.append(repo['path'])
         if include_reviews:
-            name = '%s (with reviews)' % name
+            name2 = '%s (with reviews)' % name2
             project.fetch_reviews(component=section)
 
         test(failfast=fail_fast, dbtype=dbtype, reviews=True, modules=section,
-            name=name)
+            name=name2)
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
 
     os.chdir(old_dir)
-    run("rm -Rf %s" % directory)
+    #run("rm -Rf %s" % directory)
 
 
 @task()
@@ -128,9 +128,9 @@ def clean(force=True):
 
 @task()
 def setup(branch='default', development=False, force=True):
-    scm.hg_update('config', 'config', force, branch=branch)
-    scm.update(clean=force)
-    scm.fetch()
+    #scm.hg_update('config', 'config', force, branch=branch)
+    #scm.update(clean=force)
+    #scm.fetch()
     scm.unknown(remove=True, quiet=force)
 
 
