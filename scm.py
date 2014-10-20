@@ -6,12 +6,13 @@ import os
 import sys
 from blessings import Terminal
 from multiprocessing import Process
+from multiprocessing import Pool
 from path import path as lpath
 import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
 
-MAX_PROCESSES = 40
+MAX_PROCESSES = 30
 
 DEFAULT_BRANCH = {
     'git': 'master',
@@ -26,6 +27,7 @@ MASTER_REVISION = {
 
 def get_repo(section, config, function=None, development=False):
     repository = {}
+    repository['name'] = section
     repository['type'] = config.get(section, 'repo')
     repository['url'] = config.get(section, 'url')
     repository['path'] = os.path.join(config.get(section, 'path'), section)
@@ -618,46 +620,6 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-def hg_pull(module, path, update, quiet=False, branch=None,
-        revision=None):
-
-    if not os.path.exists(path):
-        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
-        return -1
-
-    cwd = os.getcwd()
-    os.chdir(path)
-
-    cmd = ['hg', 'pull']
-    if branch:
-        cmd += ['-b', branch]
-
-    if revision:
-        cmd += ['-r', revision]
-
-    if update:
-        cmd.append('-u')
-        cmd.append('-y')  # noninteractive
-    if quiet:
-        cmd.append('-q')  # quiet
-
-    result = run(' '.join(cmd), warn=True, hide='both')
-
-    if not result.ok:
-        print >> sys.stderr, t.red("= " + module + " = KO!")
-        print >> sys.stderr, result.stderr
-        os.chdir(cwd)
-        return -1
-
-    if "no changes found" in result.stdout or result.stdout == '':
-        os.chdir(cwd)
-        return 0
-
-    print t.bold("= " + module + " =")
-    print result.stdout
-    os.chdir(cwd)
-    return 0
-
 
 def git_pull(module, path, update):
     path_repo = os.path.join(path, module)
@@ -845,22 +807,43 @@ def create_branch(branch_name, config=None, unstable=True):
     quilt.pop()
 
 
-@task
+def hg_pull(module, path, update=False, clean=False, branch=None,
+        revision=None):
+
+    if not os.path.exists(path):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
+        return -1
+
+    repo = hgapi.Repo(path)
+    try:
+        repo.hg_pull()
+        revision = revision or branch or 'tip'
+        #TODO: check if revision belongs to branch to avoid mistakes.
+        if update:
+            repo.hg_update(revision, clean)
+    except hgapi.HgException, e:
+        print t.bold_red('[' + module + ']')
+        print "Error running %s : %s" % (e.exit_code, str(e))
+        return -1
+    return 0
+
+def _pull(repo):
+    return repo['function'](repo['name'], repo['path'], update=True,
+        branch=repo['branch'], revision=repo['revision'])
+
+@task()
 def pull(config=None, unstable=True, update=True, development=False):
+    quilt.pop()
     Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
     exit_code = []
+    p = Pool(MAX_PROCESSES)
+    repos = []
     for section in Config.sections():
-        print "module:", section
-        repo = get_repo(section, Config, 'pull', development)
-        p = Process(target=repo['function'], args=(section, repo['path'],
-            update, repo['revision']))
-        p.start()
-        processes.append(p)
-        wait_processes(processes, exit_code=exit_code)
-    wait_processes(processes, 0, exit_code=exit_code)
-    return sum(exit_code)
+        repos.append(get_repo(section, Config, 'pull', development))
+    exit = p.map(_pull, repos)
+
+    quilt.push()
+    return sum(exit)
 
 
 def hg_push(module, path, url, new_branches=False):
