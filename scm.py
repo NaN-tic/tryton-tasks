@@ -19,11 +19,6 @@ DEFAULT_BRANCH = {
     'hg': 'default'
     }
 
-MASTER_REVISION = {
-    'git': 'master',
-    'hg': 'tip',
-}
-
 
 def get_repo(section, config, function=None, development=False):
     repository = {}
@@ -31,16 +26,14 @@ def get_repo(section, config, function=None, development=False):
     repository['type'] = config.get(section, 'repo')
     repository['url'] = config.get(section, 'url')
     repository['path'] = os.path.join(config.get(section, 'path'), section)
-    repository['branch'] = DEFAULT_BRANCH[repository['type']]
-    repository['revision'] = MASTER_REVISION[repository['type']]
-    repository['pypi'] = None
-    if config.has_option(section, 'pypi'):
-        repository['pypi'] = config.get(section, 'pypi')
-    if config.has_option(section, 'revision') and \
-            config.get(section, 'revision') and not development:
-        repository['revision'] = config.get(section, 'revision')
-    if config.has_option(section, 'branch'):
-        repository['branch'] = config.get(section, 'branch')
+    repository['branch'] = (config.get(section, 'branch')
+        if config.has_option(section, 'branch')
+        else DEFAULT_BRANCH[repository['type']])
+    repository['revision'] = (config.get(section, 'revision')
+        if not development and config.has_option(section, 'revision')
+        else None)
+    repository['pypi'] = (config.get(section, 'pypi')
+        if config.has_option(section, 'pypi') else None)
     repository['function'] = None
     if function and not (function == 'update' and repository['type'] == 'git'):
         repository['function'] = eval("%s_%s" % (repository['type'], function))
@@ -154,7 +147,7 @@ def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
             del processes[i]
 
 
-def hg_clone(url, path, branch="default", revision="tip"):
+def hg_clone(url, path, branch="default", revision=None):
     command = 'hg clone -b %s -q %s %s' % (branch, url, path)
     res = -1
     try:
@@ -162,7 +155,7 @@ def hg_clone(url, path, branch="default", revision="tip"):
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
 
-    if revision != 'tip':
+    if revision is not None:
         print "Repo " + t.bold(path) + t.green(" Updated") + \
             " to Revision:" + revision
         print 'hg update -r %s' % revision
@@ -809,7 +802,6 @@ def create_branch(branch_name, config=None, unstable=True):
 
 def hg_pull(module, path, update=False, clean=False, branch=None,
         revision=None):
-
     if not os.path.exists(path):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return -1
@@ -817,7 +809,10 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
     repo = hgapi.Repo(path)
     try:
         repo.hg_pull()
-        revision = revision or branch or 'tip'
+        if not revision and branch:
+            revision = branch
+        elif not revision and not branch:
+            revision = repo.hg_branch()
         #TODO: check if revision belongs to branch to avoid mistakes.
         if update:
             repo.hg_update(revision, clean)
@@ -952,8 +947,6 @@ def update(config=None, unstable=True, clean=False, development=True):
             # Force branch only when clean is set
             branch = repo['branch']
         revision = repo['revision']
-        if development:
-            revision = None
         p = Process(target=repo['function'], args=(section, repo['path'],
             clean, branch, revision))
         p.start()
