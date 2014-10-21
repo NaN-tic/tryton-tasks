@@ -274,7 +274,7 @@ def git_status(module, path, verbose, url):
     return files
 
 
-@task
+@task()
 def status(config=None, unstable=True, no_quilt=False, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -344,7 +344,7 @@ def hg_resolve(module, path, verbose, action, tool, nostatus, include,
         print out
 
 
-@task
+@task()
 def resolve(config=None, unstable=True, verbose=False, action='merge',
         tool=None, nostatus=False, include=None, exclude=None):
     Config = read_config_file(config, unstable=unstable)
@@ -379,7 +379,7 @@ def git_stat(path):
     print "git_stat not implemented yet"
 
 
-@task
+@task()
 def stat(module):
     Config = read_config_file()
     for section in Config.sections():
@@ -408,7 +408,7 @@ def hg_base_diff(path):
     return diff.stdout, base_diff.stdout
 
 
-@task
+@task()
 def module_diff(path, base=True, show=True, fun=hg_base_diff):
     diff, base_diff = fun(path)
     if show:
@@ -468,7 +468,7 @@ def hg_diff(module, path, verbose, rev1, rev2):
         print >> sys.stderr, "\n".join(msg)
 
 
-@task
+@task()
 def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -524,7 +524,7 @@ def hg_compare_branches(module, path, first_branch, second_branch):
     os.chdir(cwd)
 
 
-@task
+@task()
 def compare_branches(first_branch, second_branch, config=None, unstable=True):
     '''
     Finds commits that exist on first branch but doesn't exist on
@@ -561,7 +561,7 @@ def hg_summary(module, path, verbose):
     print summary
 
 
-@task
+@task()
 def summary(config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -602,7 +602,7 @@ def hg_outgoing(module, path, verbose):
         print out
 
 
-@task
+@task()
 def outgoing(config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -865,7 +865,7 @@ def hg_push(module, path, url, new_branches=False):
     os.chdir(cwd)
 
 
-@task
+@task()
 def push(config=None, unstable=True, new_branches=False):
     '''
     Pushes all pending commits to the repo url.
@@ -940,7 +940,7 @@ def hg_update(module, path, clean, branch=None, revision=None):
     os.chdir(cwd)
 
 
-@task
+@task()
 def update(config=None, unstable=True, clean=False, development=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -984,7 +984,7 @@ def hg_revision(module, path, verbose=False):
     return False
 
 
-@task
+@task()
 def revision(config=None, unstable=True, verbose=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -998,7 +998,7 @@ def revision(config=None, unstable=True, verbose=True):
     wait_processes(processes, 0)
 
 
-@task
+@task()
 def prefetch(force=False):
     """ Ensures clean enviroment """
 
@@ -1027,22 +1027,22 @@ def prefetch(force=False):
 @task()
 def fetch():
 
-    if not quilt.pop():
-        print "It's not possible to remove patche(es)"
-        print t.bold('Not Fetched.')
-        return
+    # if not quilt.pop():
+    #     print "It's not possible to remove patche(es)"
+    #     print t.bold('Not Fetched.')
+    #     return
 
     print t.bold('Pulling and updated local repository...')
     bashCommand = ['hg', 'pull', '-u']
     execBashCommand(bashCommand, '',
         "It's not possible to pull the local repostory. Err:")
     print t.bold('Pulling...')
-    pull()
-    print t.bold('Updating...')
-    update()
+    pull(update=True)
+    # print t.bold('Updating...')
+    # update()
     print t.bold('Cloning...')
     clone()
-    quilt.push()
+    # quilt.push()
     print t.bold('Updating requirements...')
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
     execBashCommand(bashCommand,
@@ -1091,7 +1091,7 @@ def increase_module_version(module, path, version):
     os.chdir(cwd)
 
 
-@task
+@task()
 def increase_version(version, config=None, unstable=True, clean=False):
     '''
     Modifies all tryton.cfg files in order to set version to <version>

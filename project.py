@@ -21,7 +21,7 @@ def get_tryton_connection():
     return pconfig.set_xmlrpc(tryton['server'])
 
 
-@task
+@task()
 def tasks(party=None, user=None):
     get_tryton_connection()
 
@@ -43,16 +43,16 @@ def tasks(party=None, user=None):
             project.party.rec_name)
 
 
-@task
-def close_review(task):
+@task()
+def close_review(work):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
-    reviews = Review.find([('work.code', '=', task)])
+    reviews = Review.find([('work.code', '=', work)])
     for review in reviews:
         reviewboard.close(review.review_id)
 
 
-@task
+@task()
 def fetch_reviews(branch, component=None, exclude_components=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
@@ -72,11 +72,11 @@ def fetch_reviews(branch, component=None, exclude_components=None):
         reviewboard.fetch(path, review.review_id)
 
 
-@task
-def fetch_review(task):
+@task()
+def fetch_review(work):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
-    reviews = Review.find([('work.code', '=', task), ('state', '=', 'opened')])
+    reviews = Review.find([('work.code', '=', work), ('state', '=', 'opened')])
     for review in reviews:
         if review.component:
             path = os.path.join('modules', review.component.name)
@@ -88,16 +88,16 @@ def fetch_review(task):
         reviewboard.fetch(path, review.review_id)
 
 
-@task
-def upload_review(task, path, review=None):
+@task()
+def upload_review(work, path, review=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
     Component = Model.get('project.work.component')
     module = path.split('/')[-1]
-    tasks = Task.find([('code', '=', task)])
+    tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % task)
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
         sys.exit(1)
     task = tasks[0]
     components = Component.find([('name', '=', module)])

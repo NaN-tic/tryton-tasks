@@ -19,7 +19,7 @@ Config = ConfigParser.ConfigParser()
 INITIAL_PATH = path.getcwd()
 
 
-@task
+@task()
 def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
@@ -40,7 +40,7 @@ def get_tasks(taskpath='tasks'):
     print ""
 
 
-@task
+@task()
 def get_config(configpath='config'):
     # TODO: add option to update repository
     Config.config_path = path(configpath).abspath()
@@ -61,7 +61,7 @@ def get_config(configpath='config'):
     print ""
 
 
-@task
+@task()
 def get_utils(utilspath='utils'):
     # TODO: add option to update repository
     Config.utils_path = utilspath
@@ -82,7 +82,7 @@ def get_utils(utilspath='utils'):
     print ""
 
 
-@task
+@task()
 def activate_virtualenv(projectname):
     '''
     Config.virtualenv indicates virtualenv must to be activated
@@ -164,7 +164,7 @@ def install_requirements(upgrade=False):
 # on Config values
 
 
-@task
+@task()
 def install_proteus(proteuspath=None, upgrade=False):
     print "Installing proteus."
     if proteuspath is None:
@@ -183,7 +183,7 @@ def install_proteus(proteuspath=None, upgrade=False):
     print ""
 
 
-@task
+@task()
 def create_symlinks():
     cwd = path.getcwd()
     if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):

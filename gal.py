@@ -127,7 +127,7 @@ def gal_commit(do_dump=True):
         dump()
     gal_repo().hg_commit(commit_msg)
 
-@task
+@task()
 def create(language=None, password=None):
     """
     Creates a new tryton database and stores it in the gal repository.
@@ -138,7 +138,7 @@ def create(language=None, password=None):
     connect_database(language=language)
     gal_commit()
 
-@task
+@task()
 def replay(name):
     """
     Executes all steps needed to create a database like the one in the gal
@@ -171,14 +171,14 @@ def replay(name):
         # TODO: This is not safe. Run with care.
         eval('%s(%s)' % (action, parameters))
 
-@task
+@task()
 def get(name):
     """
     Restores current gal database with the given database name
     """
     restore(name)
 
-@task
+@task()
 def set(name):
     """
     Saves the given database as current gal database
@@ -187,7 +187,7 @@ def set(name):
     dump(name)
     gal_commit(do_dump=False)
 
-@task
+@task()
 def build(filename=None):
     """
     Creates a database with the commands found in the specified filename.
@@ -203,7 +203,7 @@ def build(filename=None):
                 print t.bold(line)
                 eval(line)
 
-@task
+@task()
 def galfile():
     """
     Prints the Galfile to be used to reproduce current gal database.
@@ -232,7 +232,7 @@ def galfile():
 #
 # Extension commands
 #
-@task
+@task()
 def update_all():
     """
     Update all modules. Equivalent to execute trytond with "-u all" parameter
@@ -277,7 +277,7 @@ def upgrade_modules(modules=None, all=False):
                 ])]
     return upgraded_modules
 
-@task
+@task()
 def set_active_languages(lang_codes=None):
     """
     Sets the given languages (for example 'ca_ES,es_ES') as active languages
@@ -325,7 +325,7 @@ def set_active_languages(lang_codes=None):
     gal_commit()
 
 
-@task
+@task()
 def install_modules(modules):
     '''
     Installs the given modules (for example, 'party,product') to current gal
@@ -362,7 +362,7 @@ def install_modules(modules):
     return modules, installed_modules
 
 
-@task
+@task()
 def load_spanish_banks():
     '''
     Execute Load Spanish Banks wizard. Requires bank_es module
@@ -374,7 +374,7 @@ def load_spanish_banks():
     gal_commit()
 
 
-@task
+@task()
 def load_spanish_zips():
     '''
     Execute Load Spanish Zips wizard. Requires country_zip_es module
@@ -439,7 +439,7 @@ def create_party(name, street=None, zip=None, city=None,
     party.save()
     return party
 
-@task
+@task()
 def create_parties(count=4000):
     """
     Create 'count' parties taking random information from the following files:
@@ -483,7 +483,7 @@ def create_parties(count=4000):
     gal_commit()
 
 
-@task
+@task()
 def create_product_category(name):
     """
     Creates product category with the supplied name.
@@ -499,7 +499,7 @@ def create_product_category(name):
     gal_commit()
 
 
-@task
+@task()
 def create_product_categories(count=20):
     """
     Creates 'count' (20 by default) product categories.
@@ -587,7 +587,7 @@ def create_product(name, code="", template=None, cost_price=None,
         product.save()
     return product
 
-@task
+@task()
 def create_products(count=400):
     """
     Creates the 'count' first products from the icecat database in catalog.xml.
@@ -609,7 +609,7 @@ def create_products(count=400):
 
     gal_commit()
 
-@task
+@task()
 def create_company(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', currency_code='EUR',
         phone=None, website=None):
@@ -654,7 +654,7 @@ def create_company(name, street=None, zip=None, city=None,
     gal_commit()
     return company
 
-@task
+@task()
 def create_employee(name, company=None, user=None):
     """
     Creates the employee with the given name in the given company and links
@@ -695,7 +695,7 @@ def create_employee(name, company=None, user=None):
 
     gal_commit()
 
-@task
+@task()
 def create_account_chart(company, module=None, fs_id=None, digits=None):
     """
     Creates the chart of accounts defined by module and fs_id for the given
@@ -772,7 +772,7 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
 
     gal_commit()
 
-@task
+@task()
 def create_fiscal_year(company, year=None):
     """
     It creates a new fiscal year with monthly periods and the appropriate
@@ -850,7 +850,7 @@ def create_fiscal_year(company, year=None):
     gal_commit()
     return fiscalyear
 
-@task
+@task()
 def create_payment_term(name, type='remainder', percentage=None, divisor=None,
         amount=None, day=None, month=None, weekday=None, months=0, weeks=0,
         days=0):
@@ -891,7 +891,7 @@ def create_payment_term(name, type='remainder', percentage=None, divisor=None,
     return term
 
 
-@task
+@task()
 def create_payment_terms():
     """
     It creates 3 payment terms:
@@ -930,7 +930,7 @@ def create_payment_terms():
 
     gal_commit()
 
-@task
+@task()
 def create_opportunities(count=100, linecount=10):
     """
     It randomly creates leads and opportunities
@@ -976,7 +976,7 @@ def create_opportunities(count=100, linecount=10):
 
     gal_commit()
 
-@task
+@task()
 def process_opportunities():
     """
     It randomly processes leads
@@ -1013,7 +1013,7 @@ def process_opportunities():
         wizard = Wizard('sale.opportunity.convert_opportunity', opps)
     gal_commit()
 
-@task
+@task()
 def create_sales(count=100, linecount=10):
     """
     It creates 'count' sales using random products (linecount maximum)
@@ -1054,7 +1054,7 @@ def create_sales(count=100, linecount=10):
     gal_commit()
 
 
-@task
+@task()
 def process_sales():
     """
     It randomly processes some sales:
@@ -1086,7 +1086,7 @@ def process_sales():
 
     gal_commit()
 
-@task
+@task()
 def create_purchases(count=100, linecount=10):
     """
     It creates 'count' purchases using random products (linecount maximum)
@@ -1125,7 +1125,7 @@ def create_purchases(count=100, linecount=10):
     gal_commit()
 
 
-@task
+@task()
 def process_purchases():
     """
     It randomly processes some purchases:
@@ -1152,7 +1152,7 @@ def process_purchases():
 
     gal_commit()
 
-@task
+@task()
 def create_inventory(maxquantity=1000):
     """
     It randomly makes an inventory of 80% of existing products.
@@ -1192,7 +1192,7 @@ def create_inventory(maxquantity=1000):
 
     gal_commit()
 
-@task
+@task()
 def process_customer_shipments():
     """
     It randomly processes waiting customer shipments.
@@ -1219,7 +1219,7 @@ def process_customer_shipments():
 
     gal_commit()
 
-@task
+@task()
 def process_customer_invoices():
     """
     It randomly confirms customer invoices.
@@ -1246,7 +1246,7 @@ def process_customer_invoices():
     Invoice.post([x.id for x in invoices], config.context)
     gal_commit()
 
-@task
+@task()
 def process_supplier_shipments():
     """
     It randomly processes waiting supplier shipments.
@@ -1284,7 +1284,7 @@ def process_supplier_shipments():
 
     gal_commit()
 
-@task
+@task()
 def create_marketing_invoices():
     gal_action('create_marketing_invoices')
     restore()

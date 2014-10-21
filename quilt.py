@@ -12,11 +12,13 @@ def applied(expect_empty=False):
     for patch in patches:
         if expect_empty:
             print t.green(patch)
+            return True
         else:
             print t.red(patch)
+            return False
 
 
-@task
+@task()
 def unapplied():
     print t.bold('Patches Not Applied')
     res = run('quilt unapplied', hide='stdout', warn=True)
@@ -28,14 +30,14 @@ def unapplied():
 def pop():
     print t.bold('Reverting patches...')
     res = run('quilt pop -fa', warn=True)
-    applied(expect_empty=True)
+    return applied(expect_empty=True)
 
 
 @task()
 def push():
     print t.bold('Applying patches...')
     res = run('quilt push -a', warn=True)
-    applied()
+    res = applied()
     unapplied()
 
 

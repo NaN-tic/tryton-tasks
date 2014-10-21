@@ -12,7 +12,7 @@ t = Terminal()
 INITIAL_PATH = path.getcwd()
 
 
-@task
+@task()
 def install_requirements(requirement_file, upgrade=False):
 
     print 'Installing dependencies...'

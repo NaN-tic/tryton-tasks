@@ -93,7 +93,7 @@ def read_config_file(config_file=None, type='repos', unstable=True):
     return Config
 
 
-@task
+@task()
 def update_parent_left_right(database, table, field, host='localhost',
         port='5432', user='angel', password='angel'):
     def _parent_store_compute(cr, table, field):
@@ -128,7 +128,7 @@ def update_parent_left_right(database, table, field, host='localhost',
     _parent_store_compute(db.cursor(), table, field)
 
 
-@task
+@task()
 def prepare_translations(database, langs=None, host=None, port=None,
         dbuser=None, dbpassword=None):
     """
@@ -169,7 +169,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
         print "%s translation updated" % language.name
 
 
-@task
+@task()
 def export_translations(database, modules, langs=None,
         host=None, port=None, dbuser=None, dbpassword=None):
     """
@@ -239,7 +239,7 @@ def export_translations(database, modules, langs=None,
                 % (module.name, language.code))
 
 
-@task
+@task()
 def account_reconcile(database, lines=2, months=6):
 
     pref = config.set_trytond(database_type='postgresql',

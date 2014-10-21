@@ -49,7 +49,7 @@ def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
     runner.upload_tryton(dbtype, failfast, name, reviews)
 
 
-@task
+@task()
 def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
         exclude_development=False, exclude_reviews=False, fail_fast=False):
     if not exclude_stable:

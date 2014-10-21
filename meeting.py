@@ -31,7 +31,7 @@ Contingut
 ---------
 """
 
-@task
+@task()
 def create():
     today = datetime.date.today().strftime('%Y-%m-%d')
     filename = 'doc/meetings/%s.rst' % today

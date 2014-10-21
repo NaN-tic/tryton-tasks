@@ -20,7 +20,7 @@ def get_config():
     return settings
 
 
-@task
+@task()
 def set_revision(config=None):
     """ Set branch on repository config files """
 
@@ -43,7 +43,7 @@ def set_revision(config=None):
         f_d.close()
 
 
-@task
+@task()
 def set_branch(branch, config=None):
     """ Set branch on repository config files """
 
@@ -64,7 +64,7 @@ def set_branch(branch, config=None):
         f_d.close()
 
 
-@task
+@task()
 def add_module(config, path, url=None):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
