@@ -8,6 +8,7 @@ from blessings import Terminal
 from multiprocessing import Process
 from multiprocessing import Pool
 from path import path as lpath
+
 import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
@@ -163,6 +164,7 @@ def hg_clone(url, path, branch="default", revision=None):
 
     return res
 
+
 def git_clone(url, path, branch="master", revision="master"):
     command = 'git clone -b %s -q %s %s' % (branch, url, path)
     if not path.endswith(os.path.sep):
@@ -198,8 +200,6 @@ def clone(config=None, unstable=True, development=False):
     wait_processes(processes, 0, exit_code=exit_code)
 
     return sum(exit_code)
-
-
 
 
 def print_status(module, files):
@@ -483,7 +483,7 @@ def hg_compare_branches(module, path, first_branch, second_branch):
 
     cwd = os.getcwd()
     os.chdir(path_repo)
-    #Shows all commits from the last point where both branches converged
+    # Shows all commits from the last point where both branches converged
     revisions = "'max(ancestor(%s, %s)):tip'" % (first_branch, second_branch)
     cmd = ['hg', 'log', '-r', revisions, '--template',
         "'{branch} ### {desc}\n'"]
@@ -497,7 +497,7 @@ def hg_compare_branches(module, path, first_branch, second_branch):
             branch, desc = line.split(' ### ')
         except ValueError:
             continue
-        #Skip branch commits
+        # Skip branch commits
         if 'branch' in desc.lower():
             continue
         if not branch in commits:
@@ -613,12 +613,17 @@ def outgoing(config=None, unstable=True, verbose=False):
     wait_processes(processes, 0)
 
 
-
-def git_pull(module, path, update):
+def git_pull(module, path, update=False, clean=False, branch=None,
+        revision=None, ignore_missing=False):
+    """
+    Params update, clean, branch and revision are not used.
+    """
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
+        if ignore_missing:
+            return 0
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
-        return
+        return -1
 
     cwd = os.getcwd()
     os.chdir(path_repo)
@@ -630,18 +635,17 @@ def git_pull(module, path, update):
         print >> sys.stderr, t.red("= " + module + " = KO!")
         print >> sys.stderr, result.stderr
         os.chdir(cwd)
-        return
+        return -1
 
-    # If mercurial outputs 'no changes found'
-    # or git outputs 'Already up-to-date' do not print anything.
-    if ('no changes found' in result.stdout
-            or 'Already up-to-date' in result.stdout):
+    # If git outputs 'Already up-to-date' do not print anything.
+    if 'Already up-to-date' in result.stdout:
         os.chdir(cwd)
-        return
+        return 0
 
     print t.bold("= " + module + " =")
     print result.stdout
     os.chdir(cwd)
+    return 0
 
 
 def hg_clean(module, path, url, force=False):
@@ -779,7 +783,7 @@ def create_branch(branch_name, config=None, unstable=True):
     quilt.pop()
     print t.bold('Cleaning all changes...')
     Config = read_config_file(config, unstable=unstable)
-    update(config, unstable=True, clean=True)
+    update(config, unstable=True, clean=True, no_quilt=True)
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
@@ -801,19 +805,26 @@ def create_branch(branch_name, config=None, unstable=True):
 
 
 def hg_pull(module, path, update=False, clean=False, branch=None,
-        revision=None):
+        revision=None, ignore_missing=False):
     if not os.path.exists(path):
+        if ignore_missing:
+            return 0
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return -1
 
     repo = hgapi.Repo(path)
     try:
         repo.hg_pull()
-        if not revision and branch:
+        if revision and branch:
+            if repo.revision(revision).branch != branch:
+                print t.bold_red('[' + module + ']')
+                print ("Invalid revision '%s': it isn't in branch '%s'"
+                    % (revision, branch))
+                return -1
+        elif branch:
             revision = branch
-        elif not revision and not branch:
+        elif not revision:
             revision = repo.hg_branch()
-        #TODO: check if revision belongs to branch to avoid mistakes.
         if update:
             repo.hg_update(revision, clean)
     except hgapi.HgException, e:
@@ -822,23 +833,33 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
         return -1
     return 0
 
+
 def _pull(repo):
-    return repo['function'](repo['name'], repo['path'], update=True,
-        branch=repo['branch'], revision=repo['revision'])
+    return repo['function'](repo['name'], repo['path'], update=repo['update'],
+        branch=repo['branch'], revision=repo['revision'],
+        ignore_missing=repo['ignore_missing'])
+
 
 @task()
-def pull(config=None, unstable=True, update=True, development=False):
-    quilt.pop()
+def pull(config=None, unstable=True, update=True, development=False,
+         ignore_missing=False, no_quilt=False):
+    if not no_quilt:
+        quilt.pop()
+
     Config = read_config_file(config, unstable=unstable)
-    exit_code = []
     p = Pool(MAX_PROCESSES)
     repos = []
     for section in Config.sections():
-        repos.append(get_repo(section, Config, 'pull', development))
-    exit = p.map(_pull, repos)
+        # TODO: provably it could be done with a wrapper
+        repo = get_repo(section, Config, 'pull', development)
+        repo['update'] = update
+        repo['ignore_missing'] = ignore_missing
+        repos.append(repo)
+    exit_codes = p.map(_pull, repos)
 
-    quilt.push()
-    return sum(exit)
+    if not no_quilt:
+        quilt.push()
+    return sum(exit_codes)
 
 
 def hg_push(module, path, url, new_branches=False):
@@ -873,7 +894,7 @@ def push(config=None, unstable=True, new_branches=False):
     for section in Config.sections():
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
-        #Don't push to repos that start with http as we don't have access to
+        # Don't push to repos that start with http as we don't have access to
         url = Config.get(section, 'url')
         if url[:4] == 'http':
             continue
@@ -936,7 +957,11 @@ def hg_update(module, path, clean, branch=None, revision=None):
 
 
 @task()
-def update(config=None, unstable=True, clean=False, development=True):
+def update(config=None, unstable=True, clean=False, development=True,
+        no_quilt=False):
+    if not no_quilt:
+        quilt.pop()
+
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
@@ -953,6 +978,9 @@ def update(config=None, unstable=True, clean=False, development=True):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
+
+    if not no_quilt:
+        quilt.push()
 
 
 def git_revision(module, path, verbose):
@@ -1019,23 +1047,22 @@ def prefetch(force=False):
 
 @task()
 def fetch():
-
-    # if not quilt.pop():
-    #     print "It's not possible to remove patche(es)"
-    #     print t.bold('Not Fetched.')
-    #     return
-
     print t.bold('Pulling and updated local repository...')
+    # Replace by a "hg_pull" call
     bashCommand = ['hg', 'pull', '-u']
     execBashCommand(bashCommand, '',
         "It's not possible to pull the local repostory. Err:")
+
+    quilt.pop()
+
     print t.bold('Pulling...')
-    pull(update=True)
-    # print t.bold('Updating...')
-    # update()
+    pull(update=True, ignore_missing=True, no_quilt=True)
+
     print t.bold('Cloning...')
     clone()
-    # quilt.push()
+
+    quilt.push()
+
     print t.bold('Updating requirements...')
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
     execBashCommand(bashCommand,
