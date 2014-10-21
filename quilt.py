@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from invoke import task, Collection, run
-from .utils import t, execBashCommand
-
+from .utils import t
 
 
 @task()
@@ -11,11 +10,9 @@ def applied(expect_empty=False):
     patches = res.stdout.split('\n')
     for patch in patches:
         if expect_empty:
-            print t.green(patch)
-            return True
-        else:
             print t.red(patch)
             return False
+    return True
 
 
 @task()
@@ -26,19 +23,21 @@ def unapplied():
     for patch in patches:
         print t.red(patch)
 
+
 @task()
 def pop():
     print t.bold('Reverting patches...')
-    res = run('quilt pop -fa', warn=True)
+    run('quilt pop -fa', warn=True)
     return applied(expect_empty=True)
 
 
 @task()
 def push():
     print t.bold('Applying patches...')
-    res = run('quilt push -a', warn=True)
+    run('quilt push -a', warn=True)
     res = applied()
     unapplied()
+    return res
 
 
 QuiltCollection = Collection()
