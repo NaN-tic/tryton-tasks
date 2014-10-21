@@ -11,7 +11,7 @@ README_MSG+= "=====\n\n"
 README_MSG+= "This packages includes some backports and bugfixes from original.\n"
 README_MSG+= "Find it at: http://bitbucket.org/nantic/trytond-patches\n"
 
-@task
+@task()
 def prepare(config, unstable=True):
     Config = read_config_file(config, unstable=unstable)
 
@@ -28,7 +28,7 @@ def prepare(config, unstable=True):
         run('echo "%s" >> %s' % (README_MSG, readme_file))
 
 
-@task
+@task()
 def dist(pypi, config, unstable=True):
     Config = read_config_file(config, unstable=unstable)
 

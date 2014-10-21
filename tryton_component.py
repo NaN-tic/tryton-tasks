@@ -19,7 +19,7 @@ def get_tryton_connection():
     return pconfig.set_xmlrpc(tryton['server'])
 
 
-@task
+@task()
 def push(config=None):
     get_tryton_connection()
     Component = Model.get('project.work.component')
