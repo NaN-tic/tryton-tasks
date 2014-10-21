@@ -28,7 +28,7 @@ def get_tasks(taskpath='tasks'):
         hg_pull(taskpath, '.', True)
         return
 
-    if not Config.get_tasks:
+    if not getattr(Config, 'get_tasks', False):
         if not _ask_ok('Are you in the customer project directory? '
                 'Answer "yes" to clone the "tryton-tasks" repository '
                 'in "%s" directory. [Y/n] ' % taskpath, 'y'):
@@ -49,7 +49,7 @@ def get_config(configpath='config'):
         hg_pull(configpath, '.', True)
         return
 
-    if not Config.get_config:
+    if not getattr(Config, 'get_config', False):
         if not _ask_ok('Are you in the customer project directory? '
                 'Answer "yes" to clone the "tryton-config" repository '
                 'in "%s" directory. [Y/n] ' % configpath, 'y'):
@@ -70,7 +70,7 @@ def get_utils(utilspath='utils'):
         hg_pull(utilspath, '.', True)
         return
 
-    if not Config.get_utils:
+    if not getattr(Config, 'get_utils'):
         if not _ask_ok('Are you in the customer project directory? '
                 'Answer "yes" to clone the "nan_tryton_utils" repository '
                 'in "%s" directory. [Y/n] ' % utilspath, 'y'):
