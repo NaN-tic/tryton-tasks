@@ -29,6 +29,9 @@ def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
     else:
         database_name = 'test_' + str(int(time.time()))
 
+    if name is None:
+        name = ''
+
     name += "("+str(int(time.time()))+")"
     os.environ['DB_NAME'] = database_name
 
