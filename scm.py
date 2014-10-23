@@ -995,14 +995,14 @@ def hg_revision(module, path, verbose=False):
             + t.bold(path_repo))
         return False
 
-    result = run('cd %s;hg parent --template "{rev}"' % path_repo,
-        hide='stdout')
-    if result.stdout:
-        if verbose:
-            print >> sys.stderr, t.bold(module) \
-                + " revision:" + result.stdout
-        return result.stdout
-    return False
+    repo = hgapi.Repo(path_repo)
+    branches = repo.get_branches()
+    revision = False
+    for branch in branches:
+        if branch['name'] == repo.hg_branch():
+            revision = branch['version'].split(':')[1]
+
+    return revision
 
 
 @task()
