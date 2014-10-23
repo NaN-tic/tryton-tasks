@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
+
 from invoke import task, Collection
+
 from .config import get_config
-import reviewboard
-from scm import get_branch
+from . import reviewboard
+from .scm import get_branch
 from .utils import t
 
 try:
@@ -94,18 +96,21 @@ def upload_review(work, path, review=None):
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
     Component = Model.get('project.work.component')
-    module = path.split('/')[-1]
+
     tasks = Task.find([('code', '=', work)])
     if not tasks:
         print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
         sys.exit(1)
     task = tasks[0]
+
+    module = path.split('/')[-1]
     components = Component.find([('name', '=', module)])
     if not components:
         component = Component(name=module)
         component.save()
     else:
         component = components[0]
+
     review_id = reviewboard.create(path, task.rec_name,
         task.comment, task.code, review)
 

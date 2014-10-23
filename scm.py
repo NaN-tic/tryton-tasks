@@ -402,7 +402,14 @@ def hg_base_diff(path):
 
 
 @task()
-def module_diff(path, base=True, show=True, fun=hg_base_diff):
+def module_diff(path, base=True, show=True, fun=hg_base_diff,
+        addremove=False):
+    if addremove:
+        try:
+            repo = hgapi.Repo(path)
+            repo.hg_addremove()
+        except:
+            pass
     diff, base_diff = fun(path)
     if show:
         print t.bold(path + " module diff:")

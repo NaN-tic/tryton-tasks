@@ -134,7 +134,8 @@ def prepare_translations(database, langs=None, host=None, port=None,
     """
     Runs the set, clean and update wizards in the given database.
     """
-    print t.bold('export_translations: %s, %s') % (database, langs)
+    print t.bold('prepare_translations: database=%s, langs=%s') % (database,
+        langs)
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 

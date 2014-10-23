@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
-from invoke import task, run, Collection
-from .scm import module_diff
-from .config import get_config
 import ConfigParser
 import os
 import tempfile
 
-
+from invoke import task, run, Collection
 try:
     from rbtools.api.client import RBClient
 except:
     pass
+
+from .scm import module_diff
+from .config import get_config
 
 
 def review_file(module):
@@ -69,7 +69,7 @@ def create(module, summary, description, bug, review=None, group='NaN'):
     """
         Create  or update review
     """
-    diff, base_diff = module_diff(module, show=False)
+    diff, base_diff = module_diff(module, show=False, addremove=True)
     root = get_root()
     if review:
         create_review_file(module, review)
