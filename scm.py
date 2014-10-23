@@ -156,12 +156,12 @@ def hg_clone(url, path, branch="default", revision=None):
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
 
-    if revision is not None:
+    if res and revision is not None:
         print "Repo " + t.bold(path) + t.green(" Updated") + \
             " to Revision:" + revision
-        print 'hg update -r %s' % revision
-        res = run('hg update -r %s' % revision)
-
+        module = os.path.basename(path)
+        return hg_update_ng(module, path, False, branch=branch,
+            revision=revision)
     return res
 
 
@@ -822,18 +822,9 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
     repo = hgapi.Repo(path)
     try:
         repo.hg_pull()
-        if revision and branch:
-            if repo.revision(revision).branch != branch:
-                print t.bold_red('[' + module + ']')
-                print ("Invalid revision '%s': it isn't in branch '%s'"
-                    % (revision, branch))
-                return -1
-        elif branch:
-            revision = branch
-        elif not revision:
-            revision = repo.hg_branch()
         if update:
-            repo.hg_update(revision, clean)
+            return hg_update_ng(module, path, clean, branch=branch,
+                revision=revision, ignore_missing=ignore_missing)
     except hgapi.HgException, e:
         print t.bold_red('[' + module + ']')
         print "Error running %s : %s" % (e.exit_code, str(e))
@@ -919,8 +910,42 @@ def push(config=None, unstable=True, new_branches=False):
     wait_processes(processes, 0)
 
 
-def hg_update(module, path, clean, branch=None, revision=None):
+def hg_update_ng(module, path, clean, branch=None, revision=None,
+        ignore_missing=False):
     if not os.path.exists(path):
+        if ignore_missing:
+            return 0
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
+        return
+
+    repo = hgapi.Repo(path)
+    if revision and branch:
+        if repo.revision(revision).branch != branch:
+            print t.bold_red('[' + module + ']')
+            print ("Invalid revision '%s': it isn't in branch '%s'"
+                % (revision, branch))
+            return -1
+    elif branch:
+        revision = branch
+    elif not revision:
+        revision = repo.hg_branch()
+
+    try:
+        repo.hg_update(revision, clean)
+    except hgapi.HgException, e:
+        print t.bold_red('[' + module + ']')
+        print "Error running %s: %s" % (e.exit_code, str(e))
+        return -1
+
+    # TODO: add some check of output like hg_update?
+    return 0
+
+
+def hg_update(module, path, clean, branch=None, revision=None,
+        ignore_missing=False):
+    if not os.path.exists(path):
+        if ignore_missing:
+            return 0
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return
 
