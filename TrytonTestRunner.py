@@ -358,6 +358,12 @@ class TrytonTestRunner(object):
                 new_module = module
                 if 'doctest.' in name:
                     new_module = str(t).split('modules/')[1].split('/')[0]
+                    if not new_module in report:
+                        path = str(t).split('tryton/')[1].split('tests/')[0]
+                        report[new_module] = {
+                            'test': [],
+                            'path': path,
+                        }
                     record['type'] = 'scenario'
                     record['desc'] = record['desc']
                 else:
