@@ -1,7 +1,6 @@
 import datetime
 import StringIO
 import sys
-import time
 import unittest
 import os
 from tasks.config import get_config
@@ -37,7 +36,6 @@ def get_module_key(filename):
         directory = uppath(directory, i)
 
     return directory.split('/')[-1]
-
 
 
 # ------------------------------------------------------------------------
@@ -225,7 +223,7 @@ class TrytonTestRunner(object):
                 tr = TestResult()
                 tr.build = test
                 tr.name = test_result['desc']
-                tr.type = 'unittest'
+                tr.type = test_result['type']
                 tr.description = test_result['output']
                 tr.state = test_result['status']
                 tr.save()
@@ -335,29 +333,36 @@ class TrytonTestRunner(object):
                 name = cls.__name__
             else:
                 name = "%s.%s" % (cls.__module__, cls.__name__)
-            doc = cls.__doc__ and cls.__doc__.split("\n")[0] or ""
-            desc = doc and '%s: %s' % (name, doc) or name
 
-            if not 'trytond' in name:
-                continue
+            if name != 'doctest.DocFileCase':
+                if not 'trytond' in name:
+                    continue
 
-            module = name.split('.tests')[0]
-            path = os.path.join(os.getcwd(), module.replace('.', '/'))
+                module = name.split('.tests')[0]
+                path = os.path.join(os.getcwd(), module.replace('.', '/'))
 
-            if 'modules' in module:
-                module = module.split('.')[-1]
-                path = path.replace('trytond/','')
+                if 'modules' in module:
+                    module = module.split('.')[-1]
+                    path = path.replace('trytond/', '')
 
-            if not module in report:
-                report[module] = {
-                    'test':[],
-                    'path': path
-                }
+                if not module in report:
+                    report[module] = {
+                        'test': [],
+                        'path': path
+                    }
 
-            for tid, (n,t,o,e) in enumerate(cls_results):
-                record = self._generate_report_test(report, cid, tid, n, t, o, e)
-                record['desc'] = name + ":" + record['desc']
-                report[module]['test'].append(record)
+            for tid, (n, t, o, e) in enumerate(cls_results):
+                record = self._generate_report_test(report, cid, tid, n, t, o,
+                    e)
+                record['type'] = 'unittest'
+                new_module = module
+                if 'doctest.' in name:
+                    new_module = str(t).split('modules/')[1].split('/')[0]
+                    record['type'] = 'scenario'
+                    record['desc'] = record['desc']
+                else:
+                    record['desc'] = name + ":" + record['desc']
+                report[new_module]['test'].append(record)
         return report
 
 
