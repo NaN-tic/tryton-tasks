@@ -55,6 +55,7 @@ def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
 @task()
 def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
         exclude_development=False, exclude_reviews=False, fail_fast=False):
+    setup(branch)
     if not exclude_stable:
         print "Setup & testing stable revision of branch: %s " % branch
         runtests(test_file, branch, development=False, include_reviews=False,
@@ -79,7 +80,7 @@ def runtests(test_file=None, branch='default', development=False,
     run("cp . %s -R" % directory)
     old_dir = os.getcwd()
     os.chdir(directory)
-    setup(branch, development)
+    setup(branch, development, fetch=False)
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
@@ -130,10 +131,11 @@ def clean(force=True):
 
 
 @task()
-def setup(branch='default', development=False, force=True):
+def setup(branch='default', development=False, force=True, fetch=True):
     scm.hg_update('config', 'config', force, branch=branch)
     scm.update(clean=force)
-    scm.fetch()
+    if fetch:
+        scm.fetch()
     scm.unknown(remove=True, quiet=force)
 
 
