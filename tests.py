@@ -100,8 +100,9 @@ def runtests(test_file=None, branch='default', development=False,
             name2 = '%s (with reviews)' % name2
             project.fetch_reviews(branch, component=section)
 
-        test(failfast=fail_fast, dbtype=dbtype, reviews=True, modules=section,
-            name=name2, directory=os.path.join(directory, 'tasks'))
+        test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,
+            modules=section, name=name2,
+            directory=os.path.join(directory, 'tasks'))
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
 
