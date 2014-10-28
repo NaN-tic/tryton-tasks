@@ -2,6 +2,7 @@ import optparse
 import os
 import sys
 import time
+from coverage import coverage
 
 #Ensure path is loaded correctly
 sys.path.insert(0, os.path.abspath(os.path.normpath(os.path.join(
@@ -33,6 +34,8 @@ def run(dbtype='sqlite', name=None, modules=None, failfast=True,
 
     name += "(" + str(int(time.time())) + ")"
     os.environ['DB_NAME'] = database_name
+    cov = coverage()
+    cov.start()
     from trytond.tests.test_tryton import modules_suite
     import proteus.tests
 
@@ -42,7 +45,7 @@ def run(dbtype='sqlite', name=None, modules=None, failfast=True,
         suite = modules_suite()
         suite.addTests(proteus.tests.test_suite())
 
-    runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast)
+    runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast, coverage=cov)
     runner.run(suite)
     if modules:
         name = name + " ["+modules+"]"

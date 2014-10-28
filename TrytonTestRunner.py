@@ -174,12 +174,14 @@ class TrytonTestRunner(object):
         2: 'error',
     }
 
-    def __init__(self, stream=sys.stdout, verbosity=1, failfast=False):
+    def __init__(self, stream=sys.stdout, verbosity=1, failfast=False,
+            coverage=None):
         self.verbosity = verbosity
         self.failfast = failfast
         self.startTime = datetime.datetime.now()
         self.result = None
-        self.coverage = {}
+        self.coverage_result = {}
+        self._coverage = coverage
 
     def upload_tryton(self, db_type, failfast, name, reviews):
         report = self._generate_report(self.result)
@@ -210,9 +212,10 @@ class TrytonTestRunner(object):
             branch = get_branch(path) or 'default'
             test = Test()
             test.group = group
-            test.coverage = round(self.coverage.get(module, (0, 0, 0))[2], 2)
-            test.lines = self.coverage.get(module, (0, 0, 0))[0]
-            test.covered_lines = self.coverage.get(module, (0, 0, 0))[1]
+            test.coverage = round(self.coverage_result.get(module,
+                    (0, 0, 0))[2], 2)
+            test.lines = self.coverage_result.get(module, (0, 0, 0))[0]
+            test.covered_lines = self.coverage_result.get(module, (0, 0, 0))[1]
             test.component = component
             test.branch = branch
             test.revision = revision
@@ -228,11 +231,12 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 tr.save()
 
-    def coverage_report(self, cov):
+    def coverage_report(self):
         f = StringIO.StringIO()
-        cov.load()
-        cov.report(file=f, show_missing=False)
+        self._coverage.load()
+        self._coverage.report(file=f, show_missing=False)
         output = f.getvalue()
+        print output
 
         module_name = None
         for line in output.splitlines():
@@ -251,27 +255,30 @@ class TrytonTestRunner(object):
                 if not key:
                     continue
 
-                if not key in self.coverage:
-                    self.coverage[key] = (0, 0)
-                lines += self.coverage[key][0]
-                covered += self.coverage[key][1]
+                if not key in self.coverage_result:
+                    self.coverage_result[key] = (0, 0)
+                lines += self.coverage_result[key][0]
+                covered += self.coverage_result[key][1]
                 if lines == 0.0:
-                    coverage = 100.0
+                    percentage = 100.0
                 else:
-                    coverage = 100.0 * float(covered) / float(lines)
-                self.coverage[key] = (lines, covered, coverage)
+                    percentage = 100.0 * float(covered) / float(lines)
+                self.coverage_result[key] = (lines, covered, percentage)
 
     def run(self, test):
         "Run the given test case or test suite."
-        cov = coverage()
-        cov.start()
+        if self._coverage is None:
+            self._coverage = coverage()
+        #Start only coverage when not started
+        if not self._coverage._started:
+            self._coverage.start()
         result = _TestResult(self.verbosity, failfast=self.failfast)
         test(result)
         self.stopTime = datetime.datetime.now()
-        cov.stop()
-        cov.save()
+        self._coverage.stop()
+        self._coverage.save()
         self.generateReport(test, result)
-        self.coverage_report(cov)
+        self.coverage_report()
         print >> sys.stderr, '\nTime Elapsed: %s' % (
             self.stopTime-self.startTime)
         self.result = result
