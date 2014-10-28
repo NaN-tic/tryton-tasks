@@ -114,7 +114,7 @@ def runtests(test_file=None, branch='default', development=False,
             repos_to_remove.append(repo['path'])
         if include_reviews:
             name2 = '%s (with reviews)' % name2
-            project.fetch_reviews(component=section)
+            project.fetch_reviews(branch, component=section)
 
         test(failfast=fail_fast, dbtype=dbtype, reviews=True, modules=section,
             name=name2)
@@ -122,7 +122,7 @@ def runtests(test_file=None, branch='default', development=False,
             utils.remove_dir(to_remove, quiet=True)
 
     os.chdir(old_dir)
-    #run("rm -Rf %s" % directory)
+    run("rm -Rf %s" % directory)
 
 
 @task()

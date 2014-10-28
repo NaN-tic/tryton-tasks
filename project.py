@@ -55,10 +55,13 @@ def close_review(work):
 
 
 @task()
-def fetch_reviews(branch, component=None, exclude_components=None):
+def fetch_reviews(branch='default', component=None, exclude_components=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
-    reviews = Review.find([('state', '=', 'opened')])
+    reviews = Review.find([
+            ('state', '=', 'opened'),
+            ('branch', '=', branch),
+            ])
     if not exclude_components:
         exclude_components = []
     for review in reviews:
