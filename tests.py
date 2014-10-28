@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 from invoke import task, run, Collection
 import os
+import sys
 import tempfile
 import scm
 import utils
 import project
 from ConfigParser import NoOptionError
-import TrytonTestRunner
-import time
 
 # from .scm import prefetch, fetch, get_repo, remove_dir,
 #      hg_clone, git_clone
@@ -16,40 +15,24 @@ import time
 
 @task()
 def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
-        name=None):
+        name=None, directory=None):
 
-    from trytond.config import CONFIG
-
-    CONFIG['db_type'] = dbtype
-    if not CONFIG['admin_passwd']:
-        CONFIG['admin_passwd'] = 'admin'
-
-    if dbtype == 'sqlite':
-        database_name = ':memory:'
-    else:
-        database_name = 'test_' + str(int(time.time()))
-
-    if name is None:
-        name = ''
-
-    name += "("+str(int(time.time()))+")"
-    os.environ['DB_NAME'] = database_name
-
-    from trytond.tests.test_tryton import modules_suite
-    import proteus.tests
-
+    test_file = 'run_test.py'
+    if directory is None:
+        directory = os.path.dirname(__file__)
+    test_file = os.path.join(directory, test_file)
+    cmd = ['/usr/bin/env', 'python', test_file]
+    if reviews:
+        cmd.append('--reviews')
+    if failfast:
+        cmd.append('--fail-fast')
+    cmd.append('--db-type %s' % dbtype)
+    if name:
+        cmd.append('--name %s' % name)
     if modules:
-        suite = modules_suite(modules)
-    else:
-        suite = modules_suite()
-        suite.addTests(proteus.tests.test_suite())
+        cmd.append('-m %s' % modules)
 
-    runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast)
-    runner.run(suite)
-    if modules:
-        name = name + " ["+modules+"]"
-
-    runner.upload_tryton(dbtype, failfast, name, reviews)
+    run(" ".join(cmd), echo=True)
 
 
 @task()
@@ -94,7 +77,8 @@ def runtests(test_file=None, branch='default', development=False,
     if development:
             name = '%s - Development' % name
 
-    test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name)
+    test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name,
+        directory=os.path.join(directory, 'tasks'))
 
     for section in sections:
         name2 = name + "/" + section
@@ -117,7 +101,7 @@ def runtests(test_file=None, branch='default', development=False,
             project.fetch_reviews(branch, component=section)
 
         test(failfast=fail_fast, dbtype=dbtype, reviews=True, modules=section,
-            name=name2)
+            name=name2, directory=os.path.join(directory, 'tasks'))
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
 
