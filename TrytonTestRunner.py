@@ -236,7 +236,6 @@ class TrytonTestRunner(object):
         self._coverage.load()
         self._coverage.report(file=f, show_missing=False)
         output = f.getvalue()
-        print output
 
         module_name = None
         for line in output.splitlines():
