@@ -76,6 +76,8 @@ def runtests(test_file=None, branch='default', development=False,
     name = 'Generic Modules'
     if development:
             name = '%s - Development' % name
+    if include_reviews:
+        name = '%s with reviews' % name
 
     test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name,
         directory=os.path.join(directory, 'tasks'))
@@ -96,8 +98,6 @@ def runtests(test_file=None, branch='default', development=False,
             func = repo['function']
             func(repo['url'], repo['path'], repo['branch'], repo['revision'])
             repos_to_remove.append(repo['path'])
-        if include_reviews:
-            name2 = '%s (with reviews)' % name2
             project.fetch_reviews(branch, component=section)
 
         test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,
