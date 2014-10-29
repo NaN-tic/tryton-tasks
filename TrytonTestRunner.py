@@ -1,4 +1,5 @@
 import datetime
+import subprocess
 import StringIO
 import sys
 import unittest
@@ -36,6 +37,17 @@ def get_module_key(filename):
         directory = uppath(directory, i)
 
     return directory.split('/')[-1]
+
+
+def check_output(args, env=None, errors=False):
+    process = subprocess.Popen(args, env=env, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    data, stderr = process.communicate()
+    if errors:
+        data += '-' * 50 + '\n' + stderr
+    if stderr:
+        raise Exception("Exception executing %s" % args)
+    return data
 
 
 # ------------------------------------------------------------------------
@@ -182,6 +194,7 @@ class TrytonTestRunner(object):
         self.result = None
         self.coverage_result = {}
         self._coverage = coverage
+        self.pyflakes_result = {}
 
     def upload_tryton(self, db_type, failfast, name, reviews):
         report = self._generate_report(self.result)
@@ -231,6 +244,15 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 tr.save()
 
+            for test_result in self.pyflakes_result.get(module, []):
+                tr = TestResult()
+                tr.build = test
+                tr.name = test_result['name']
+                tr.type = test_result['type']
+                tr.description = test_result['output']
+                tr.state = test_result['status']
+                tr.save()
+
     def coverage_report(self):
         f = StringIO.StringIO()
         self._coverage.load()
@@ -264,6 +286,53 @@ class TrytonTestRunner(object):
                     percentage = 100.0 * float(covered) / float(lines)
                 self.coverage_result[key] = (lines, covered, percentage)
 
+    def runflakes(self, checker, tests=None):
+        """
+        Possible values for checker: pyflakes, flake8
+        """
+        assert checker in ('pyflakes', 'flake8')
+        args = []
+        type_ = 'flake'
+        if checker == 'flake8':
+            args = [
+                '--ignore="E120,E121,E123,E124,E126,E127,E128,W0232,R0903"']
+            type_ = 'pep8'
+
+        path = os.path.abspath(os.path.normpath(os.path.join(
+                    os.path.dirname(__file__), '..', 'modules')))
+
+        dirs = []
+        modules = set()
+        if tests is not None:
+            modules = set([t.__module__.split('modules.')[1].split('.')[0]
+                    for t in tests])
+
+        for f in sorted(os.listdir(path)):
+            if modules and not f in modules:
+                continue
+            p = '%s/%s' % (path, f)
+            if not os.path.isdir(p):
+                continue
+            dirs.append(p)
+        for d in dirs:
+            parameters = [checker, d] + args
+            output = check_output(parameters)
+            module = os.path.basename(d)
+            self.pyflakes_result.setdefault(module, [])
+            for error in output.split('\n'):
+                if not error:
+                    continue
+                # Don't report import * errors on __init__ files as it is a
+                # common pattern on tryton.
+                if "import *' used;" in output and '__init__.py' in output:
+                    continue
+                self.pyflakes_result[module].append({
+                        'name': checker,
+                        'type': type_,
+                        'output': error,
+                        'status': 'fail',
+                        })
+
     def run(self, test):
         "Run the given test case or test suite."
         if self._coverage is None:
@@ -276,10 +345,12 @@ class TrytonTestRunner(object):
         self.stopTime = datetime.datetime.now()
         self._coverage.stop()
         self._coverage.save()
+        print >> sys.stderr, '\nTime Elapsed: %s' % (self.stopTime -
+            self.startTime)
         self.generateReport(test, result)
         self.coverage_report()
-        print >> sys.stderr, '\nTime Elapsed: %s' % (
-            self.stopTime-self.startTime)
+        self.runflakes('flake8', test)
+        self.runflakes('pyflakes', test)
         self.result = result
         return result
 
