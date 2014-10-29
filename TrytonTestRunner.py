@@ -221,8 +221,12 @@ class TrytonTestRunner(object):
                 component = Component(name=module)
                 component.save()
             path = result['path']
-            revision = hg_revision(module, path) or 0
-            branch = get_branch(path) or 'default'
+            try:
+                revision = hg_revision(module, path) or 0
+                branch = get_branch(path) or 'default'
+            except:
+                revision = 0
+                branch = 'default'
             test = Test()
             test.group = group
             test.coverage = round(self.coverage_result.get(module,
