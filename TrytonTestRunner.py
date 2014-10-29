@@ -294,8 +294,8 @@ class TrytonTestRunner(object):
         args = []
         type_ = 'flake'
         if checker == 'flake8':
-            args = [
-                '--ignore="E120,E121,E123,E124,E126,E127,E128,W0232,R0903"']
+            args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E711,W0232,'
+                'R0903"']
             type_ = 'pep8'
 
         path = os.path.abspath(os.path.normpath(os.path.join(
@@ -305,7 +305,7 @@ class TrytonTestRunner(object):
         modules = set()
         if tests is not None:
             modules = set([t.__module__.split('modules.')[1].split('.')[0]
-                    for t in tests])
+                    for t in tests if 'modules.' in t.__module__])
 
         for f in sorted(os.listdir(path)):
             if modules and not f in modules:
@@ -324,7 +324,7 @@ class TrytonTestRunner(object):
                     continue
                 # Don't report import * errors on __init__ files as it is a
                 # common pattern on tryton.
-                if "import *' used;" in output and '__init__.py' in output:
+                if "import *' used;" in error and '__init__.py' in error:
                     continue
                 self.pyflakes_result[module].append({
                         'name': checker,
@@ -436,7 +436,7 @@ class TrytonTestRunner(object):
                 if 'doctest.' in name:
                     new_module = str(t).split('modules/')[1].split('/')[0]
                     if not new_module in report:
-                        path = str(t).split('tryton/')[1].split('tests/')[0]
+                        path = str(t).split('trytond/')[1].split('tests/')[0]
                         report[new_module] = {
                             'test': [],
                             'path': path,
