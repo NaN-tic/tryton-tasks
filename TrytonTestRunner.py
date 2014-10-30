@@ -225,7 +225,7 @@ class TrytonTestRunner(object):
                 revision = hg_revision(module, path) or 0
                 branch = get_branch(path) or 'default'
             except:
-                revision = 0
+                revision = 'unknown'
                 branch = 'default'
             test = Test()
             test.group = group
@@ -440,7 +440,7 @@ class TrytonTestRunner(object):
                 if 'doctest.' in name:
                     new_module = str(t).split('modules/')[1].split('/')[0]
                     if not new_module in report:
-                        path = str(t).split('trytond/')[1].split('tests/')[0]
+                        path = str(t).split('tests/scenario')[0]
                         report[new_module] = {
                             'test': [],
                             'path': path,
