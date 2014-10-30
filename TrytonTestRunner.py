@@ -330,6 +330,11 @@ class TrytonTestRunner(object):
                 # common pattern on tryton.
                 if "import *' used;" in error and '__init__.py' in error:
                     continue
+                # Don't report 'suite' imported but unused as it is a common
+                # pattern used on tryton tests.
+                if ("'suite' imported but unused" in error and
+                        'tests/__init__.py' in error):
+                    continue
                 self.pyflakes_result[module].append({
                         'name': checker,
                         'type': type_,
