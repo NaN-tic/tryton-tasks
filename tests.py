@@ -36,23 +36,15 @@ def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
 
 
 @task()
-def runall(test_file, dbtype='sqlite', branch='default', exclude_stable=False,
-        exclude_development=False, exclude_reviews=False, fail_fast=False):
+def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
+        fail_fast=False):
     setup(branch)
-    if not exclude_stable:
-        print "Setup & testing stable revision of branch: %s " % branch
-        runtests(test_file, branch, development=False, include_reviews=False,
-            dbtype=dbtype, fail_fast=fail_fast)
-        if not exclude_reviews:
-            runtests(test_file, branch, development=False,
-                include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
-    if not exclude_development:
-        print "Setup & testing development revision of branch: %s " % branch
-        runtests(test_file, branch, development=True,
-            include_reviews=False, dbtype=dbtype, fail_fast=fail_fast)
-        if not exclude_reviews:
-            runtests(test_file, branch, development=True,
-                include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
+    print "Setup & testing stable revision of branch: %s " % branch
+    runtests(test_file, branch, include_reviews=False,
+        dbtype=dbtype, fail_fast=fail_fast)
+    if not exclude_reviews:
+        runtests(test_file, branch, development=False,
+            include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
 
 
 @task()
@@ -117,7 +109,7 @@ def clean(force=True):
 
 
 @task()
-def setup(branch='default', development=False, force=True, fetch=True):
+def setup(branch='default', force=True, fetch=True):
     scm.hg_update('config', 'config', force, branch=branch)
     scm.update(clean=force)
     if fetch:
