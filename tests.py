@@ -98,6 +98,7 @@ def runtests(test_file=None, branch='default', development=False,
             func = repo['function']
             func(repo['url'], repo['path'], repo['branch'], repo['revision'])
             repos_to_remove.append(repo['path'])
+        if include_reviews:
             project.fetch_reviews(branch, component=section)
 
         test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,
