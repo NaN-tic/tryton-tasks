@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from invoke import Collection, task, run
+from datetime import date
 import hgapi
 import git
 import os
@@ -1137,6 +1138,14 @@ def increase_module_version(module, path, version):
     with open(filename) as fp:
         for line in fp:
             content += increase(line)
+    with open(filename, 'w') as fp:
+        fp.write(content)
+    today = date.today().strftime('%Y-%m-%d')
+    content = 'Version %s - %s\n' % (version, today)
+    filename = 'CHANGELOG'
+    with open(filename) as fp:
+        for line in fp:
+            content += line
     with open(filename, 'w') as fp:
         fp.write(content)
 
