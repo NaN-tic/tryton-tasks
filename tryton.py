@@ -36,9 +36,13 @@ except ImportError:
     ir_model_data = None
 
 try:
+    # TODO: Remove compatibility with versions < 3.4
     from trytond.config import CONFIG
 except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+    try:
+        from trytond.config import config as CONFIG
+    except ImportError, e:
+        print >> sys.stderr, "trytond importation error: ", e
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
