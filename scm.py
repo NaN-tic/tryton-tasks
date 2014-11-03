@@ -1143,9 +1143,12 @@ def increase_module_version(module, path, version):
     today = date.today().strftime('%Y-%m-%d')
     content = 'Version %s - %s\n' % (version, today)
     filename = 'CHANGELOG'
-    with open(filename) as fp:
-        for line in fp:
-            content += line
+    try:
+        with open(filename) as fp:
+            for line in fp:
+                content += line
+    except IOError:
+        pass
     with open(filename, 'w') as fp:
         fp.write(content)
 
