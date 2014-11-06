@@ -1299,7 +1299,7 @@ def create_marketing_invoices():
     product = Product.find([('rec_name', 'ilike', 'Hores Tasques')])[0]
 
     i = 0
-    campaign = Campaign(30)
+    campaign = Campaign(32)
     for party in campaign.parties:
         print "Doing", i + 1, party.rec_name
         invoice = Invoice()
