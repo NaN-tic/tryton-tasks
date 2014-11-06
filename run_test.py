@@ -15,14 +15,23 @@ for module_name in ('trytond', 'proteus'):
 
 #Now we should be able to import everything
 import TrytonTestRunner
-from trytond.config import CONFIG
+older_version = True
+try:
+    # TODO: Remove compatibility with older versions
+    from trytond.config import CONFIG
+except ImportError:
+    from trytond.config import config as CONFIG
+    older_version = False
 
 
 def run(dbtype='sqlite', name=None, modules=None, failfast=True,
         reviews=False):
-    CONFIG['db_type'] = dbtype
-    if not CONFIG['admin_passwd']:
-        CONFIG['admin_passwd'] = 'admin'
+    if older_version:
+        CONFIG['db_type'] = dbtype
+        if not CONFIG['admin_passwd']:
+            CONFIG['admin_passwd'] = 'admin'
+    elif dbtype != 'sqlite':
+        CONFIG.set('database', 'uri', 'postgresql://localhost')
 
     if dbtype == 'sqlite':
         database_name = ':memory:'

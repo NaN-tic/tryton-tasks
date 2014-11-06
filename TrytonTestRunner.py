@@ -221,8 +221,12 @@ class TrytonTestRunner(object):
                 component = Component(name=module)
                 component.save()
             path = result['path']
-            revision = hg_revision(module, path) or 0
-            branch = get_branch(path) or 'default'
+            try:
+                revision = hg_revision(module, path) or 0
+                branch = get_branch(path) or 'default'
+            except:
+                revision = 'unknown'
+                branch = 'default'
             test = Test()
             test.group = group
             test.coverage = round(self.coverage_result.get(module,
@@ -325,6 +329,11 @@ class TrytonTestRunner(object):
                 # Don't report import * errors on __init__ files as it is a
                 # common pattern on tryton.
                 if "import *' used;" in error and '__init__.py' in error:
+                    continue
+                # Don't report 'suite' imported but unused as it is a common
+                # pattern used on tryton tests.
+                if ("'suite' imported but unused" in error and
+                        'tests/__init__.py' in error):
                     continue
                 self.pyflakes_result[module].append({
                         'name': checker,
@@ -436,7 +445,7 @@ class TrytonTestRunner(object):
                 if 'doctest.' in name:
                     new_module = str(t).split('modules/')[1].split('/')[0]
                     if not new_module in report:
-                        path = str(t).split('trytond/')[1].split('tests/')[0]
+                        path = str(t).split('tests/scenario')[0]
                         report[new_module] = {
                             'test': [],
                             'path': path,
