@@ -20,7 +20,7 @@ def get_tryton_connection():
 
 
 @task()
-def push(config=None):
+def push(config=None, filter=None):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
@@ -38,9 +38,11 @@ def push(config=None):
     print "Updating components..."
     Config = read_config_file(config, unstable=True)
     for section in Config.sections():
-        print "Updating %s..." % section,
         if section in NO_MODULE_REPOS + BASE_MODULES:
             pass
+        if filter and filter not in section:
+            continue
+        print "Updating %s..." % section,
         c = Component()
         if section in components:
             c = components[section]
