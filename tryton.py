@@ -206,7 +206,7 @@ def missing(database, config_file=None, install=False, show=True):
 
     if install:
         configfile = config_file and "-c %s" % config_file or ""
-        run('trytond/bin/trytond -d %s %s -i %s'
+        run('trytond/bin/trytond -d %s %s -u %s'
             % (database, configfile, miss))
 
     return miss
