@@ -172,7 +172,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
 
 @task()
 def export_translations(database, modules, langs=None,
-        host=None, port=None, dbuser=None, dbpassword=None):
+        host=None, port=None, dbuser=None, dbpassword=None, config_file=None):
     """
     Creates translation files for the given modules and the specified languages.
 
@@ -184,7 +184,8 @@ def export_translations(database, modules, langs=None,
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
-    config.set_trytond(database_type='postgresql', database_name=database)
+    config.set_trytond(database_type='postgresql', database_name=database,
+        config_file=config_file)
 
     Module = Model.get('ir.module.module')
     if modules == 'all':
