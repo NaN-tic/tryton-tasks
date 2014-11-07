@@ -354,8 +354,7 @@ def uninstall_task(database, modules, connection_params=None):
     if not check_database(database, connection_params):
         return
 
-    config = pconfig.set_trytond(database_type='postgresql',
-        database_name=database, **connection_params)
+    config = pconfig.set_trytond(database=database, **connection_params)
 
     Module = Model.get('ir.module.module')
     modules_to_uninstall = Module.find([
