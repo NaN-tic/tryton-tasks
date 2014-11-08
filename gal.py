@@ -127,6 +127,12 @@ def gal_commit(do_dump=True):
         dump()
     gal_repo().hg_commit(commit_msg)
 
+def module_installed(module):
+    Module = Model.get('ir.module.module')
+    return bool(Module.search([
+            ('name', '=', module),
+            ]))
+
 @task()
 def create(language=None, password=None):
     """
@@ -1012,6 +1018,55 @@ def process_opportunities():
     if opps:
         wizard = Wizard('sale.opportunity.convert_opportunity', opps)
     gal_commit()
+
+@task()
+def create_price_lists(count=5, productcount=10, categorycount=2):
+    """
+    It creates 'count' pricelists using random products and quantities
+    """
+    gal_action('creat_price_lists', count=count, linecount=linecount)
+    restore()
+    connect_database()
+
+    PriceList = Model.get('product.price_list')
+    PriceListLine = Model.get('product.price_list.line')
+    Product = Model.get('product.product')
+    Category = Model.get('product.category')
+    category_module = module_installed('product_price_list_category')
+
+    categories = Category.find()
+    products = Product.find([('salable', '=', True)])
+    for c in xrange(count):
+        price_list = PriceList()
+        price_list.name = str(c)
+
+        sequence = 1
+        for lc in xrange(random.randrange(1, productcount)):
+            line = PriceListLine()
+            price_list.lines.append(line)
+            line.sequence = sequence
+            line.product = random.choice(products)
+            line.formula = 'unit_price * 0.90'
+            sequence += 1
+
+        if category_module:
+            for lc in xrange(random.randrange(1, categorycount)):
+                line = PriceListLine()
+                price_list.lines.append(line)
+                line.sequence = sequence
+                line.category = random.choice(categories)
+                line.formula = 'unit_price * 0.95'
+                sequence += 1
+
+        line = PriceListLine()
+        price_list.lines.append(line)
+        line.sequence = sequence
+        line.formula = 'unit_price'
+
+        price_list.save()
+
+    gal_commit()
+
 
 @task()
 def create_sales(count=100, linecount=10):
