@@ -8,6 +8,9 @@ import hgapi
 import random
 import json
 import datetime
+import codecs
+import iban
+from functools32 import lru_cache
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from decimal import Decimal
@@ -127,9 +130,10 @@ def gal_commit(do_dump=True):
         dump()
     gal_repo().hg_commit(commit_msg)
 
+@lru_cache()
 def module_installed(module):
     Module = Model.get('ir.module.module')
-    return bool(Module.search([
+    return bool(Module.find([
             ('name', '=', module),
             ]))
 
@@ -203,10 +207,10 @@ def build(filename=None):
     if filename is None:
         filename = 'Galfile'
     print "Building %s..." % filename
-    with open(filename, 'r') as f:
+    with codecs.open(filename, 'r', 'utf-8') as f:
         for line in f:
             if line and not line.strip().startswith('#'):
-                print t.bold(line)
+                print t.bold(unicode(line))
                 eval(line)
 
 @task()
@@ -391,6 +395,43 @@ def load_spanish_zips():
     Wizard('load.country.zips').execute('accept')
     gal_commit()
 
+@lru_cache()
+def get_payment_terms():
+    Term = Model.get('account.invoice.payment_term')
+    return Term.find([])
+
+@lru_cache()
+def get_payment_types(kind):
+    Type = Model.get('account.payment.type')
+    return Type.find([('kind', '=', kind)])
+
+@lru_cache()
+def get_languages():
+    Lang = Model.get('ir.lang')
+    return Lang.find([
+            ('code', 'in', ['ca_ES', 'es_ES', 'en_US']),
+            ])
+
+@lru_cache()
+def get_price_lists():
+    PriceList = Model.get('product.price_list')
+    return PriceList.find([])
+
+@lru_cache()
+def get_banks():
+    Bank = Model.get('bank')
+    return Bank.find([])
+
+
+def get_object(module, fs_id):
+    ModelData = Model.get('ir.model.data')
+    data, = ModelData.find([
+            ('module', '=', 'account_es'),
+            ('fs_id', '=', fs_id),
+            ])
+    Class = Model.get(data.model)
+    return Class(data.db_id)
+
 
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
@@ -429,24 +470,55 @@ def create_party(name, street=None, zip=None, city=None,
         party.contact_mechanisms.append(
             ContactMechanism(type='website',
                 value=website))
+    party.lang = random.choice(get_languages())
 
     if account_payable:
         party.account_payable = account_payable
     if account_receivable:
         party.account_receivable = account_receivable
     if hasattr(party, 'customer_payment_term'):
-        Term = Model.get('account.invoice.payment_term')
-        terms = Term.find([])
+        terms = get_payment_terms()
         if terms:
             term = random.choice(terms)
             party.customer_payment_term = term
             party.supplier_payment_term = term
+    if hasattr(party, 'customer_payment_type'):
+        types = get_payment_types('receivable')
+        if types:
+            party.customer_payment_type = random.choice(types)
+    if hasattr(party, 'customer_payment_type'):
+        types = get_payment_types('payable')
+        if types:
+            party.supplier_payment_type = random.choice(types)
+    if hasattr(party, 'sale_price_list'):
+        price_lists = get_price_lists()
+        if price_lists:
+            party.sale_price_list = random.choice(price_lists)
+    if hasattr(party, 'include_347'):
+        party.include_347 = True
+
+
+    # TODO:
+    banks = get_banks()
+    if banks:
+        # Only if customer/supplier payment terms need them
+        BankAccount = Model.get('bank.account')
+        AccountNumber = Model.get('bank.account.number')
+
+        bank = random.choice(banks)
+        account = BankAccount()
+        account.bank = bank
+        number = AccountNumber()
+        account.numbers.append(number)
+        code, bank, account = 'ES', bank.bic, random.sample(range(10) * 20, 20)
+        number.type = 'iban'
+        number.number = iban.create_iban(code, bank, account)
 
     party.save()
     return party
 
 @task()
-def create_parties(count=4000):
+def create_random_parties(count=4000):
     """
     Create 'count' parties taking random information from the following files:
     - companies.txt
@@ -454,7 +526,7 @@ def create_parties(count=4000):
     - names.txt
     - surnames.txt
     """
-    gal_action('create_parties', count=count)
+    gal_action('create_random_parties', count=count)
     restore()
     connect_database()
 
@@ -488,6 +560,49 @@ def create_parties(count=4000):
 
     gal_commit()
 
+
+@task()
+def create_parties(count=1000):
+    """
+    Create 'count' parties taking random information from the following files:
+    - companies.txt
+    - streets.txt
+    - names.txt
+    - surnames.txt
+    """
+    gal_action('create_parties', count=count)
+    restore()
+    connect_database()
+
+    with open('tasks/companies.txt', 'r') as f:
+        companies = f.read().split('\n')
+    companies = [x.strip() for x in companies if x.strip()]
+    companies = random.sample(companies, min(len(companies), count))
+    with open('tasks/streets.txt', 'r') as f:
+        streets = f.read().split('\n')
+    streets = [x.strip() for x in streets if x.strip()]
+    with open('tasks/names.txt', 'r') as f:
+        names = f.read().split('\n')
+    names = [x.strip() for x in names if x.strip()]
+    with open('tasks/surnames.txt', 'r') as f:
+        surnames = f.read().split('\n')
+    surnames = [x.strip() for x in surnames if x.strip()]
+    phones = ['93', '972', '973', '977', '6', '900']
+    for company in companies:
+        name = random.choice(names)
+        surname1 = random.choice(surnames)
+        surname2 = random.choice(surnames)
+        street = random.choice(streets)
+        name = '%s %s, %s' % (surname1, surname2, name)
+        street = '%s, %d' % (street, random.randrange(1, 100))
+        phone = random.choice(phones)
+        while len(phone) < 9:
+            phone += str(random.randrange(9))
+        create_party(company, street=street, zip=None, city=None,
+            subdivision_code=None, country_code='ES', phone=phone,
+            website=None, address_name=name)
+
+    gal_commit()
 
 @task()
 def create_product_category(name):
@@ -582,6 +697,13 @@ def create_product(name, code="", template=None, cost_price=None,
                 ])
             if revenue:
                 template.account_revenue = revenue[0]
+        if module_installed('account_es'):
+            if hasattr(template, 'customer_taxes'):
+                template.customer_taxes.append(get_object(
+                        'account_es', 'iva_rep_21'))
+            if hasattr(template, 'supplier_taxes'):
+                template.supplier_taxes.append(get_object(
+                        'account_es', 'iva_sop_21'))
 
         template.products[0].code = code
         template.save()
@@ -936,6 +1058,72 @@ def create_payment_terms():
 
     gal_commit()
 
+
+@task()
+def create_payment_types(language='ca'):
+    """
+    """
+    gal_action('create_payment_types')
+    restore()
+    connect_database()
+
+    Type = Model.get('account.payment.type')
+    names = {
+        'bank-transfer': {
+            'ca': 'Transferència Bancària',
+            'en': 'Bank Transfer',
+            'es': 'Transferencia Bancaria',
+            },
+        'direct-debit': {
+            'ca': 'Domiciliació bancària',
+            'en': 'Direct Debit',
+            'es': 'Domiciliación bancaria',
+            },
+        'cash': {
+            'ca': 'Efectiu',
+            'en': 'Cash',
+            'es': 'Efectivo',
+            },
+        'credit-card': {
+            'ca': 'Targeta de crèdit',
+            'en': 'Credit Card',
+            'es': 'Tarjeta de crédito',
+            },
+        }
+
+    t = Type()
+    t.name = names['bank-transfer'][language]
+    t.kind = 'receivable'
+    t.save()
+
+    t = Type()
+    t.name = names['direct-debit'][language]
+    t.kind = 'receivable'
+    t.save()
+
+    t = Type()
+    t.name = names['cash'][language]
+    t.kind = 'receivable'
+    t.save()
+
+    t = Type()
+    t.name = names['bank-transfer'][language]
+    t.kind = 'payable'
+    t.save()
+
+    t = Type()
+    t.name = names['direct-debit'][language]
+    t.kind = 'payable'
+    t.save()
+
+    t = Type()
+    t.name = names['cash'][language]
+    t.kind = 'payable'
+    t.save()
+
+    gal_commit()
+
+
 @task()
 def create_opportunities(count=100, linecount=10):
     """
@@ -1024,7 +1212,8 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
     """
     It creates 'count' pricelists using random products and quantities
     """
-    gal_action('creat_price_lists', count=count, linecount=linecount)
+    gal_action('creat_price_lists', count=count, productcount=productcount,
+        categorycount=categorycount)
     restore()
     connect_database()
 
@@ -1296,6 +1485,12 @@ def process_customer_invoices():
         # date of the # sales composing the lines of the invoice
         invoice.invoice_date = random_datetime(
             TODAY + relativedelta(months=-12), TODAY)
+        if hasattr(invoice, 'payment_type') and not invoice.payment_type:
+            if invoice.party.customer_payment_type:
+                invoice.payment_type = invoice.party.customer_payment_type
+            else:
+                invoice.payment_type = random.choice(
+                    get_payment_types('receivable'))
         invoice.save()
 
     Invoice.post([x.id for x in invoices], config.context)

@@ -18,6 +18,7 @@ PyHamcrest
 # gal
 dateutils
 xmltodict
+functools32
 
 # bitbucket
 git+https://github.com/angelnan/bitbucketcli.git
