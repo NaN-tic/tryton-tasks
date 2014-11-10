@@ -31,7 +31,7 @@ def run(dbtype='sqlite', name=None, modules=None, failfast=True,
         if not CONFIG['admin_passwd']:
             CONFIG['admin_passwd'] = 'admin'
     elif dbtype != 'sqlite':
-        CONFIG.set('database', 'uri', 'postgresql://localhost')
+        CONFIG.set('database', 'uri', 'postgresql:///')
 
     if dbtype == 'sqlite':
         database_name = ':memory:'
