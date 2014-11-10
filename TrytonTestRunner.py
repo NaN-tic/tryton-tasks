@@ -212,7 +212,6 @@ class TrytonTestRunner(object):
         group.start = self.startTime
         group.end = self.stopTime
         group.db_type = db_type
-        group.save()
         for module in report:
             result = report[module]
             component = Component.find([('name', '=', module)])
@@ -228,7 +227,6 @@ class TrytonTestRunner(object):
                 revision = 'unknown'
                 branch = 'default'
             test = Test()
-            test.group = group
             test.coverage = round(self.coverage_result.get(module,
                     (0, 0, 0))[2], 2)
             test.lines = self.coverage_result.get(module, (0, 0, 0))[0]
@@ -237,25 +235,24 @@ class TrytonTestRunner(object):
             test.branch = branch
             test.revision = revision
             test.execution = datetime.datetime.now()
-            test.save()
 
             for test_result in result['test']:
                 tr = TestResult()
-                tr.build = test
                 tr.name = test_result['desc']
                 tr.type = test_result['type']
                 tr.description = test_result['output']
                 tr.state = test_result['status']
-                tr.save()
+                test.test.append(tr)
 
             for test_result in self.pyflakes_result.get(module, []):
                 tr = TestResult()
-                tr.build = test
                 tr.name = test_result['name']
                 tr.type = test_result['type']
                 tr.description = test_result['output']
                 tr.state = test_result['status']
-                tr.save()
+                test.test.append(tr)
+            group.builds.append(test)
+        group.save()
 
     def coverage_report(self):
         f = StringIO.StringIO()
