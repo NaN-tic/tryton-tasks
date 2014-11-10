@@ -130,7 +130,7 @@ def update_parent_left_right(database, table, field, host='localhost',
 
 @task()
 def prepare_translations(database, langs=None, host=None, port=None,
-        dbuser=None, dbpassword=None):
+        dbuser=None, dbpassword=None, config_file=None):
     """
     Runs the set, clean and update wizards in the given database.
     """
@@ -139,7 +139,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
-    config.set_trytond(database_type='postgresql', database_name=database)
+    config.set_trytond(database=database, config_file=None)
 
     Lang = Model.get('ir.lang')
     if langs is None:
@@ -184,8 +184,7 @@ def export_translations(database, modules, langs=None,
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
-    config.set_trytond(database_type='postgresql', database_name=database,
-        config_file=config_file)
+    config.set_trytond(database=database, config_file=config_file)
 
     Module = Model.get('ir.module.module')
     if modules == 'all':
@@ -242,10 +241,9 @@ def export_translations(database, modules, langs=None,
 
 
 @task()
-def account_reconcile(database, lines=2, months=6):
+def account_reconcile(database, lines=2, months=6, config_file=None):
 
-    pref = config.set_trytond(database_type='postgresql',
-        database_name=database)
+    pref = config.set_trytond(database=database, config_file=config_file)
 
     Module = Model.get('ir.module.module')
     Company = Model.get('company.company')
