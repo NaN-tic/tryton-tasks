@@ -139,7 +139,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
-    config.set_trytond(database=database, config_file=None)
+    config.set_trytond(database=database, config_file=config_file)
 
     Lang = Model.get('ir.lang')
     if langs is None:
