@@ -347,6 +347,9 @@ def install_modules(modules):
     gal_action('install_modules', modules=modules)
     restore()
     connect_database()
+    # Clear cache
+    module_installed.cache_clear()
+
     modules = modules.split(',')
 
     Module = Model.get('ir.module.module')
@@ -419,19 +422,32 @@ def get_price_lists():
 
 @lru_cache()
 def get_banks():
+    if not module_installed('bank'):
+        return
     Bank = Model.get('bank')
     return Bank.find([])
 
+@lru_cache()
+def get_company():
+    Company = Model.get('company.company')
+    companies = Company.find([])
+    if companies:
+        return companies[0]
 
-def get_object(module, fs_id):
+@lru_cache()
+def get_model_id(module, fs_id):
     ModelData = Model.get('ir.model.data')
     data, = ModelData.find([
             ('module', '=', 'account_es'),
             ('fs_id', '=', fs_id),
             ])
     Class = Model.get(data.model)
-    return Class(data.db_id)
+    return data.model, data.db_id
 
+def get_object(module, fs_id):
+    model, id = get_model_id(module, fs_id)
+    Class = Model.get(model)
+    return Class(id)
 
 def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
@@ -497,22 +513,45 @@ def create_party(name, street=None, zip=None, city=None,
     if hasattr(party, 'include_347'):
         party.include_347 = True
 
-
-    # TODO:
     banks = get_banks()
     if banks:
-        # Only if customer/supplier payment terms need them
         BankAccount = Model.get('bank.account')
         AccountNumber = Model.get('bank.account.number')
 
+        #bank = random.choice([x for x in banks if x.bic and len(x.bic) >= 8])
         bank = random.choice(banks)
         account = BankAccount()
+        party.bank_accounts.append(account)
         account.bank = bank
         number = AccountNumber()
         account.numbers.append(number)
-        code, bank, account = 'ES', bank.bic, random.sample(range(10) * 20, 20)
+        country = 'ES'
+        account_code = bank.bank_code
+        account_code += ''.join([str(x) for x in random.sample(range(10) * 4,
+                    4)])
+        account_number = ''.join([str(x) for x in random.sample(range(10) * 12,
+                    12)])
         number.type = 'iban'
-        number.number = iban.create_iban(code, bank, account)
+        number.number = iban.create_iban(country, account_code, account_number)
+        account.save()
+
+        if module_installed('account_bank'):
+            if hasattr(party, 'payable_bank_account'):
+                party.payable_bank_account = account
+            if hasattr(party, 'receivable_bank_account'):
+                party.receivable_bank_account = account
+            if hasattr(party, 'payable_company_bank_account'):
+                company = get_company()
+                if company:
+                    accounts = company.party.bank_accounts
+                    if accounts:
+                        party.receivable_company_bank_account = accounts[0]
+            if hasattr(party, 'receivable_company_bank_account'):
+                company = get_company()
+                if company:
+                    accounts = company.party.bank_accounts
+                    if accounts:
+                        party.payable_company_bank_account = accounts[0]
 
     party.save()
     return party
@@ -1094,31 +1133,43 @@ def create_payment_types(language='ca'):
     t = Type()
     t.name = names['bank-transfer'][language]
     t.kind = 'receivable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'company'
     t.save()
 
     t = Type()
     t.name = names['direct-debit'][language]
     t.kind = 'receivable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'party'
     t.save()
 
     t = Type()
     t.name = names['cash'][language]
     t.kind = 'receivable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'none'
     t.save()
 
     t = Type()
     t.name = names['bank-transfer'][language]
     t.kind = 'payable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'party'
     t.save()
 
     t = Type()
     t.name = names['direct-debit'][language]
     t.kind = 'payable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'company'
     t.save()
 
     t = Type()
     t.name = names['cash'][language]
     t.kind = 'payable'
+    if hasattr(t, 'account_bank'):
+        t.account_bank = 'none'
     t.save()
 
     gal_commit()
