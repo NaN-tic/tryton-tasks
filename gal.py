@@ -468,6 +468,10 @@ def create_party(name, street=None, zip=None, city=None,
     else:
         subdivision = None
 
+    if zip is None:
+        # Create a ZIP from Barcelona if none was provided
+        zip = '08' + str(random.randrange(1000)).zfill(3)
+
     party = Party(name=name)
     party.addresses.pop()
     party.addresses.append(
@@ -512,46 +516,6 @@ def create_party(name, street=None, zip=None, city=None,
             party.sale_price_list = random.choice(price_lists)
     if hasattr(party, 'include_347'):
         party.include_347 = True
-
-    banks = get_banks()
-    if banks:
-        BankAccount = Model.get('bank.account')
-        AccountNumber = Model.get('bank.account.number')
-
-        #bank = random.choice([x for x in banks if x.bic and len(x.bic) >= 8])
-        bank = random.choice(banks)
-        account = BankAccount()
-        party.bank_accounts.append(account)
-        account.bank = bank
-        number = AccountNumber()
-        account.numbers.append(number)
-        country = 'ES'
-        account_code = bank.bank_code
-        account_code += ''.join([str(x) for x in random.sample(range(10) * 4,
-                    4)])
-        account_number = ''.join([str(x) for x in random.sample(range(10) * 12,
-                    12)])
-        number.type = 'iban'
-        number.number = iban.create_iban(country, account_code, account_number)
-        account.save()
-
-        if module_installed('account_bank'):
-            if hasattr(party, 'payable_bank_account'):
-                party.payable_bank_account = account
-            if hasattr(party, 'receivable_bank_account'):
-                party.receivable_bank_account = account
-            if hasattr(party, 'payable_company_bank_account'):
-                company = get_company()
-                if company:
-                    accounts = company.party.bank_accounts
-                    if accounts:
-                        party.receivable_company_bank_account = accounts[0]
-            if hasattr(party, 'receivable_company_bank_account'):
-                company = get_company()
-                if company:
-                    accounts = company.party.bank_accounts
-                    if accounts:
-                        party.payable_company_bank_account = accounts[0]
 
     party.save()
     return party
@@ -642,6 +606,53 @@ def create_parties(count=1000):
             website=None, address_name=name)
 
     gal_commit()
+
+@task()
+def create_bank_accounts():
+    Party = Model.get('party.party')
+    banks = get_banks()
+    if not module_installed('account_bank'):
+        print t.red('account_bank module must be installed before creating '
+            'bank accounts.')
+    for party in Party.find([]):
+        BankAccount = Model.get('bank.account')
+        AccountNumber = Model.get('bank.account.number')
+
+        bank = random.choice(banks)
+        account = BankAccount()
+        party.bank_accounts.append(account)
+        account.bank = bank
+        number = AccountNumber()
+        account.numbers.append(number)
+        country = 'ES'
+        account_code = bank.bank_code
+        account_code += ''.join([str(x) for x in random.sample(range(10) *
+                    4, 4)])
+        account_number = ''.join([str(x) for x in random.sample(range(10) *
+                    12, 12)])
+        number.type = 'iban'
+        number.number = iban.create_iban(country, account_code, account_number)
+        account.save()
+
+        if module_installed('account_bank'):
+            if hasattr(party, 'payable_bank_account'):
+                party.payable_bank_account = account
+            if hasattr(party, 'receivable_bank_account'):
+                party.receivable_bank_account = account
+            if hasattr(party, 'payable_company_bank_account'):
+                company = get_company()
+                if company:
+                    accounts = company.party.bank_accounts
+                    if accounts:
+                        party.receivable_company_bank_account = accounts[0]
+            if hasattr(party, 'receivable_company_bank_account'):
+                company = get_company()
+                if company:
+                    accounts = company.party.bank_accounts
+                    if accounts:
+                        party.payable_company_bank_account = accounts[0]
+
+        party.save()
 
 @task()
 def create_product_category(name):
@@ -1633,6 +1644,7 @@ GalCollection.add_task(install_modules)
 GalCollection.add_task(load_spanish_banks)
 GalCollection.add_task(load_spanish_zips)
 GalCollection.add_task(create_parties)
+GalCollection.add_task(create_bank_accounts)
 GalCollection.add_task(create_product_categories)
 GalCollection.add_task(create_product_category)
 GalCollection.add_task(create_products)
