@@ -1607,7 +1607,7 @@ def create_boms(name='pc', inputcount=10, inputquantity=10):
     If name is empty it creates boms for 20% of the products available in the
     database.
     """
-    gal_action('create_boms')
+    gal_action('create_boms', name=name, inputcount=inputcount, inputquantity=inputquantity)
     restore()
     connect_database()
 
@@ -1652,6 +1652,34 @@ def create_boms(name='pc', inputcount=10, inputquantity=10):
         product.boms.append(pb)
         product.save()
 
+    gal_commit()
+
+@task()
+def create_production_requests():
+    gal_action('create_production_requests')
+    restore()
+    connect_database()
+
+    Wizard('production.create_request').execute('create_')
+    gal_commit()
+
+
+@task()
+def create_purchase_requests():
+    gal_action('create_purchase_requests')
+    restore()
+    connect_database()
+
+    Wizard('purchase.request.create').execute('create_')
+    gal_commit()
+
+@task()
+def create_reservations():
+    gal_action('create_reservations')
+    restore()
+    connect_database()
+
+    Wizard('stock.create_reservations').execute('create_')
     gal_commit()
 
 @task()
@@ -1723,4 +1751,7 @@ GalCollection.add_task(process_customer_shipments)
 GalCollection.add_task(process_customer_invoices)
 GalCollection.add_task(process_supplier_shipments)
 GalCollection.add_task(create_boms)
+GalCollection.add_task(create_production_requests)
+GalCollection.add_task(create_purchase_requests)
+GalCollection.add_task(create_reservations)
 GalCollection.add_task(create_marketing_invoices)
