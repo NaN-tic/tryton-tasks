@@ -7,47 +7,95 @@ import scm
 import utils
 import project
 from ConfigParser import NoOptionError
+import logging
+import time
+from coverage import coverage
 
-# from .scm import prefetch, fetch, get_repo, remove_dir,
-#      hg_clone, git_clone
-# from .utils import read_config_file
+logging.basicConfig(filename='tests.log', level=logging.INFO,
+    format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging.getLogger(__name__)
+
+#Ensure path is loaded correctly
+sys.path.insert(0, os.path.abspath(os.path.normpath(os.path.join(
+        os.path.dirname(__file__), '..', ''))))
+for module_name in ('trytond', 'proteus'):
+    DIR = os.path.abspath(os.path.normpath(os.path.join(
+                os.path.dirname(__file__), '..', module_name)))
+    if os.path.isdir(DIR):
+        sys.path.insert(0, DIR)
+
+#Now we should be able to import everything
+import TrytonTestRunner
+older_version = True
+try:
+    # TODO: Remove compatibility with older versions
+    from trytond.config import CONFIG
+except ImportError:
+    from trytond.config import config as CONFIG
+    older_version = False
 
 
-@task()
-def test(failfast=True, dbtype='sqlite', reviews=False, modules=None,
-        name=None, directory=None):
+def test(dbtype, name, modules, failfast, reviews):
 
-    test_file = 'run_test.py'
-    if directory is None:
-        directory = os.path.dirname(__file__)
-    test_file = os.path.join(directory, test_file)
-    cmd = ['/usr/bin/env', 'python', test_file]
-    if reviews:
-        cmd.append('--reviews')
-    if failfast:
-        cmd.append('--fail-fast')
-    cmd.append('--db-type %s' % dbtype)
-    if name:
-        cmd.append('--name %s' % name)
+    if older_version:
+        CONFIG['db_type'] = dbtype
+        if not CONFIG['admin_passwd']:
+            CONFIG['admin_passwd'] = 'admin'
+    elif dbtype != 'sqlite':
+        CONFIG.set('database', 'uri', 'postgresql:///')
+
+    if dbtype == 'sqlite':
+        database_name = ':memory:'
+    else:
+        database_name = 'test_' + str(int(time.time()))
+
+    if name is None:
+        name = ''
+
+    os.environ['DB_NAME'] = database_name
+    cov = coverage()
+    cov.start()
+    from trytond.tests.test_tryton import modules_suite
+    import proteus.tests
+
     if modules:
-        cmd.append('-m %s' % modules)
+        suite = modules_suite(modules)
+    else:
+        suite = modules_suite()
+        suite.addTests(proteus.tests.test_suite())
 
-    run(" ".join(cmd), echo=True)
+    runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast, coverage=cov)
+    runner.run(suite)
+    if modules:
+        name = name + " ["+modules+"]"
+
+    runner.upload_tryton(dbtype, failfast, name, reviews)
 
 
 @task()
 def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
         fail_fast=False):
-    setup(branch)
-    print "Setup & testing stable revision of branch: %s " % branch
-    runtests(test_file, branch, include_reviews=False,
-        dbtype=dbtype, fail_fast=fail_fast)
-    if not exclude_reviews:
-        runtests(test_file, branch, development=False,
-            include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
 
+    try:
+        logger.info('Setting to branch: %s', branch)
+       #  setup(branch)
+        logger.info('Testing Branch %s with:'
+            ' Include reviews: %s'
+            ' Database Type: %s'
+            ' Fail Fast: %s' % (branch, False, dbtype, fail_fast))
+        runtests(test_file, branch, include_reviews=False,
+            dbtype=dbtype, fail_fast=fail_fast)
+        if not exclude_reviews:
+            logger.info('Testing Branch %s with Reviews:'
+            ' Include reviews: %s'
+            ' Database Type: %s'
+            ' Fail Fast: %s' % (branch, True, dbtype, fail_fast))
+            runtests(test_file, branch, development=False,
+                include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
+    except:
+        logger.critical(sys.exc_info()[1])
 
-@task()
+#@task()
 def runtests(test_file=None, branch='default', development=False,
         include_reviews=False, dbtype='sqlite', fail_fast=False):
 
@@ -55,7 +103,7 @@ def runtests(test_file=None, branch='default', development=False,
     run("cp . %s -R" % directory)
     old_dir = os.getcwd()
     os.chdir(directory)
-    setup(branch, development, fetch=False)
+ #   setup(branch, development, fetch=False)
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
@@ -71,8 +119,10 @@ def runtests(test_file=None, branch='default', development=False,
     if include_reviews:
         name = '%s with reviews' % name
 
+    logger.info('%s Testing...' % name)
+
     test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name,
-        directory=os.path.join(directory, 'tasks'))
+        modules=None)
 
     for section in sections:
         name2 = name + "/" + section
@@ -93,9 +143,9 @@ def runtests(test_file=None, branch='default', development=False,
         if include_reviews:
             project.fetch_reviews(branch, component=section)
 
+        logger.info('%s Testing...' % name2)
         test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,
-            modules=section, name=name2,
-            directory=os.path.join(directory, 'tasks'))
+            modules=section, name=name2)
         for to_remove in repos_to_remove:
             utils.remove_dir(to_remove, quiet=True)
 
@@ -118,8 +168,6 @@ def setup(branch='default', force=True, fetch=True):
 
 
 TestCollection = Collection()
-TestCollection.add_task(test)
 TestCollection.add_task(clean)
 TestCollection.add_task(setup)
-TestCollection.add_task(runtests)
 TestCollection.add_task(runall)
