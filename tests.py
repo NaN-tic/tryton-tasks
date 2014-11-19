@@ -78,7 +78,7 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
 
     try:
         logger.info('Setting to branch: %s', branch)
-       #  setup(branch)
+        setup(branch)
         logger.info('Testing Branch %s with:'
             ' Include reviews: %s'
             ' Database Type: %s'
@@ -95,7 +95,7 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
     except:
         logger.critical(sys.exc_info()[1])
 
-#@task()
+
 def runtests(test_file=None, branch='default', development=False,
         include_reviews=False, dbtype='sqlite', fail_fast=False):
 
@@ -103,7 +103,7 @@ def runtests(test_file=None, branch='default', development=False,
     run("cp . %s -R" % directory)
     old_dir = os.getcwd()
     os.chdir(directory)
- #   setup(branch, development, fetch=False)
+    setup(branch, development, fetch=False)
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
@@ -158,7 +158,6 @@ def clean(force=True):
     scm.prefetch(force=force)
 
 
-@task()
 def setup(branch='default', force=True, fetch=True):
     scm.hg_update('config', 'config', force, branch=branch)
     scm.update(clean=force)
@@ -169,5 +168,4 @@ def setup(branch='default', force=True, fetch=True):
 
 TestCollection = Collection()
 TestCollection.add_task(clean)
-TestCollection.add_task(setup)
 TestCollection.add_task(runall)
