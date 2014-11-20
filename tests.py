@@ -69,6 +69,7 @@ def test(dbtype, name, modules, failfast, reviews):
     if modules:
         name = name + " ["+modules+"]"
 
+    logger.info('Upload results to tryton')
     runner.upload_tryton(dbtype, failfast, name, reviews)
 
 
@@ -94,6 +95,7 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
                 include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
     except:
         logger.critical(sys.exc_info()[1])
+        logger.critical(sys.exc_info()[2])
 
 
 def runtests(test_file=None, branch='default', development=False,
