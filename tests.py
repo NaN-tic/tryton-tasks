@@ -11,9 +11,13 @@ import logging
 import time
 from coverage import coverage
 
-logging.basicConfig(filename='tests.log', level=logging.INFO,
-    format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-logger = logging.getLogger(__name__)
+TEST_FILE = 'tests.log'
+open(TEST_FILE, 'w').close()
+
+logging.basicConfig(filename=TEST_FILE, level=logging.INFO,
+    format='[%(asctime)s] %(name)s: %(message)s',
+    datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging.getLogger("TrytonTest")
 
 #Ensure path is loaded correctly
 sys.path.insert(0, os.path.abspath(os.path.normpath(os.path.join(
@@ -31,8 +35,11 @@ try:
     # TODO: Remove compatibility with older versions
     from trytond.config import CONFIG
 except ImportError:
-    from trytond.config import config as CONFIG
-    older_version = False
+    try:
+        from trytond.config import config as CONFIG
+        older_version = False
+    except:
+        pass
 
 
 def test(dbtype, name, modules, failfast, reviews):
@@ -94,8 +101,11 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
             runtests(test_file, branch, development=False,
                 include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
     except:
-        logger.critical(sys.exc_info()[1])
-        logger.critical(sys.exc_info()[2])
+
+        project.create_test_task(TEST_FILE)
+        logger.exception("Exception has occured", exc_info=1)
+        # logger.critical(sys.exc_info()[1])
+        # logger.critical(sys.exc_info()[2])
 
 
 def runtests(test_file=None, branch='default', development=False,
@@ -105,15 +115,34 @@ def runtests(test_file=None, branch='default', development=False,
     run("cp . %s -R" % directory)
     old_dir = os.getcwd()
     os.chdir(directory)
-    setup(branch, development, fetch=False)
+    try:
+        setup(branch, development, fetch=False)
+    except:
+        project.create_test_task(TEST_FILE)
+        logger.exception("Exception has occured", exc_info=1)
+        logger.critical(sys.exc_info()[1])
+        logger.critical(sys.exc_info()[2])
+        return
+
     sections = []
     if test_file:
         config = utils.read_config_file(test_file)
         sections = config.sections()
 
     if test_file and include_reviews:
-        project.fetch_reviews(branch, exclude_components=config.sections() +
-            ['OpenERP'])
+        try:
+            logger.info('Fetching reviews')
+            project.fetch_reviews(branch,
+                exclude_components=config.sections() + ['OpenERP'])
+        except:
+            logger.critical(sys.exc_info()[0])
+            logger.critical(sys.exc_info()[1])
+            logger.critical(sys.exc_info()[2])
+            logger.exception("Exception has occured", exc_info=1)
+            os.chdir(old_dir)
+            run("rm -Rf %s" % directory)
+            project.create_test_task(TEST_FILE)
+            return
 
     name = 'Generic Modules'
     if development:
@@ -127,6 +156,7 @@ def runtests(test_file=None, branch='default', development=False,
         modules=None)
 
     for section in sections:
+
         name2 = name + "/" + section
         repos_to_clone = [section]
         try:
@@ -143,7 +173,14 @@ def runtests(test_file=None, branch='default', development=False,
             func(repo['url'], repo['path'], repo['branch'], repo['revision'])
             repos_to_remove.append(repo['path'])
         if include_reviews:
-            project.fetch_reviews(branch, component=section)
+            try:
+                project.fetch_reviews(branch, component=section)
+            except:
+                logger.critical(sys.exc_info()[1])
+                logger.critical(sys.exc_info()[2])
+                logger.exception("Exception has occured", exc_info=1)
+                project.create_test_task(TEST_FILE)
+                return
 
         logger.info('%s Testing...' % name2)
         test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,

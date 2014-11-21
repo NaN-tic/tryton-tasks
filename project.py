@@ -23,6 +23,47 @@ def get_tryton_connection():
     return pconfig.set_xmlrpc(tryton['server'])
 
 
+@task
+def ct(log_file):
+    get_tryton_connection()
+    create_test_task(log_file)
+
+
+def create_test_task(log_file):
+
+    get_tryton_connection()
+    settings = get_config()
+    tryton = settings['tryton']
+
+    Project = Model.get('project.work')
+    Employee = Model.get('company.employee')
+    Party = Model.get('party.party')
+    Tracker = Model.get('project.work.tracker')
+    employee = Employee(int(tryton.get('default_employee_id')))
+    parent = Project(int(tryton.get('default_project_id')))
+    party = Party(int(tryton.get('default_party_id')))
+    tracker = Tracker(int(tryton.get('default_tracker_id')))
+
+    f = open(log_file, 'r')
+    lines = []
+    for line in f.readlines():
+        if 'init' in line or 'modules' in line:
+            continue
+        lines.append(line)
+    f.close()
+
+    work = Project()
+    work.type = 'task'
+    work.product = None
+    work.timesheet_work_name = 'Test Exception'
+    work.parent = parent
+    work.tracker = tracker
+    work.party = party
+    work.problem = "\n".join(lines)
+    work.assigned_employee = employee
+    work.save()
+
+
 @task()
 def tasks(party=None, user=None):
     get_tryton_connection()
@@ -137,3 +178,4 @@ ProjectCollection.add_task(upload_review)
 ProjectCollection.add_task(fetch_review)
 ProjectCollection.add_task(close_review)
 ProjectCollection.add_task(tasks)
+ProjectCollection.add_task(ct)
