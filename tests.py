@@ -17,7 +17,7 @@ open(TEST_FILE, 'w').close()
 logging.basicConfig(filename=TEST_FILE, level=logging.INFO,
     format='[%(asctime)s] %(name)s: %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p')
-logger = logging.getLogger("TrytonTest")
+logger = logging.getLogger("nan-tasks")
 
 #Ensure path is loaded correctly
 sys.path.insert(0, os.path.abspath(os.path.normpath(os.path.join(
@@ -101,11 +101,8 @@ def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
             runtests(test_file, branch, development=False,
                 include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
     except:
-
-        project.create_test_task(TEST_FILE)
         logger.exception("Exception has occured", exc_info=1)
-        # logger.critical(sys.exc_info()[1])
-        # logger.critical(sys.exc_info()[2])
+        project.create_test_task(TEST_FILE)
 
 
 def runtests(test_file=None, branch='default', development=False,
@@ -120,8 +117,6 @@ def runtests(test_file=None, branch='default', development=False,
     except:
         project.create_test_task(TEST_FILE)
         logger.exception("Exception has occured", exc_info=1)
-        logger.critical(sys.exc_info()[1])
-        logger.critical(sys.exc_info()[2])
         return
 
     sections = []
@@ -132,12 +127,9 @@ def runtests(test_file=None, branch='default', development=False,
     if test_file and include_reviews:
         try:
             logger.info('Fetching reviews')
-            project.fetch_reviews(branch,
+            project._fetch_reviews(branch,
                 exclude_components=config.sections() + ['OpenERP'])
         except:
-            logger.critical(sys.exc_info()[0])
-            logger.critical(sys.exc_info()[1])
-            logger.critical(sys.exc_info()[2])
             logger.exception("Exception has occured", exc_info=1)
             os.chdir(old_dir)
             run("rm -Rf %s" % directory)
@@ -176,8 +168,6 @@ def runtests(test_file=None, branch='default', development=False,
             try:
                 project.fetch_reviews(branch, component=section)
             except:
-                logger.critical(sys.exc_info()[1])
-                logger.critical(sys.exc_info()[2])
                 logger.exception("Exception has occured", exc_info=1)
                 project.create_test_task(TEST_FILE)
                 return

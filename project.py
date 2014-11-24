@@ -8,6 +8,7 @@ from .config import get_config
 from . import reviewboard
 from .scm import get_branch
 from .utils import t
+import logging
 
 try:
     from proteus import config as pconfig, Model
@@ -16,6 +17,8 @@ except ImportError, e:
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
+
+logger = logging.getLogger("nan-tasks")
 
 
 def get_tryton_connection():
@@ -97,6 +100,10 @@ def close_review(work):
 
 @task()
 def fetch_reviews(branch='default', component=None, exclude_components=None):
+    _fetch_reviews(branch, component, exclude_components)
+
+
+def _fetch_reviews(branch='default', component=None, exclude_components=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     reviews = Review.find([
@@ -115,7 +122,10 @@ def fetch_reviews(branch='default', component=None, exclude_components=None):
             path = os.path.join('modules', review.component.name)
         else:
             path = ''
-        reviewboard.fetch(path, review.review_id)
+        try:
+            reviewboard.fetch(path, review.review_id)
+        except:
+            logger.exception("Exception has occured", exc_info=1)
 
 
 @task()
