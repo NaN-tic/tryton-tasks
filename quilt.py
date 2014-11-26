@@ -24,21 +24,28 @@ def unapplied():
         print t.red(patch)
 
 
-@task()
-def pop():
+def _pop():
     print t.bold('Reverting patches...')
     run('quilt pop -fa', warn=True)
     return applied(expect_empty=True)
 
 
 @task()
-def push():
+def pop():
+    _pop()
+
+
+def _push():
     print t.bold('Applying patches...')
     run('quilt push -a', warn=True)
     res = applied()
     unapplied()
     return res
 
+
+@task()
+def push():
+    _push()
 
 QuiltCollection = Collection()
 QuiltCollection.add_task(pop)

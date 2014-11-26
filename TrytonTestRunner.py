@@ -8,6 +8,7 @@ from tasks.config import get_config
 from tasks.scm import hg_revision, get_branch
 from coverage import coverage
 import re
+import logging
 
 
 try:
@@ -17,6 +18,12 @@ except ImportError, e:
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
+
+
+logging.basicConfig(filename='tests.log', level=logging.INFO,
+    format='[%(asctime)s] %(name)s: %(message)s',
+    datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging.getLogger("TrytonTest")
 
 
 def get_tryton_connection():
@@ -197,8 +204,9 @@ class TrytonTestRunner(object):
         self.pyflakes_result = {}
 
     def upload_tryton(self, db_type, failfast, name, reviews):
+        logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
-
+        logger.info("Report for execution %s" % name)
         get_tryton_connection()
         Test = Model.get('project.test.build')
         TestGroup = Model.get('project.test.build.group')
@@ -213,6 +221,7 @@ class TrytonTestRunner(object):
         group.end = self.stopTime
         group.db_type = db_type
         for module in report:
+            logger.info("Create Test Report for Module: %s" % module)
             result = report[module]
             component = Component.find([('name', '=', module)])
             component = component and component[0]
@@ -252,7 +261,9 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 test.test.append(tr)
             group.builds.append(test)
+        logger.info("Saving Test group: %s" % name)
         group.save()
+        logger.info("Saved Test group: %s" % name)
 
     def coverage_report(self):
         f = StringIO.StringIO()

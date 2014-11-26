@@ -8,6 +8,7 @@ from .config import get_config
 from . import reviewboard
 from .scm import get_branch
 from .utils import t
+import logging
 
 try:
     from proteus import config as pconfig, Model
@@ -17,10 +18,53 @@ except ImportError, e:
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
 
+logger = logging.getLogger("nan-tasks")
+
 
 def get_tryton_connection():
     tryton = settings['tryton']
     return pconfig.set_xmlrpc(tryton['server'])
+
+
+@task
+def ct(log_file):
+    get_tryton_connection()
+    create_test_task(log_file)
+
+
+def create_test_task(log_file):
+
+    get_tryton_connection()
+    settings = get_config()
+    tryton = settings['tryton']
+
+    Project = Model.get('project.work')
+    Employee = Model.get('company.employee')
+    Party = Model.get('party.party')
+    Tracker = Model.get('project.work.tracker')
+    employee = Employee(int(tryton.get('default_employee_id')))
+    parent = Project(int(tryton.get('default_project_id')))
+    party = Party(int(tryton.get('default_party_id')))
+    tracker = Tracker(int(tryton.get('default_tracker_id')))
+
+    f = open(log_file, 'r')
+    lines = []
+    for line in f.readlines():
+        if 'init' in line or 'modules' in line:
+            continue
+        lines.append(line)
+    f.close()
+
+    work = Project()
+    work.type = 'task'
+    work.product = None
+    work.timesheet_work_name = 'Test Exception'
+    work.parent = parent
+    work.tracker = tracker
+    work.party = party
+    work.problem = "\n".join(lines)
+    work.assigned_employee = employee
+    work.save()
 
 
 @task()
@@ -56,6 +100,10 @@ def close_review(work):
 
 @task()
 def fetch_reviews(branch='default', component=None, exclude_components=None):
+    _fetch_reviews(branch, component, exclude_components)
+
+
+def _fetch_reviews(branch='default', component=None, exclude_components=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     reviews = Review.find([
@@ -74,7 +122,10 @@ def fetch_reviews(branch='default', component=None, exclude_components=None):
             path = os.path.join('modules', review.component.name)
         else:
             path = ''
-        reviewboard.fetch(path, review.review_id)
+        try:
+            reviewboard.fetch(path, review.review_id)
+        except:
+            logger.exception("Exception has occured", exc_info=1)
 
 
 @task()
@@ -137,3 +188,4 @@ ProjectCollection.add_task(upload_review)
 ProjectCollection.add_task(fetch_review)
 ProjectCollection.add_task(close_review)
 ProjectCollection.add_task(tasks)
+ProjectCollection.add_task(ct)
