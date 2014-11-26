@@ -1222,6 +1222,8 @@ def create_opportunities(count=100, linecount=10):
             TODAY)
         if not opp.payment_term:
             opp.payment_term = random.choice(terms)
+        opp.probability = random.randrange(1, 9) * 10
+        opp.amount = random.randrange(1, 10) * 1000
 
         for lc in xrange(random.randrange(1, linecount)):
             line = OpportunityLine()
@@ -1377,6 +1379,10 @@ def process_sales():
     Sale = Model.get('sale.sale')
 
     sales = Sale.find([('state', '=', 'draft')])
+
+    #TODO: Put random sale dates
+    # sale.sale_date = random_datetime(TODAY + relativedelta(months=-12),
+    #        TODAY)
 
     # Change 90% to quotation state
     sales = random.sample(sales, int(0.9 * len(sales)))
@@ -1680,6 +1686,69 @@ def create_reservations():
     connect_database()
 
     Wizard('stock.create_reservations').execute('create_')
+    gal_commit()
+
+@task()
+def create_csb43():
+    gal_action('create_csb43')
+    restore()
+    connect_database()
+    from retrofix import c43
+    from retrofix.record import Record
+
+    #records = []
+    #record = Record(c43.FILE_HEADER_RECORD)
+    #record.bank_code = 
+    #record.date = datetime.now()
+    #records.append(record)
+    #record = Record(c43.ACCOUNT_HEADER_RECORD)
+    #record.bank_code =
+    #record.bank_office = 
+    #record.account_number = 
+    #record.start_date = 
+    #record.end_date = 
+    #record.initial_balance = 
+    #record.currency_code = 
+    #record.information_mode = 
+    #record.customer_name = 
+    #record.free = 
+    #records.append(record)
+    #record = Record(c43.MOVE_RECORD)
+    ##record.record_code
+    ##record.free
+    #record.bank_office
+    #record.operation_date
+    #record.value_date
+    #record.common_concept_code
+    #record.bank_concept_code
+    #record.amount
+    #record.document_number
+    #record.reference_1
+    #record.reference_2
+    #records.append(record)
+    #record = Record(c43.ACCOUNT_FOOTER_RECORD)
+    #record.record_code
+    #record.bank_code
+    #record.bank_office
+    #record.account_number
+    #record.debit_record_count
+    #record.debit_total
+    #record.credit_record_count
+    #record.credit_total
+    #record.final_balance
+    #record.currency_code
+    #record.free
+    #records.append(record)
+#
+#    record = Record(c43.FILE_FOOTER_RECORD)
+#    record.record_code
+#    record.nines
+#    record.record_count
+#    record.free
+#    records.append(record)
+
+    c43.write()
+
     gal_commit()
 
 @task()
