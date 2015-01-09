@@ -145,7 +145,7 @@ def fetch_review(work):
 
 
 @task()
-def upload_review(work, path, review=None):
+def upload_review(work, path, review=None, new=False):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -164,6 +164,10 @@ def upload_review(work, path, review=None):
         component.save()
     else:
         component = components[0]
+
+    review_file = os.path.join(path, '.review.cfg')
+    if new and os.path.exists(review_file):
+        os.remove(review_file)
 
     review_id = reviewboard.create(path, task.rec_name,
         task.comment, task.code, review)
