@@ -67,7 +67,7 @@ def check_database(database, connection_params):
     return True
 
 
-def set_context(database_name, config_file=None):
+def set_context(database_name, config_file=os.environ.get('TRYTOND_CONFIG')):
     CONFIG.update_etc(config_file)
     if not Transaction().cursor:
         return Transaction().start(database_name, 0)
@@ -198,7 +198,7 @@ def missing(database, config_file=None, install=False, show=True):
         miss |= missing
         module_list.update(miss)
 
-    miss = ",".join(miss)
+    miss = " ".join(miss)
     if show:
         print "Missing dependencies: %s " % miss
         print "Press Key to continue..."
@@ -220,8 +220,8 @@ def missing(database, config_file=None, install=False, show=True):
         'remove': 'Remove directory of forgotten modules (except installed '
             'modules if "uninstall" param is not set).'
         })
-def forgotten(database, config_file=None, uninstall=False, delete=False,
-        remove=False, show=True, unstable=True):
+def forgotten(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+        uninstall=False, delete=False, remove=False, show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files.
     If some of these modules don't exists in filesystem (lost modules), they
@@ -371,7 +371,8 @@ def uninstall_task(database, modules, connection_params=None):
 
 
 @task()
-def delete_modules(database, modules, config_file=None, force=False):
+def delete_modules(database, modules,
+        config_file=os.environ.get('TRYTOND_CONFIG'), force=False):
     """
     Delete the supplied modules (separated by coma) from ir_module_module
     table of database.

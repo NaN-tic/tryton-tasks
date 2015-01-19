@@ -130,7 +130,8 @@ def update_parent_left_right(database, table, field, host='localhost',
 
 @task()
 def prepare_translations(database, langs=None, host=None, port=None,
-        dbuser=None, dbpassword=None, config_file=None):
+        dbuser=None, dbpassword=None,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Runs the set, clean and update wizards in the given database.
     """
@@ -172,7 +173,8 @@ def prepare_translations(database, langs=None, host=None, port=None,
 
 @task()
 def export_translations(database, modules, langs=None,
-        host=None, port=None, dbuser=None, dbpassword=None, config_file=None):
+        host=None, port=None, dbuser=None, dbpassword=None,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Creates translation files for the given modules and the specified languages.
 
@@ -241,7 +243,8 @@ def export_translations(database, modules, langs=None,
 
 
 @task()
-def account_reconcile(database, lines=2, months=6, config_file=None):
+def account_reconcile(database, lines=2, months=6,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
 
     pref = config.set_trytond(database=database, config_file=config_file)
 
