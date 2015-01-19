@@ -124,6 +124,7 @@ def _fetch_reviews(branch='default', component=None, exclude_components=None):
             path = ''
         try:
             reviewboard.fetch(path, review.review_id)
+            reviewboard.create_review_file(path, review.review_id)
         except:
             logger.exception("Exception has occured", exc_info=1)
 
@@ -142,6 +143,7 @@ def fetch_review(work):
             os.makedirs(path)
 
         reviewboard.fetch(path, review.review_id)
+        reviewboard.create_review_file(path, review.review_id)
 
 
 @task()
