@@ -29,7 +29,8 @@ if os.path.isdir(proteus_directory):
     sys.path.insert(0, proteus_directory)
 
 try:
-    from proteus import config as pconfig, Model, Wizard
+    from proteus import config as pconfig, Model, Wizard, \
+        __version__ as proteus_version
 except:
     pass
 
@@ -65,8 +66,23 @@ def connect_database(database=None, password='admin',
     if database is None:
         database = 'gal'
     global config
-    config = pconfig.set_trytond(database, database_type=database_type,
-        password=password, language=language, config_file='trytond.conf')
+    global version
+    if proteus_version.startswith('3.2'):
+        config = pconfig.set_trytond(database, database_type=database_type,
+            password=password, language=language, config_file='trytond.conf')
+    else:
+        os.environ['TRYTOND_DATABASE_URI'] = '%s:///' % database_type
+        os.environ['DB_NAME'] = database
+
+        # Tries to use sqlite without these two lines:
+        from trytond.config import config
+        config.set('database', 'uri', '%s://' % database_type)
+
+        from trytond.tests.test_tryton import db_exist, create_db
+        if not db_exist():
+            create_db()
+        config = pconfig.set_trytond(database, password=password,
+            language=language, config_file='trytond.conf')
 
 def database_name():
     import uuid
