@@ -174,7 +174,10 @@ def upload_review(work, path, review=None, new=False):
     review_id = reviewboard.create(path, task.rec_name,
         task.comment, task.code, review)
 
-    review = Review.find([('review_id', '=', str(review_id))])
+    review = Review.find([
+            ('review_id', '=', str(review_id)),
+            ('work', '=', task.id),
+            ])
     if not review:
         review = Review()
     else:
