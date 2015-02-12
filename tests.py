@@ -42,7 +42,7 @@ except ImportError:
         pass
 
 
-def test(dbtype, name, modules, failfast, reviews):
+def test(dbtype, name, modules, failfast, reviews=False):
 
     if older_version:
         CONFIG['db_type'] = dbtype
@@ -78,6 +78,12 @@ def test(dbtype, name, modules, failfast, reviews):
 
     logger.info('Upload results to tryton')
     runner.upload_tryton(dbtype, failfast, name, reviews)
+
+
+@task()
+def module(module, dbtype='sqlite', fail_fast=False):
+    name = 'Development Test for module'
+    test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name)
 
 
 @task()
@@ -198,3 +204,5 @@ def setup(branch='default', force=True, fetch=True):
 TestCollection = Collection()
 TestCollection.add_task(clean)
 TestCollection.add_task(runall)
+TestCollection.add_task(module)
+
