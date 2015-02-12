@@ -14,7 +14,7 @@ import quilt
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
 
-MAX_PROCESSES = 30
+MAX_PROCESSES = 25
 
 DEFAULT_BRANCH = {
     'git': 'master',
@@ -149,21 +149,13 @@ def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
             del processes[i]
 
 
-def hg_clone(url, path, branch="default", revision=None):
-    command = 'hg clone -b %s -q %s %s' % (branch, url, path)
-    res = -1
-    try:
-        res = run(command)
-    except:
-        print >> sys.stderr, "Error running " + t.bold(command)
-
-    if res and revision is not None:
-        print "Repo " + t.bold(path) + t.green(" Updated") + \
-            " to Revision:" + revision
-        module = os.path.basename(path)
-        return hg_update_ng(module, path, False, branch=branch,
-            revision=revision)
-    return res
+def check_revision(client, module, revision, branch):
+    if client.revision(revision).branch != branch:
+        print t.bold_red('[' + module + ']')
+        print ("Invalid revision '%s': it isn't in branch '%s'"
+            % (revision, branch))
+        return -1
+    return 0
 
 
 def git_clone(url, path, branch="master", revision="master"):
@@ -181,26 +173,48 @@ def git_clone(url, path, branch="master", revision="master"):
     print "Repo " + t.bold(path) + t.green(" Cloned")
 
 
+def hg_clone(url, path, branch="default", revision=None):
+    extended_args = ['--pull']
+    revision = revision or branch
+    if revision:
+        extended_args.append('-u')
+        extended_args.append(revision)
+    try:
+        client = hgapi.hg_clone(url, path, *extended_args)
+        res = check_revision(client, path, revision, branch)
+    except hgapi.HgException, e:
+        print t.bold_red('[' + path + ']')
+        print "Error running %s: %s" % (e.exit_code, str(e))
+        return -1
+
+    print "Repo " + t.bold(path) + t.green(" Updated") + \
+        " to Revision:" + revision
+    return res
+
+
+def _clone(repo):
+    return repo['function'](repo['url'], repo['path'],
+        branch=repo['branch'], revision=repo['revision'])
+
+
 @task()
 def clone(config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     hg_pull('config', '.', True)
 
     Config = read_config_file(config, unstable=unstable)
-    p = None
-    processes = []
-    exit_code = []
+    p = Pool(MAX_PROCESSES)
+    repos = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'clone', development)
         if not os.path.exists(repo['path']):
-            p = Process(target=repo['function'], args=(repo['url'],
-                    repo['path'], repo['branch'], repo['revision']))
-            p.start()
-            processes.append(p)
-            wait_processes(processes, exit_code=exit_code)
-    wait_processes(processes, 0, exit_code=exit_code)
-
-    return sum(exit_code)
+            repo = get_repo(section, Config, 'clone', development)
+            repos.append(repo)
+    exit_codes = p.map(_clone, repos)
+    exit_code = sum(exit_codes)
+    if exit_code < 0:
+        print t.bold_red('Clone Task finished with errors!')
+    return exit_code
 
 
 def print_status(module, files):
