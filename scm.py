@@ -10,7 +10,7 @@ from multiprocessing import Process
 from multiprocessing import Pool
 from path import path as lpath
 
-import quilt
+import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
     remove_dir, NO_MODULE_REPOS
 
@@ -288,7 +288,7 @@ def status(config=None, unstable=True, no_quilt=False, verbose=False):
     processes = []
     p = None
     if not no_quilt:
-        quilt._pop()
+        patches._pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         if not os.path.exists(repo['path']):
@@ -302,7 +302,7 @@ def status(config=None, unstable=True, no_quilt=False, verbose=False):
         wait_processes(processes)
     wait_processes(processes, 0)
     if not no_quilt:
-        quilt._push()
+        patches._push()
 
 
 def hg_resolve(module, path, verbose, action, tool, nostatus, include,
@@ -688,12 +688,12 @@ def hg_clean(module, path, url, force=False):
 
 @task()
 def clean(force=False, config=None, unstable=True):
-    quilt._pop()
+    patches._pop()
     Config = read_config_file(config, unstable=unstable)
     for section in Config.sections():
         repo = get_repo(section, Config, 'clean')
         repo['function'](section, repo['path'], repo['url'], force)
-    quilt._push()
+    patches._push()
 
 
 @task()
@@ -702,7 +702,7 @@ def branch(branch, clean=False, config=None, unstable=True):
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
 
-    quilt._pop()
+    patches._pop()
     Config = read_config_file(config, unstable=unstable)
 
     processes = []
@@ -722,7 +722,7 @@ def branch(branch, clean=False, config=None, unstable=True):
     wait_processes(processes, 0)
 
     print t.bold('Applying patches...')
-    quilt._push()
+    patches._push()
 
 
 def hg_missing_branch(module, path, branch_name, closed=True):
@@ -802,7 +802,7 @@ def create_branch(branch_name, config=None, unstable=True):
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
 
-    quilt._pop()
+    patches._pop()
     print t.bold('Cleaning all changes...')
     Config = read_config_file(config, unstable=unstable)
     update(config, unstable=True, clean=True, no_quilt=True)
@@ -823,7 +823,7 @@ def create_branch(branch_name, config=None, unstable=True):
         wait_processes(processes)
 
     print t.bold('Applying patches...')
-    quilt._pop()
+    patches._pop()
 
 
 def hg_pull(module, path, update=False, clean=False, branch=None,
@@ -857,7 +857,7 @@ def _pull(repo):
 def pull(config=None, unstable=True, update=True, development=False,
          ignore_missing=False, no_quilt=False):
     if not no_quilt:
-        quilt._pop()
+        patches._pop()
 
     Config = read_config_file(config, unstable=unstable)
     p = Pool(MAX_PROCESSES)
@@ -871,7 +871,7 @@ def pull(config=None, unstable=True, update=True, development=False,
     exit_codes = p.map(_pull, repos)
 
     if not no_quilt:
-        quilt._push()
+        patches._push()
     return sum(exit_codes)
 
 
@@ -1007,7 +1007,7 @@ def hg_update(module, path, clean, branch=None, revision=None,
 def update(config=None, unstable=True, clean=False, development=True,
         no_quilt=False):
     if not no_quilt:
-        quilt._pop()
+        patches._pop()
 
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -1027,7 +1027,7 @@ def update(config=None, unstable=True, clean=False, development=True,
     wait_processes(processes, 0)
 
     if not no_quilt:
-        quilt._push()
+        patches._push()
 
 
 def git_revision(module, path, verbose):
@@ -1074,7 +1074,7 @@ def prefetch(force=False):
 
     clean(force=force)
     Config = read_config_file()
-    quilt._pop()
+    patches._pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         files = repo['function'](section, repo['path'],
@@ -1089,7 +1089,7 @@ def prefetch(force=False):
                     section, repo['path']), 'n'):
             for f in remove_files:
                 os.remove(f)
-    quilt._push()
+    patches._push()
 
 
 @task()
@@ -1100,7 +1100,7 @@ def fetch():
     execBashCommand(bashCommand, '',
         "It's not possible to pull the local repostory. Err:")
 
-    quilt._pop()
+    patches._pop()
 
     print t.bold('Pulling...')
     pull(update=True, ignore_missing=True, no_quilt=True)
@@ -1108,7 +1108,7 @@ def fetch():
     print t.bold('Cloning...')
     clone()
 
-    quilt._push()
+    patches._push()
 
     print t.bold('Updating requirements...')
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']

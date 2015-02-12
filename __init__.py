@@ -10,7 +10,7 @@ from .reviewboard import ReviewCollection
 from .tryton_component import ComponentCollection
 from .project import ProjectCollection
 from .userdoc import DocCollection
-from .quilt import QuiltCollection
+from .patches import QuiltCollection
 from .gal import GalCollection
 from .pypi import PypiCollection
 from .meeting import MeetingCollection
