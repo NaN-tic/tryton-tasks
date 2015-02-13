@@ -1111,12 +1111,14 @@ def fetch():
     patches._push()
 
     print t.bold('Updating requirements...')
-    bashCommand = ['pip', 'install', '-r', 'config/requirements.txt']
+    bashCommand = ['pip', 'install', '-r', 'config/requirements.txt',
+        '--exists-action','s']
     execBashCommand(bashCommand,
         'Requirements Installed Succesfully',
         "It's not possible to apply patche(es)")
 
-    bashCommand = ['pip', 'install', '-r', 'tasks/requirements.txt']
+    bashCommand = ['pip', 'install', '-r', 'tasks/requirements.txt',
+        '--exists-action','s']
     execBashCommand(bashCommand,
         'Requirements Installed Succesfully',
         "It's not possible to apply patche(es)")
