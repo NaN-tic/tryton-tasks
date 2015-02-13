@@ -42,7 +42,7 @@ except ImportError:
         pass
 
 
-def test(dbtype, name, modules, failfast, reviews=False):
+def test(dbtype, name, modules, failfast, reviews=False, work=None):
 
     if older_version:
         CONFIG['db_type'] = dbtype
@@ -77,13 +77,14 @@ def test(dbtype, name, modules, failfast, reviews=False):
         name = name + " ["+modules+"]"
 
     logger.info('Upload results to tryton')
-    runner.upload_tryton(dbtype, failfast, name, reviews)
+    runner.upload_tryton(dbtype, failfast, name, reviews, work)
 
 
 @task()
-def module(module, dbtype='sqlite', fail_fast=False):
+def module(module, work=None,  dbtype='sqlite', fail_fast=False):
     name = 'Development Test for module'
-    test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name)
+    test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name,
+        work=work)
 
 
 @task()
