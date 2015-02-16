@@ -47,13 +47,17 @@ def get_module_key(filename):
 
 
 def check_output(args, env=None, errors=False):
-    process = subprocess.Popen(args, env=env, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
-    data, stderr = process.communicate()
-    if errors:
-        data += '-' * 50 + '\n' + stderr
-    if stderr:
-        raise Exception("Exception executing %s" % args)
+    try:
+        process = subprocess.Popen(args, env=env, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        data, stderr = process.communicate()
+        if errors:
+            data += '-' * 50 + '\n' + stderr
+        if stderr:
+            raise Exception("Exception executing %s" % args)
+    except e:
+        logger.excepcion("Exception executing %s:" % args, exec_info=1)
+        return "Exception executing %s:" % args
     return data
 
 
