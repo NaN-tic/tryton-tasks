@@ -55,7 +55,7 @@ def check_output(args, env=None, errors=False):
             data += '-' * 50 + '\n' + stderr
         if stderr:
             raise Exception("Exception executing %s" % args)
-    except e:
+    except:
         logger.excepcion("Exception executing %s:" % args, exec_info=1)
         return "Exception executing %s:" % args
     return data
