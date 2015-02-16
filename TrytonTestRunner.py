@@ -56,7 +56,7 @@ def check_output(args, env=None, errors=False):
         if stderr:
             raise Exception("Exception executing %s" % args)
     except:
-        logger.excepcion("Exception executing %s:" % args, exec_info=1)
+        logger.exception("Exception executing %s:" % args, exc_info=1)
         return "Exception executing %s:" % args
     return data
 
