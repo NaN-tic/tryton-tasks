@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import datetime
 
 from invoke import task, Collection
 
@@ -9,6 +10,7 @@ from . import reviewboard
 from .scm import get_branch
 from .utils import t
 import logging
+from tabulate import tabulate
 
 try:
     from proteus import config as pconfig, Model
@@ -96,7 +98,6 @@ def close_review(work):
     reviews = Review.find([('work.code', '=', work)])
     for review in reviews:
         reviewboard.close(review.review_id)
-
 
 @task()
 def fetch_reviews(branch='default', component=None, exclude_components=None):
@@ -192,9 +193,49 @@ def upload_review(work, path, review=None, new=False):
     review.save()
 
 
+def work_report(date):
+    get_tryton_connection()
+
+    Timesheet = Model.get('timesheet.line')
+
+    lines = Timesheet.find([('date', '=', date)])
+    result = {}
+    for line in lines:
+        if not result.get(line.employee.rec_name):
+            result[line.employee.rec_name] = {}
+        work_name = line.project_work.rec_name
+        if not result[line.employee.rec_name].get(work_name):
+            if not line.hours:
+                work_name = '* ' + work_name
+
+            result[line.employee.rec_name][work_name] = {
+                'hours': line.hours,
+                'tracker': line.project_work.tracker.rec_name,
+                'state': line.project_work.state,
+                'phase': line.project_work.task_phase.rec_name,
+            }
+        else:
+            result[line.employee.rec_name][work_name]['hours'] += line.hours
+
+    for employee, tasks in result.iteritems():
+        print "\nemployee:", employee
+        table = []
+        for work, val in tasks.iteritems():
+            table += [[work] + val.values()]
+
+        print tabulate(table)
+
+@task()
+def working(date=None):
+    if date is None:
+        date = datetime.date.today()
+    work_report(date)
+
+
 ProjectCollection = Collection()
 ProjectCollection.add_task(upload_review)
 ProjectCollection.add_task(fetch_review)
 ProjectCollection.add_task(close_review)
 ProjectCollection.add_task(tasks)
 ProjectCollection.add_task(ct)
+ProjectCollection.add_task(working)

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 from invoke import task, run, Collection
 import os
@@ -10,6 +11,8 @@ from ConfigParser import NoOptionError
 import logging
 import time
 from coverage import coverage
+from .utils import read_config_file
+import tryton_component as component
 
 TEST_FILE = 'tests.log'
 open(TEST_FILE, 'w').close()
@@ -65,6 +68,7 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
     from trytond.tests.test_tryton import modules_suite
     import proteus.tests
 
+    suite = None
     if modules:
         suite = modules_suite(modules)
     else:
@@ -80,11 +84,41 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
     runner.upload_tryton(dbtype, failfast, name, reviews, work)
 
 
+
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False):
     name = 'Development Test for module'
     test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name,
         work=work)
+
+
+@task()
+def modules(dbtype='sqlite', force=False):
+    Config = read_config_file()
+
+    components = {}
+    if not force:
+        components = component._pull()
+
+    to_test = []
+
+    for section in Config.sections():
+        comp = components.get(section, False)
+
+        if force or not comp:
+            to_test.append(section)
+            continue
+
+        test_revision = comp.last_build and comp.last_build.revision
+        repo = scm.get_repo(section, Config, 'revision')
+        if test_revision and scm.hg_is_last_revision(repo['path'],
+                test_revision):
+            continue
+        to_test.append(section)
+
+    for tm in to_test:
+        print "Testing module:", tm
+        run('inv test.module -m %s' % tm)
 
 
 @task()
@@ -206,4 +240,5 @@ TestCollection = Collection()
 TestCollection.add_task(clean)
 TestCollection.add_task(runall)
 TestCollection.add_task(module)
+TestCollection.add_task(modules)
 

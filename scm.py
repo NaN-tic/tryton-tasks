@@ -1052,6 +1052,16 @@ def hg_revision(module, path, verbose=False):
     return revision
 
 
+def hg_is_last_revision(path, revision):
+    repo = hgapi.Repo(path)
+    rev = repo.revision(revision)
+    rev2 = repo.revision(repo.hg_id())
+    if rev == rev2:
+        return False
+    return True
+
+
+
 @task()
 def revision(config=None, unstable=True, verbose=True):
     Config = read_config_file(config, unstable=unstable)

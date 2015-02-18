@@ -12,7 +12,7 @@ psutil
 --allow-unverified RBTools
 RBTools
 python-quilt
-
+tabulate
 configobj
 PyHamcrest
 
