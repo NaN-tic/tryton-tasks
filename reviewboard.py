@@ -145,7 +145,7 @@ def close_all():
 def close(review=None, close_type='submitted'):
     """ @type submitted | discarded """
 
-    request = request_by_id(review)
+    request, = request_by_id(review)
     request = request.update(status=close_type)
 
 

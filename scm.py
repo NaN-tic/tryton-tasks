@@ -1053,10 +1053,15 @@ def hg_revision(module, path, verbose=False):
 
 
 def hg_is_last_revision(path, revision):
-    repo = hgapi.Repo(path)
-    rev = repo.revision(revision)
-    rev2 = repo.revision(repo.hg_id())
-    if rev == rev2:
+    if not revision:
+        return False
+    try:
+        repo = hgapi.Repo(path)
+        rev = repo.revision(revision)
+        rev2 = repo.revision(repo.hg_id())
+        if rev.date == rev2.date:
+            return False
+    except:
         return False
     return True
 

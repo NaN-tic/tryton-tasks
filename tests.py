@@ -22,7 +22,7 @@ logging.basicConfig(filename=TEST_FILE, level=logging.INFO,
     datefmt='%m/%d/%Y %I:%M:%S %p')
 logger = logging.getLogger("nan-tasks")
 
-#Ensure path is loaded correctly
+# Ensure path is loaded correctly
 sys.path.insert(0, os.path.abspath(os.path.normpath(os.path.join(
         os.path.dirname(__file__), '..', ''))))
 for module_name in ('trytond', 'proteus'):
@@ -31,8 +31,9 @@ for module_name in ('trytond', 'proteus'):
     if os.path.isdir(DIR):
         sys.path.insert(0, DIR)
 
-#Now we should be able to import everything
+# Now we should be able to import everything
 import TrytonTestRunner
+
 older_version = True
 try:
     # TODO: Remove compatibility with older versions
@@ -84,7 +85,6 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
     runner.upload_tryton(dbtype, failfast, name, reviews, work)
 
 
-
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False):
     name = 'Development Test for module'
@@ -111,11 +111,12 @@ def modules(dbtype='sqlite', force=False):
 
         test_revision = comp.last_build and comp.last_build.revision
         repo = scm.get_repo(section, Config, 'revision')
-        if test_revision and scm.hg_is_last_revision(repo['path'],
-                test_revision):
+        if (test_revision or (test_revision and
+                scm.hg_is_last_revision(repo['path'], test_revision))):
             continue
         to_test.append(section)
 
+    print "Testing :", len(to_test), "/", len(Config.sections())
     for tm in to_test:
         print "Testing module:", tm
         run('inv test.module -m %s' % tm)
