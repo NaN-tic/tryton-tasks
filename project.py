@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import ssl
 import sys
 import datetime
 
@@ -25,7 +26,10 @@ logger = logging.getLogger("nan-tasks")
 
 def get_tryton_connection():
     tryton = settings['tryton']
-    return pconfig.set_xmlrpc(tryton['server'])
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    return pconfig.set_xmlrpc(tryton['server'], ssl_context=ssl_context)
 
 
 @task
