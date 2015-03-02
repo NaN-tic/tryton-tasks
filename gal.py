@@ -267,8 +267,24 @@ def execute_script(script):
     suite = trytond.tests.test_tryton.suite()
     suite.addTests(doctest.DocFileSuite(script, module_relative=False,
             encoding='utf-8'))
-
-    unittest.TextTestRunner(verbosity=True).run(suite)
+    result = unittest.TestResult()
+    suite.run(result)
+    if result.errors or result.failures:
+        if result.errors:
+            print "Errors:"
+            for error in result.errors:
+                print error[0]
+                print error[1]
+                print
+            print
+        if result.failures:
+            print "Failures:"
+            for failure in result.failures:
+                print failure[0]
+                print failure[1]
+                print
+        # Ensure we do not commit
+        return
 
     gal_commit()
 
