@@ -83,6 +83,7 @@ def connect_database(database=None, password='admin',
             create_db()
         config = pconfig.set_trytond(database, password=password,
             language=language, config_file='trytond.conf')
+        config.pool.test = False
 
 def database_name():
     import uuid
@@ -254,6 +255,22 @@ def galfile():
         action, parameters = json.loads(description)
         print '%s(**%s)' % (action, parameters)
 
+@task()
+def execute_script(script):
+    gal_action('execute_script', script=script)
+    restore()
+    connect_database()
+
+    import unittest
+    import doctest
+    import trytond.tests.test_tryton
+    suite = trytond.tests.test_tryton.suite()
+    suite.addTests(doctest.DocFileSuite(script, module_relative=False,
+            encoding='utf-8'))
+
+    unittest.TextTestRunner(verbosity=True).run(suite)
+
+    gal_commit()
 
 #
 # Extension commands
@@ -1809,6 +1826,7 @@ GalCollection.add_task(get)
 GalCollection.add_task(set)
 GalCollection.add_task(build)
 GalCollection.add_task(galfile)
+GalCollection.add_task(execute_script)
 GalCollection.add_task(update_all)
 GalCollection.add_task(set_active_languages)
 GalCollection.add_task(install_modules)
