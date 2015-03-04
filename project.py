@@ -26,10 +26,15 @@ logger = logging.getLogger("nan-tasks")
 
 def get_tryton_connection():
     tryton = settings['tryton']
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    return pconfig.set_xmlrpc(tryton['server'], ssl_context=ssl_context)
+    try:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        return pconfig.set_xmlrpc(tryton['server'], ssl_context=ssl_context)
+    except AttributeError:
+        # If python is older than 2.7.9 it doesn't have
+        # ssl.create_default_context() but it neither verify certificates
+        return pconfig.set_xmlrpc(tryton['server'])
 
 
 @task
