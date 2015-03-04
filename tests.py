@@ -45,6 +45,17 @@ except ImportError:
     except:
         pass
 
+def get_fqdn():
+    data = check_output('hostname','--fqdn')
+    data = data.strip('\n').strip('\r').strip()
+    if not data:
+        # In some hosts we may get an error message on stderr with
+        # 'No such host'.
+        # if using --fqdn parameter. In this case, try to run hostname
+        # without parameters.
+        data = check_output('hostname')
+        data = data.strip('\n').strip('\r').strip()
+    return data
 
 def test(dbtype, name, modules, failfast, reviews=False, work=None):
 
@@ -84,10 +95,9 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
     logger.info('Upload results to tryton')
     runner.upload_tryton(dbtype, failfast, name, reviews, work)
 
-
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False):
-    name = 'Development Test for module'
+    name = 'Development Test on "%s" for module' % get_fqdn()
     test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name,
         work=work)
 
