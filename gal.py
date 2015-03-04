@@ -99,7 +99,9 @@ def dump(dbname=None):
         # Sleep to let connections close
         time.sleep(1)
     dump_file = 'gal.sql'
-    print check_output('pg_dump', '-f', gal_path(dump_file), dbname)
+    # Ensure gal repository exists before dump
+    gal_repo()
+    check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
 
 def dropdb(dbname=None):
