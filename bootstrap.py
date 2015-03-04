@@ -112,28 +112,20 @@ def activate_virtualenv(projectname):
         Config.virtualenv_active = False
         return
 
-    if 'WORKON_HOME' not in os.environ:
-        _exit(INITIAL_PATH, 'ERROR: To could activate a virtualenv it\'s '
-            'required the "virtualenvwrapper" installed and configured.')
-
-    virtualenv_path = path(os.environ['WORKON_HOME']).joinpath(
-        projectname)
-    if not virtualenv_path.exists() or not virtualenv_path.isdir():
-        _exit(INITIAL_PATH, 'ERROR: Do not exists a virtualenv for project '
-            '"%s" in workon directory: %s. Create it with "mkvirtualenv" tool.'
-            % (projectname, virtualenv_path))
-
-    activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
-    print "Activating virtualenv %s" % projectname
-    #execfile(activate_this_path, dict(__file__=activate_this_path))
-    run(activate_this_path)
+    if 'WORKON_HOME' in os.environ:
+        virtualenv_path = path(os.environ['WORKON_HOME']).joinpath(
+            projectname)
+        if virtualenv_path.exists() and virtualenv_path.isdir():
+            activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
+            print "Activating virtualenv %s" % projectname
+            run(activate_this_path)
 
 
 @task(['get_config', 'activate_virtualenv'])
 def install_requirements(upgrade=False):
     if not Config.requirements:
         return
-    if not Config.virtualenv_active and os.geteuid() != 0:
+    if not hasattr(Config, 'virtualenv_active') and os.geteuid() != 0:
         resp = raw_input('It can\'t install requirements because you aren\'t '
             'the Root user and you aren\'t in a Virtualenv. You will have to '
             'install requirements manually as root with command:\n'
