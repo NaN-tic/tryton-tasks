@@ -1,7 +1,7 @@
-
 #!/usr/bin/env python
 from invoke import task, run, Collection
 import os
+import subprocess
 import sys
 import tempfile
 import scm
@@ -44,6 +44,13 @@ except ImportError:
         older_version = False
     except:
         pass
+
+def check_output(*args):
+    process = subprocess.Popen(args, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    process.wait()
+    data = process.stdout.read()
+    return data
 
 def get_fqdn():
     data = check_output('hostname','--fqdn')
