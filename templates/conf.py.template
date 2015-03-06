@@ -147,11 +147,12 @@ if 'sphinxcontrib.trydoc' in extensions:
     config_file = get_config_file()
     parser = ConfigParser.ConfigParser()
     parser.read([config_file])
-    jsonrpc = parser.get('options', 'jsonrpc')
+    jsonrpc = parser.get('jsonrpc', 'listen')
     if jsonrpc and len(jsonrpc.split(':')) == 2:
         trytond_host = jsonrpc.split(':')[0]
         trytond_port = jsonrpc.split(':')[1]
-    dbname = parser.get('options', 'db_name')
+    db_uri = parser.get('database', 'uri')
+    dbname = db_uri.split('/')[-1]
     config.set_trytond(dbname, config_file=config_file)
     Module = Model.get('ir.module.module')
     modules = Module.find([('state', '=', 'installed')])
