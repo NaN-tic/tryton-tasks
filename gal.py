@@ -263,30 +263,38 @@ def execute_script(script):
     restore()
     connect_database()
 
-    import unittest
-    import doctest
-    import trytond.tests.test_tryton
-    suite = trytond.tests.test_tryton.suite()
-    suite.addTests(doctest.DocFileSuite(script, module_relative=False,
-            encoding='utf-8'))
-    result = unittest.TestResult()
-    suite.run(result)
-    if result.errors or result.failures:
-        if result.errors:
-            print "Errors:"
-            for error in result.errors:
-                print error[0]
-                print error[1]
+    if script.endswith('.rst'):
+        import unittest
+        import doctest
+        import trytond.tests.test_tryton
+        suite = trytond.tests.test_tryton.suite()
+        suite.addTests(doctest.DocFileSuite(script, module_relative=False,
+                encoding='utf-8'))
+        result = unittest.TestResult()
+        suite.run(result)
+        if result.errors or result.failures:
+            if result.errors:
+                print "Errors:"
+                for error in result.errors:
+                    print error[0]
+                    print error[1]
+                    print
                 print
-            print
-        if result.failures:
-            print "Failures:"
-            for failure in result.failures:
-                print failure[0]
-                print failure[1]
-                print
-        # Ensure we do not commit
-        return
+            if result.failures:
+                print "Failures:"
+                for failure in result.failures:
+                    print failure[0]
+                    print failure[1]
+                    print
+            # Ensure we do not commit
+            return
+    elif script.endswith('.py'):
+        with open(script, 'r') as f:
+            code = f.read()
+        exec(code)
+    else:
+        print >>sys.stderr, t.red("Don't know how to execute %s" % script)
+        sys.exit(1)
 
     gal_commit()
 
