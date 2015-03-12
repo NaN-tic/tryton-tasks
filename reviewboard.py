@@ -85,9 +85,10 @@ def create(module, summary, description, bug, review=None, group='NaN'):
     review_request.get_diffs().upload_diff(diff.encode('utf-8'),
         base_diff.encode('utf-8'))
     draft = review_request.get_draft()
+    review_description = description or summary or ''
     draft.update(
         summary=summary.encode('utf-8'),
-        description=description.encode('utf-8') or summary.encode('utf-8'),
+        description=review_description.encode('utf-8'),
         bugs_closed=bug,
         )
     user = root.get_session().get_user()
