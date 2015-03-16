@@ -239,7 +239,7 @@ class TrytonTestRunner(object):
                 component.save()
             path = result['path']
             try:
-                revision = hg_revision(module, path) or 0
+                revision = hg_revision(module, path) or '0'
                 branch = get_branch(path) or 'default'
             except:
                 revision = 'unknown'
