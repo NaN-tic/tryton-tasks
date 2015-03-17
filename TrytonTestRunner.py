@@ -437,6 +437,7 @@ class TrytonTestRunner(object):
             else:
                 name = "%s.%s" % (cls.__module__, cls.__name__)
 
+            module = None
             if name != 'doctest.DocFileCase':
                 if not 'trytond' in name:
                     continue
