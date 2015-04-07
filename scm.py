@@ -686,13 +686,22 @@ def hg_clean(module, path, url, force=False):
         print t.bold(module) + " module " + t.red("has uncommited changes")
 
 
+def _clean(repo):
+    return repo['function'](repo['name'], repo['path'], repo['url'],
+        repo['force'])
+
+
 @task()
 def clean(force=False, config=None, unstable=True):
     patches._pop()
+    p = Pool(MAX_PROCESSES)
     Config = read_config_file(config, unstable=unstable)
+    repos = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'clean')
-        repo['function'](section, repo['path'], repo['url'], force)
+        repo['force'] = force
+        repos.append(repo)
+    exit_codes = p.map(_clean, repos)
     patches._push()
 
 
