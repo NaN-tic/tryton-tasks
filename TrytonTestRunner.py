@@ -9,6 +9,7 @@ from tasks.scm import hg_revision, get_branch
 from coverage import coverage
 import re
 import logging
+import ssl
 
 
 try:
@@ -28,7 +29,15 @@ logger = logging.getLogger("TrytonTest")
 
 def get_tryton_connection():
     tryton = settings['tryton']
-    return pconfig.set_xmlrpc(tryton['server'])
+    try:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        return pconfig.set_xmlrpc(tryton['server'], context=ssl_context)
+    except AttributeError:
+        # If python is older than 2.7.9 it doesn't have
+        # ssl.create_default_context() but it neither verify certificates
+        return pconfig.set_xmlrpc(tryton['server'])
 
 
 def get_module_key(filename):
