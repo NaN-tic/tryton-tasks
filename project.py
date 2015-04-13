@@ -241,6 +241,20 @@ def working(date=None):
     work_report(date)
 
 
+@task()
+def components(database):
+    get_tryton_connection()
+
+    DBComponent = Model.get('nantic.database.component')
+
+    components = DBComponent.find([('database.name', '=', database),
+            ('state', '=', 'accepted')])
+
+    for component in components:
+        print component.component.name
+
+
+
 ProjectCollection = Collection()
 ProjectCollection.add_task(upload_review)
 ProjectCollection.add_task(fetch_review)
@@ -248,3 +262,4 @@ ProjectCollection.add_task(close_review)
 ProjectCollection.add_task(tasks)
 ProjectCollection.add_task(ct)
 ProjectCollection.add_task(working)
+ProjectCollection.add_task(components)

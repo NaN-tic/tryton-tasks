@@ -34,6 +34,7 @@ try:
 except:
     pass
 
+
 TODAY = datetime.date.today()
 
 commits_enabled = True
@@ -78,12 +79,16 @@ def connect_database(database=None, password='admin',
         from trytond.config import config
         config.set('database', 'uri', '%s://' % database_type)
 
-        from trytond.tests.test_tryton import db_exist, create_db
+        from trytond.tests.test_tryton import db_exist
+
         if not db_exist():
-            create_db()
+            from trytond.protocols.dispatcher import create as tcreate
+            tcreate(database, None, language, password)
+
         config = pconfig.set_trytond(database, password=password,
             language=language, config_file='trytond.conf')
         config.pool.test = False
+
 
 def database_name():
     import uuid
@@ -217,7 +222,7 @@ def set(name):
     gal_commit(do_dump=False)
 
 @task()
-def build(filename=None):
+def build(filename=None, no_restore=False):
     """
     Creates a database with the commands found in the specified filename.
 
@@ -226,11 +231,19 @@ def build(filename=None):
     if filename is None:
         filename = 'Galfile'
     print "Building %s..." % filename
+
+    global restore_step
+    resore_step= True
+    if no_restore:
+        restore_step = False
+
+
     with codecs.open(filename, 'r', 'utf-8') as f:
         for line in f:
             if line and not line.strip().startswith('#'):
                 print t.bold(unicode(line))
                 eval(line)
+
 
 @task()
 def galfile():
@@ -257,10 +270,16 @@ def galfile():
         action, parameters = json.loads(description)
         print '%s(**%s)' % (action, parameters)
 
+
 @task()
 def execute_script(script):
     gal_action('execute_script', script=script)
-    restore()
+
+    global restore_step
+
+    if restore_step:
+        restore()
+
     connect_database()
 
     if script.endswith('.rst'):
@@ -1757,20 +1776,20 @@ def create_csb43():
 
     #records = []
     #record = Record(c43.FILE_HEADER_RECORD)
-    #record.bank_code = 
+    #record.bank_code =
     #record.date = datetime.now()
     #records.append(record)
     #record = Record(c43.ACCOUNT_HEADER_RECORD)
     #record.bank_code =
-    #record.bank_office = 
-    #record.account_number = 
-    #record.start_date = 
-    #record.end_date = 
-    #record.initial_balance = 
-    #record.currency_code = 
-    #record.information_mode = 
-    #record.customer_name = 
-    #record.free = 
+    #record.bank_office =
+    #record.account_number =
+    #record.start_date =
+    #record.end_date =
+    #record.initial_balance =
+    #record.currency_code =
+    #record.information_mode =
+    #record.customer_name =
+    #record.free =
     #records.append(record)
     #record = Record(c43.MOVE_RECORD)
     ##record.record_code
