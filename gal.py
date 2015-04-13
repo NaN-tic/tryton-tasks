@@ -18,6 +18,9 @@ from invoke import task, Collection
 
 from .utils import t
 
+global restore_step
+restore_step = True
+
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
 proteus_directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
