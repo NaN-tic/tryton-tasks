@@ -336,7 +336,8 @@ def create_fake_modules(modules):
 
 
 @task(help={'modules': 'module names separated by coma'})
-def uninstall_task(database, modules, connection_params=None):
+def uninstall_task(database, modules,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Uninstall the supplied modules (separated by coma) from database.
     """
@@ -349,12 +350,10 @@ def uninstall_task(database, modules, connection_params=None):
         return
 
     print t.bold("uninstall: ") + ", ".join(modules)
-    if connection_params is None:
-        connection_params = {}
-    if not check_database(database, connection_params):
+    if not check_database(database, {}):
         return
 
-    config = pconfig.set_trytond(database=database, **connection_params)
+    config = pconfig.set_trytond(database=database, config_file=config_file)
 
     Module = Model.get('ir.module.module')
     modules_to_uninstall = Module.find([
