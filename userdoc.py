@@ -51,6 +51,7 @@ def make(builder='html', source='source-doc',
         if path(destination).exists():
             path(destination).rmtree()
 
+    os.environ['PYTHONPATH'] = 'proteus:trytond'
     if builder == 'pdf':
         run("sphinx-build  -b latex %s %s/latex" % (source, destination),
             echo=True)
