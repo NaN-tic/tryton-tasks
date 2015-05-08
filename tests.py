@@ -97,7 +97,7 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
     runner = TrytonTestRunner.TrytonTestRunner(failfast=failfast, coverage=cov)
     runner.run(suite)
     if modules:
-        name = name + " ["+modules+"]"
+        name = name + " ["+','.join(modules)+"]"
 
     logger.info('Upload results to tryton')
     runner.upload_tryton(dbtype, failfast, name, reviews, work)
@@ -105,7 +105,7 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False):
     name = 'Development Test on "%s" for module' % get_fqdn()
-    test(failfast=fail_fast, dbtype=dbtype, modules=module, name=name,
+    test(failfast=fail_fast, dbtype=dbtype, modules=[module], name=name,
         work=work)
 
 
