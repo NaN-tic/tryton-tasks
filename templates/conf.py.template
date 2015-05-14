@@ -42,7 +42,9 @@ def get_fqdn():
 def get_config_file():
     fqdn = get_fqdn()
     root = ('/').join(os.getcwd().split('/')[:-1])
-    config = os.path.join(root, 'server-%s.cfg' % fqdn)
+    config = os.environ.get('TRYTOND_CONFIG')
+    if not config or not os.path.exists(config):
+        config = os.path.join(root, 'server-%s.cfg' % fqdn)
     if not os.path.exists(config):
         config = os.path.join(root, 'trytond.conf')
     if not os.path.exists(config):
@@ -142,17 +144,19 @@ inheritance_modules = [
 # -- Configuration of trydoc --------------------------------------------------
 if 'sphinxcontrib.trydoc' in extensions:
     from proteus import config,  Model
-    from trytond.modules import create_graph
     sys.path.insert(0, '../trytond')
+    from trytond.modules import create_graph
+    from trytond.config import config as tconfig
     config_file = get_config_file()
-    parser = ConfigParser.ConfigParser()
-    parser.read([config_file])
-    jsonrpc = parser.get('jsonrpc', 'listen')
+    tconfig.update_etc(config_file)
+    jsonrpc = tconfig.get('jsonrpc', 'listen')
     if jsonrpc and len(jsonrpc.split(':')) == 2:
         trytond_host = jsonrpc.split(':')[0]
         trytond_port = jsonrpc.split(':')[1]
-    db_uri = parser.get('database', 'uri')
-    dbname = db_uri.split('/')[-1]
+    dbname = os.environ.get('DB_NAME')
+    if not dbname:
+        db_uri = tconfig.get('database', 'uri')
+        dbname = db_uri.split('/')[-1]
     config.set_trytond(dbname, config_file=config_file)
     Module = Model.get('ir.module.module')
     modules = Module.find([('state', '=', 'installed')])
