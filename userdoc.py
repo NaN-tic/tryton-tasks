@@ -45,12 +45,13 @@ def update_modules(userdocpath='userdoc'):
 
 
 @task(default=True)
-def make(builder='html', source='source-doc',
+def make(dbname, builder='html', source='source-doc',
         destination="public_data/doc", clean=False):
     if clean:
         if path(destination).exists():
             path(destination).rmtree()
 
+    os.environ['DB_NAME'] = dbname
     os.environ['PYTHONPATH'] = 'proteus:trytond'
     if builder == 'pdf':
         run("sphinx-build  -b latex %s %s/latex" % (source, destination),
