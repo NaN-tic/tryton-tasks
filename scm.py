@@ -673,7 +673,7 @@ def git_pull(module, path, update=False, clean=False, branch=None,
 def hg_clean(module, path, url, force=False):
 
     nointeract = ''
-    update = '-c'
+    update = '-C'
     if force:
         nointeract = '-y'
         update = '-C'
