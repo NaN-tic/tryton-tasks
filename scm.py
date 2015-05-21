@@ -9,6 +9,7 @@ from blessings import Terminal
 from multiprocessing import Process
 from multiprocessing import Pool
 from path import path as lpath
+import shutil
 
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
@@ -248,20 +249,8 @@ def print_status(module, files):
         print '\n'.join(msg)
 
 
-def hg_status(module, path, verbose, url):
-    repo = hgapi.Repo(path)
-    actual_url = str(repo.config('paths', 'default')).rstrip('/')
-    url = str(url).rstrip('/')
-    if actual_url != url:
-        print >> sys.stderr, (t.bold('[%s]' % module) +
-            t.red(' URL differs ') + "(Disk!=Cfg) " + t.bold(actual_url +
-                ' !=' + url))
-    st = repo.hg_status(empty=True)
-    print_status(module, st)
-    return st
 
-
-def git_status(module, path, verbose, url):
+def git_status(module, path, url, verbose, clean):
     repo = git.Repo(path)
     config = repo.config_reader()
     config.read()
@@ -269,6 +258,7 @@ def git_status(module, path, verbose, url):
     if actual_url != url:
         print >> sys.stderr, (t.bold('[%s]' % module) +
             t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
+
     diff = repo.index.diff(None)
     files = {}
     for change in diff.change_type:
@@ -282,27 +272,36 @@ def git_status(module, path, verbose, url):
     return files
 
 
+def hg_status(module, path,  url, verbose):
+    repo = hgapi.Repo(path)
+    hg_check_url(module, path, url)
+    st = repo.hg_status(empty=True)
+    print_status(module, st)
+    return st
+
+
+def _status(repo):
+    return repo['function'](repo['name'], repo['path'], repo['url'],
+        repo['verbose'])
+
+
 @task()
-def status(config=None, unstable=True, no_quilt=False, verbose=False):
+def status(config=None, unstable=True, verbose=False):
+
+    patches._pop()
+    p = Pool(MAX_PROCESSES)
     Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    if not no_quilt:
-        patches._pop()
+    repos = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'status')
         if not os.path.exists(repo['path']):
-            print >> sys.stderr, t.red("Missing repositori: ") +\
-                    t.bold(repo['path'])
-            return
-        p = Process(target=repo['function'], args=(section,
-                repo['path'], verbose, repo['url']))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
-    if not no_quilt:
-        patches._push()
+            print >> sys.stderr, t.red("Missing repositori: ") + \
+                t.bold(repo['path'])
+            continue
+        repos.append(repo)
+        repo['verbose'] = verbose
+    p.map(_status, repos)
+    patches._push()
 
 
 def hg_resolve(module, path, verbose, action, tool, nostatus, include,
@@ -670,6 +669,20 @@ def git_pull(module, path, update=False, clean=False, branch=None,
     return 0
 
 
+def hg_check_url(module, path, url, clean=False):
+
+    repo = hgapi.Repo(path)
+    actual_url = str(repo.config('paths', 'default')).rstrip('/')
+    url = str(url).rstrip('/')
+    if actual_url != url:
+        print >> sys.stderr, (t.bold('[%s]' % module) +
+            t.red(' URL differs ') + "(Disk!=Cfg) " + t.bold(actual_url +
+                ' !=' + url))
+        if clean:
+            print >> sys.stderr, (t.bold('[%s]' % module) + t.red(' Removed '))
+            shutil.rmtree(path)
+
+
 def hg_clean(module, path, url, force=False):
 
     nointeract = ''
@@ -684,6 +697,8 @@ def hg_clean(module, path, url, force=False):
         run('cd %s;hg purge %s' % (path, nointeract), hide='stdout')
     except:
         print t.bold(module) + " module " + t.red("has uncommited changes")
+
+    hg_check_url(module, path, url, clean=True)
 
 
 def _clean(repo):
@@ -701,7 +716,7 @@ def clean(force=False, config=None, unstable=True):
         repo = get_repo(section, Config, 'clean')
         repo['force'] = force
         repos.append(repo)
-    exit_codes = p.map(_clean, repos)
+    p.map(_clean, repos)
     patches._push()
 
 
