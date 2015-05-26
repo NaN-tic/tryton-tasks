@@ -487,7 +487,8 @@ def create_location(name, type, parent=None, code=None, address=None,
 
 
 def create_product(name, code="", template=None, cost_price=None,
-        list_price=None, type='goods', unit=None, consumable=False):
+        list_price=None, type='goods', unit=None, consumable=False,
+        category=None):
 
     ProductUom = Model.get('product.uom')
     Product = Model.get('product.product')
@@ -514,6 +515,7 @@ def create_product(name, code="", template=None, cost_price=None,
         template.name = name
         template.default_uom = unit
         template.type = type
+        template.category = category
         template.consumable = consumable
         template.list_price = Decimal(str(list_price))
         template.cost_price = Decimal(str(cost_price))
@@ -556,6 +558,10 @@ def create_product_category(name, parent=None, account_parent=False,
                 ])
     if categories:
         return categories[0]
+    if customer_taxes is None:
+        customer_taxes = []
+    if supplier_taxes is None:
+        supplier_taxes = []
     category = ProductCategory(name=name,
         parent=parent)
     category.account_parent = account_parent
