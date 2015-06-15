@@ -286,9 +286,9 @@ def _status(repo):
 
 
 @task()
-def status(config=None, unstable=True, verbose=False):
-
-    patches._pop()
+def status(config=None, unstable=True, no_quilt=False, verbose=False):
+    if not no_quilt:
+        patches._pop()
     p = Pool(MAX_PROCESSES)
     Config = read_config_file(config, unstable=unstable)
     repos = []
@@ -301,7 +301,8 @@ def status(config=None, unstable=True, verbose=False):
         repos.append(repo)
         repo['verbose'] = verbose
     p.map(_status, repos)
-    patches._push()
+    if not no_quilt:
+        patches._push()
 
 
 def hg_resolve(module, path, verbose, action, tool, nostatus, include,
