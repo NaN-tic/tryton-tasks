@@ -187,6 +187,8 @@ def hg_clone(url, path, branch="default", revision=None):
         print t.bold_red('[' + path + ']')
         print "Error running %s: %s" % (e.exit_code, str(e))
         return -1
+    except:
+        return -1
 
     print "Repo " + t.bold(path) + t.green(" Updated") + \
         " to Revision:" + revision
@@ -868,6 +870,8 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
     except hgapi.HgException, e:
         print t.bold_red('[' + module + ']')
         print "Error running %s : %s" % (e.exit_code, str(e))
+        return -1
+    except:
         return -1
     return 0
 
