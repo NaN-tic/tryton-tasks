@@ -133,14 +133,17 @@ def _fetch_reviews(branch='default', component=None, exclude_components=None):
         else:
             path = ''
         try:
+            print "fetch review:", path, review.review_id
             reviewboard.fetch(path, review.review_id)
             reviewboard.create_review_file(path, review.review_id)
         except:
+            print "Exception"
             logger.exception("Exception has occured", exc_info=1)
 
 
 @task()
 def fetch_review(work):
+    import traceback
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     reviews = Review.find([('work.code', '=', work), ('state', '=', 'opened')])
@@ -152,8 +155,15 @@ def fetch_review(work):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        reviewboard.fetch(path, review.review_id)
-        reviewboard.create_review_file(path, review.review_id)
+        try:
+            print "fetch review:", path, review.review_id
+            reviewboard.fetch(path, review.review_id)
+            reviewboard.create_review_file(path, review.review_id)
+        except:
+            # exc_type, exc_value, exc_traceback = sys.exc_info()
+         #   traceback.print_exc()
+            logger.exception("Exception has occured", exc_info=1)
+
 
 
 @task()
