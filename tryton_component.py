@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import ssl
 from invoke import task, Collection, run
 from .config import get_config
 from .utils import read_config_file, NO_MODULE_REPOS, BASE_MODULES
@@ -16,7 +17,15 @@ settings = get_config()
 
 def get_tryton_connection():
     tryton = settings['tryton']
-    return pconfig.set_xmlrpc(tryton['server'])
+    try:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        return pconfig.set_xmlrpc(tryton['server'], context=ssl_context)
+    except AttributeError:
+        # If python is older than 2.7.9 it doesn't have
+        # ssl.create_default_context() but it neither verify certificates
+        return pconfig.set_xmlrpc(tryton['server'])
 
 
 def _pull():
