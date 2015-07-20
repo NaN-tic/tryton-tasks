@@ -66,9 +66,11 @@ def check_output(*args):
     return data
 
 def connect_database(database=None, password='admin',
-        database_type='postgresql', language='en_US'):
+        database_type='postgresql', language=None):
     if database is None:
         database = 'gal'
+    if language is None:
+        language = 'en_US'
     global config
     global version
     if proteus_version.startswith('3.2'):
