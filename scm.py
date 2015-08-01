@@ -718,7 +718,8 @@ def clean(force=False, config=None, unstable=True):
     for section in Config.sections():
         repo = get_repo(section, Config, 'clean')
         repo['force'] = force
-        repos.append(repo)
+        if os.path.exists(repo['path']):
+            repos.append(repo)
     p.map(_clean, repos)
     patches._push()
 
