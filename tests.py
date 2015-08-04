@@ -135,8 +135,13 @@ def modules(dbtype='sqlite', force=False):
 
     print "Testing :", len(to_test), "/", len(Config.sections())
     for tm in to_test:
-        print "Testing module:", tm
-        run('inv test.module -m %s' % tm)
+        try:
+            print "Testing module:", tm
+            module(tm)
+            #run('inv test.module -m %s' % tm)
+        except:
+            logger.exception("Exception has occured", exc_info=1)
+
 
 
 @task()
