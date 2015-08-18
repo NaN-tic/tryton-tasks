@@ -22,6 +22,15 @@ DEFAULT_BRANCH = {
     'hg': 'default'
     }
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARN = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = "\033[1m"
+
 
 def get_repo(section, config, function=None, development=False):
     repository = {}
@@ -724,6 +733,45 @@ def clean(force=False, config=None, unstable=True):
     patches._push()
 
 
+def _hg_branches(module, path, config_branch=None):
+    client = hgapi.Repo(path)
+    branches = client.get_branch_names()
+    active = client.hg_branch()
+    b = []
+    for branch in branches:
+        br = branch
+
+        if branch == active:
+            br = "*" + br
+
+        if branch == config_branch:
+            br = "[" + br + "]"
+
+        b.append(br + bcolors.ENDC)
+
+    msg = str.ljust(module, 40, ' ') + "\t".join(b)
+
+    if "[*" in msg:
+        msg = bcolors.OKGREEN + msg + bcolors.ENDC
+    elif "\t[" in msg or '\t*' in msg:
+        msg = bcolors.RED + msg + bcolors.ENDC
+    else:
+        msg = bcolors.WARN + msg + bcolors.ENDC
+
+    print msg
+
+@task()
+def branches(config):
+
+    patches._pop()
+    Config = read_config_file(config, unstable=True)
+
+    for section in Config.sections():
+        repo = get_repo(section, Config)
+        _hg_branches(section, repo['path'], repo['branch'])
+
+    patches._push()
+
 @task()
 def branch(branch, clean=False, config=None, unstable=True):
     if not branch:
@@ -1261,3 +1309,4 @@ ScmCollection.add_task(increase_version)
 ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
 ScmCollection.add_task(prefetch)
+ScmCollection.add_task(branches)
