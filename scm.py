@@ -508,50 +508,101 @@ def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     wait_processes(processes, 0)
 
 
-def hg_compare_branches(module, path, first_branch, second_branch):
+def hg_compare_branches(module, path, first_branch, second_branch='default'):
+
+    revisions = {}
+
+    def changesets(revs):
+        revs = revs.split('***')
+        change = {}
+        for rev in revs:
+            if not rev:
+                continue
+
+            r = rev.split('##')
+            rid = r[0].zfill(5)
+
+            change[rid] = {
+                'node': r[1],
+                'desc': r[2],
+                'tags': r[3],
+                'date': r[4],
+                'extras': r[5].split(';'),
+            }
+
+            extras = r[5].split(';')
+            if extras:
+                for ex in extras:
+                    if 'branch' in ex:
+                        branch = ex.split('branch=')[1]
+                        change[rid]['branch'] = branch
+                    if 'source' in ex:
+                        source = ex.split('source=')[1]
+                        change[rid]['source'] = source
+
+            revisions[r[1]] = rid
+        return change
+
+    def print_changeset(key, rev):
+
+        print "\n" + bcolors.HEADER + key + ':' + rev['node'] + 'Branch:' + \
+            rev['branch'] + '\t[' + rev['date'] + ']' + bcolors.ENDC
+        print rev['desc']
+
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
 
-    cwd = os.getcwd()
-    os.chdir(path_repo)
-    # Shows all commits from the last point where both branches converged
-    revisions = "'max(ancestor(%s, %s)):tip'" % (first_branch, second_branch)
-    cmd = ['hg', 'log', '-r', revisions, '--template',
-        "'{branch} ### {desc}\n'"]
-    result = run(' '.join(cmd), warn=True, hide='both')
-    commits = {
-        first_branch: [],
-        second_branch: [],
-        }
-    for line in result.stdout.split('\n'):
-        try:
-            branch, desc = line.split(' ### ')
-        except ValueError:
-            continue
-        # Skip branch commits
-        if 'branch' in desc.lower():
-            continue
-        if not branch in commits:
-            continue
-        commits[branch].append(desc)
+    template = ('{rev}##{node}##{desc}##{tags}##{date|isodate}##'
+        '{join(extras,";")}***')
+    repo = hgapi.Repo(path_repo)
+    revs = repo.hg_log(template=template, branch=first_branch)
+    revs2 = repo.hg_log(template=template, branch=second_branch)
 
-    printed_header = False
-    for desc in commits[first_branch]:
-        if desc in commits[second_branch]:
-            continue
-        if not printed_header:
-            printed_header = True
-            print t.bold("= " + module + ": Missing commits on Branch "
-                + first_branch + "=")
-        print desc
+    change = changesets(revs)
+    change2 = changesets(revs2)
 
-    os.chdir(cwd)
+    keys = change.keys()
+    keys2 = change2.keys()
+    keys2_node = [change2[x]['node'] for x in change2]
+
+    keys.sort()
+    keys2.sort()
+
+    min_key = int(keys2[0])
+
+    tags = []
+    for x, y in change2.iteritems():
+        if y['tags']:
+            tags.append(y['tags'])
+
+    for tag in tags:
+        if tag == 'tip':
+            continue
+        key = revisions.get(tag, 0)
+        min_key = max(min_key, key)
+
+    print bcolors.BOLD + "Commits in branch %s not updated on %s" % (
+        first_branch, second_branch) + bcolors.ENDC
+
+    for key in keys[1:]:
+        val = change.get(key)
+        if int(key) < min_key:
+            continue
+        val = change.get(key)
+        tags = val.get('tags')
+        source = val.get('source')
+        if key in change2 or source in keys2_node:
+            continue
+
+        print_changeset(key, val)
+
 
 
 @task()
-def compare_branches(first_branch, second_branch, config=None, unstable=True):
+def compare_branches(first_branch, second_branch, module=None,
+        config=None, unstable=True):
     '''
     Finds commits that exist on first branch but doesn't exist on
     second_branch. In order to identify a commit, its description is used as
@@ -560,6 +611,8 @@ def compare_branches(first_branch, second_branch, config=None, unstable=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
+        if module and section != module:
+            continue
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         if repo == 'git':
@@ -567,12 +620,8 @@ def compare_branches(first_branch, second_branch, config=None, unstable=True):
         if repo != 'hg':
             print >> sys.stderr, "Not developed yet"
             continue
-        p = Process(target=hg_compare_branches, args=(section, path,
-                first_branch, second_branch))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
+
+        hg_compare_branches(section, path, first_branch, second_branch)
 
 
 def hg_summary(module, path, verbose):
