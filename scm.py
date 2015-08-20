@@ -738,6 +738,8 @@ def _hg_branches(module, path, config_branch=None):
     branches = client.get_branch_names()
     active = client.hg_branch()
     b = []
+    branches.sort()
+    branches.reverse()
     for branch in branches:
         br = branch
 
@@ -747,14 +749,14 @@ def _hg_branches(module, path, config_branch=None):
         if branch == config_branch:
             br = "[" + br + "]"
 
-        b.append(br + bcolors.ENDC)
+        b.append(br)
 
     msg = str.ljust(module, 40, ' ') + "\t".join(b)
 
     if "[*" in msg:
         msg = bcolors.OKGREEN + msg + bcolors.ENDC
     elif "\t[" in msg or '\t*' in msg:
-        msg = bcolors.RED + msg + bcolors.ENDC
+        msg = bcolors.FAIL + msg + bcolors.ENDC
     else:
         msg = bcolors.WARN + msg + bcolors.ENDC
 
