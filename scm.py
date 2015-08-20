@@ -545,8 +545,8 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
     def print_changeset(key, rev):
 
-        print "\n" + bcolors.HEADER + key + ':' + rev['node'] + 'Branch:' + \
-            rev['branch'] + '\t[' + rev['date'] + ']' + bcolors.ENDC
+        print "\n" + bcolors.HEADER + key + ':' + rev['node'] + ' (Branch:' + \
+            rev['branch'] + ')\t[' + rev['date'] + ']' + bcolors.ENDC
         print rev['desc']
 
     path_repo = os.path.join(path, module)
