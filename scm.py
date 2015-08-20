@@ -763,7 +763,7 @@ def _hg_branches(module, path, config_branch=None):
     print msg
 
 @task()
-def branches(config):
+def branches(config=None):
 
     patches._pop()
     Config = read_config_file(config, unstable=True)
