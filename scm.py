@@ -179,8 +179,9 @@ def git_clone(url, path, branch="master", revision="master"):
         run('mkdir %s.hg' % path)
     except:
         print >> sys.stderr, "Error running " + t.bold(command)
-        raise
+        return -1
     print "Repo " + t.bold(path) + t.green(" Cloned")
+    return 0
 
 
 def hg_clone(url, path, branch="default", revision=None):
@@ -223,7 +224,7 @@ def clone(config=None, unstable=True, development=False):
             repo = get_repo(section, Config, 'clone', development)
             repos.append(repo)
     exit_codes = p.map(_clone, repos)
-    exit_code = sum(exit_codes)
+    exit_code = sum(exit_codes, 0)
     if exit_code < 0:
         print t.bold_red('Clone Task finished with errors!')
     return exit_code
