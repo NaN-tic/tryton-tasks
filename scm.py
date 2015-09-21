@@ -41,7 +41,7 @@ def get_url(url):
             break
     if not exists:
         if url.startswith('ssh'):
-            url = 'http' + url[3:]
+            url = 'https' + url[3:]
     return url
 
 def get_repo(section, config, function=None, development=False):
