@@ -275,7 +275,7 @@ def print_status(module, files):
 
 
 
-def git_status(module, path, url, verbose, clean):
+def git_status(module, path, url, verbose):
     repo = git.Repo(path)
     config = repo.config_reader()
     config.read()
