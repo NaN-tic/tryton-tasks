@@ -32,6 +32,18 @@ class bcolors:
     BOLD = "\033[1m"
 
 
+def get_url(url):
+    files = ['~/.ssh/id_dsa', '~/.ssh/id_rsa']
+    exists = False
+    for f in files:
+        if os.path.exists(os.path.expanduser(f)):
+            exists = True
+            break
+    if not exists:
+        if url.startswith('ssh'):
+            url = 'http' + url[3:]
+    return url
+
 def get_repo(section, config, function=None, development=False):
     repository = {}
     repository['name'] = section
@@ -185,6 +197,7 @@ def git_clone(url, path, branch="master", revision="master"):
 
 
 def hg_clone(url, path, branch="default", revision=None):
+    url = get_url(url)
     extended_args = ['--pull']
     revision = revision or branch
     if revision:
