@@ -776,6 +776,7 @@ def create_product(name, code="", template=None, cost_price=None,
     ProductUom = Model.get('product.uom')
     Product = Model.get('product.product')
     ProductTemplate = Model.get('product.template')
+    Tax = Model.get('account.tax')
     Category = Model.get('product.category')
 
     categories = Category.find([])
@@ -832,11 +833,17 @@ def create_product(name, code="", template=None, cost_price=None,
                 template.account_revenue = revenue[0]
         if module_installed('account_es'):
             if hasattr(template, 'customer_taxes'):
-                template.customer_taxes.append(get_object(
-                        'account_es', 'iva_rep_21'))
+                tax, = Tax.find([
+                        ('template', '=',
+                            get_object('account_es', 'iva_rep_21').id)
+                        ])
+                template.customer_taxes.append(tax)
             if hasattr(template, 'supplier_taxes'):
-                template.supplier_taxes.append(get_object(
-                        'account_es', 'iva_sop_21'))
+                tax, = Tax.find([
+                        ('template', '=',
+                            get_object('account_es', 'iva_sop_21').id)
+                        ])
+                template.supplier_taxes.append(tax)
 
         template.products[0].code = code
         template.save()
