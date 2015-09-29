@@ -792,7 +792,7 @@ def create_product(name, code="", template=None, cost_price=None,
         cost_price = Decimal(random.randrange(1, 100))
 
     if not list_price:
-        list_price = cost_price * Decimal(random.randrange(1, 100)) / 100
+        list_price = cost_price * (1 + Decimal(random.randrange(1, 100)) / 100)
 
     if unit is None:
         unit = ProductUom(1)
