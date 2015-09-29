@@ -788,10 +788,10 @@ def create_product(name, code="", template=None, cost_price=None,
         return product[0]
 
     if not cost_price:
-        cost_price = random.randrange(0, 1000)
+        cost_price = Decimal(random.randrange(1, 100))
 
     if not list_price:
-        list_price = cost_price * random.randrange(1, 2)
+        list_price = cost_price * Decimal(random.randrange(1, 100)) / 100
 
     if unit is None:
         unit = ProductUom(1)
@@ -802,8 +802,8 @@ def create_product(name, code="", template=None, cost_price=None,
         template.default_uom = unit
         template.type = type
         template.consumable = consumable
-        template.list_price = Decimal(str(list_price))
-        template.cost_price = Decimal(str(cost_price))
+        template.list_price = list_price
+        template.cost_price = cost_price
         template.category = category
         if hasattr(template, 'salable'):
             template.salable = True
