@@ -776,6 +776,11 @@ def hg_clean(module, path, url, force=False):
     hg_check_url(module, path, url, clean=True)
 
 
+def git_clean(module, path, url, force=False):
+    # TODO
+    pass
+
+
 def _clean(repo):
     return repo['function'](repo['name'], repo['path'], repo['url'],
         repo['force'])
