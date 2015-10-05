@@ -79,6 +79,8 @@ def read_config_file(config_file=None, type='repos', unstable=True):
                     continue
                 if not unstable and files.endswith("-unstable.cfg"):
                     continue
+                if 'templates' in r:
+                    continue
                 Config.readfp(open(os.path.join(r, files)))
 
     if type == 'all':
