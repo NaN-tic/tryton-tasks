@@ -10,6 +10,7 @@ from multiprocessing import Process
 from multiprocessing import Pool
 from path import path as lpath
 import shutil
+from collections import OrderedDict
 
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
@@ -528,7 +529,9 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
     def changesets(revs):
         revs = revs.split('***')
-        change = {}
+        change = OrderedDict()
+
+        revs.reverse()
         for rev in revs:
             if not rev:
                 continue
@@ -536,31 +539,43 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             r = rev.split('##')
             rid = r[0].zfill(5)
 
-            change[rid] = {
-                'node': r[1],
-                'desc': r[2],
-                'tags': r[3],
-                'date': r[4],
-                'extras': r[5].split(';'),
-            }
-
+            source = None
+            branch = None
             extras = r[5].split(';')
             if extras:
-                for ex in extras:
                     if 'branch' in ex:
                         branch = ex.split('branch=')[1]
-                        change[rid]['branch'] = branch
                     if 'source' in ex:
                         source = ex.split('source=')[1]
-                        change[rid]['source'] = source
+                    if 'rebase_source' in ex:
+                        source = ex.split('rebase_source=')[1]
+
+
+            key = source or r[1]
+            if not change.get(key):
+                change[key] = {
+                    'rev': [rid],
+                    'nodes': [r[1]],
+                    'desc': r[2],
+                    'tags': r[3],
+                    'date': r[4],
+                    'extras': extras,
+                    'branch': [branch],
+                }
+            else:
+                change[key]['branch'].append(branch)
+                change[key]['nodes'].append(r[1])
+                change[key]['rev'].append(rid)
+                
 
             revisions[r[1]] = rid
+        
         return change
 
     def print_changeset(key, rev):
 
-        print "\n" + bcolors.HEADER + key + ':' + rev['node'] + ' (Branch:' + \
-            rev['branch'] + ')\t[' + rev['date'] + ']' + bcolors.ENDC
+        print "\n" + bcolors.HEADER + key + ':' + ",".join(rev['rev']) + ' (Branch:' + \
+            ",".join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
         print rev['desc']
 
     path_repo = os.path.join(path, module)
@@ -571,47 +586,20 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     template = ('{rev}##{node}##{desc}##{tags}##{date|isodate}##'
         '{join(extras,";")}***')
     repo = hgapi.Repo(path_repo)
-    revs = repo.hg_log(template=template, branch=first_branch)
-    revs2 = repo.hg_log(template=template, branch=second_branch)
 
-    change = changesets(revs)
-    change2 = changesets(revs2)
 
-    keys = change.keys()
-    keys2 = change2.keys()
-    keys2_node = [change2[x]['node'] for x in change2]
-
-    keys.sort()
-    keys2.sort()
-
-    min_key = int(keys2[0])
-
-    tags = []
-    for x, y in change2.iteritems():
-        if y['tags']:
-            tags.append(y['tags'])
-
-    for tag in tags:
-        if tag == 'tip':
+    revs = repo.hg_log(template=template)
+    changes= changesets(revs)
+    
+    start = None
+    for r, val in changes.iteritems():
+        if first_branch not in val['branch'] and start is None:
             continue
-        key = revisions.get(tag, 0)
-        min_key = max(min_key, key)
+        if first_branch not in val['branch']:
+            start = val['rid']
 
-    print bcolors.BOLD + "Commits in branch %s not updated on %s" % (
-        first_branch, second_branch) + bcolors.ENDC
-
-    for key in keys[1:]:
-        val = change.get(key)
-        if int(key) < min_key:
-            continue
-        val = change.get(key)
-        tags = val.get('tags')
-        source = val.get('source')
-        if key in change2 or source in keys2_node:
-            continue
-
-        print_changeset(key, val)
-
+        if second_branch not in val['branch']:
+            print_changeset(r, val)
 
 
 @task()
