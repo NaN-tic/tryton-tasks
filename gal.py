@@ -115,12 +115,18 @@ def dump(dbname=None):
     check_output('pg_dump', '-f', gal_path(dump_file), dbname)
     gal_repo().hg_add(dump_file)
 
+
 def dropdb(dbname=None):
     if dbname is None:
         dbname = 'gal'
     check_output('dropdb', dbname)
 
+
 def restore(dbname=None):
+    global restore_step
+    if not restore_step:
+        return
+
     if dbname is None:
         dbname = 'gal'
     dump_file = 'gal.sql'
@@ -238,10 +244,9 @@ def build(filename=None, no_restore=False):
     print "Building %s..." % filename
 
     global restore_step
-    resore_step= True
+    resore_step = True
     if no_restore:
         restore_step = False
-
 
     with codecs.open(filename, 'r', 'utf-8') as f:
         for line in f:
@@ -280,11 +285,7 @@ def galfile():
 def execute_script(script):
     gal_action('execute_script', script=script)
 
-    global restore_step
-
-    if restore_step:
-        restore()
-
+    restore()
     connect_database()
 
     if script.endswith('.rst'):
