@@ -533,6 +533,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
         revs.reverse()
         for rev in revs:
+
             if not rev:
                 continue
 
@@ -544,16 +545,16 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             extras = r[5].split(';')
             
             if extras:
-                ex = extras[0]
-                if 'branch' in ex:
-                    branch = ex.split('branch=')[1]
-                if 'source' in ex:
-                    source = ex.split('source=')[1]
-                if 'rebase_source' in ex:
-                    source = ex.split('rebase_source=')[1]
-
+                for extra in extras:
+                    if 'branch' in extra:                 
+                        branch = extra.split('branch=')[1]
+                    if 'source' in extra:
+                        source = extra.split('source=')[1]
+                    if 'rebase_source' in extra:
+                        source = extra.split('rebase_source=')[1]
 
             key = source or r[1]
+
             if not change.get(key):
                 change[key] = {
                     'rev': [rid],
@@ -595,6 +596,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     
     start = None
     for r, val in changes.iteritems():
+
         if first_branch not in val['branch'] and start is None:
             continue
 
