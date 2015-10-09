@@ -542,13 +542,15 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             source = None
             branch = None
             extras = r[5].split(';')
+            
             if extras:
-                    if 'branch' in ex:
-                        branch = ex.split('branch=')[1]
-                    if 'source' in ex:
-                        source = ex.split('source=')[1]
-                    if 'rebase_source' in ex:
-                        source = ex.split('rebase_source=')[1]
+                ex = extras[0]
+                if 'branch' in ex:
+                    branch = ex.split('branch=')[1]
+                if 'source' in ex:
+                    source = ex.split('source=')[1]
+                if 'rebase_source' in ex:
+                    source = ex.split('rebase_source=')[1]
 
 
             key = source or r[1]
@@ -595,8 +597,13 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     for r, val in changes.iteritems():
         if first_branch not in val['branch'] and start is None:
             continue
+
         if first_branch not in val['branch']:
             start = val['rid']
+            continue
+        
+        if 'Create branch' in val['desc']:
+            continue
 
         if second_branch not in val['branch']:
             print_changeset(r, val)
@@ -615,6 +622,9 @@ def compare_branches(first_branch, second_branch, module=None,
     for section in Config.sections():
         if module and section != module:
             continue
+
+        print "Module:" , section
+        print "*******************************************************"
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         if repo == 'git':
