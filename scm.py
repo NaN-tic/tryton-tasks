@@ -830,13 +830,16 @@ def _hg_branches(module, path, config_branch=None):
 
     print msg
 
+
 @task()
-def branches(config=None):
+def branches(config=None, modules=None):
 
     patches._pop()
     Config = read_config_file(config, unstable=True)
 
     for section in Config.sections():
+        if modules and section not in modules:
+            continue
         repo = get_repo(section, Config)
         _hg_branches(section, repo['path'], repo['branch'])
 

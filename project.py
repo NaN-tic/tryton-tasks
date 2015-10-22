@@ -4,11 +4,11 @@ import ssl
 import sys
 import datetime
 
-from invoke import task, Collection
+from invoke import run, task, Collection
 
 from .config import get_config
 from . import reviewboard
-from .scm import get_branch
+from .scm import get_branch, branches
 from .utils import t
 import logging
 from tabulate import tabulate
@@ -264,6 +264,13 @@ def components(database):
         print component.component.name
 
 
+@task()
+def check_migration(database):
+    output = run('psql -d %s -c "select name from ir_module_module where state=\'installed\'"' % database, hide='both')
+    modules = [x.strip() for x in output.stdout.split('\n')]
+    branches(None, modules)
+
+
 
 ProjectCollection = Collection()
 ProjectCollection.add_task(upload_review)
@@ -273,3 +280,4 @@ ProjectCollection.add_task(tasks)
 ProjectCollection.add_task(ct)
 ProjectCollection.add_task(working)
 ProjectCollection.add_task(components)
+ProjectCollection.add_task(check_migration)
