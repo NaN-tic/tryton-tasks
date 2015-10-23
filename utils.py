@@ -234,6 +234,8 @@ def export_translations(database, modules, langs=None,
             translation_export.form.language = language
             translation_export.form.module = module
             translation_export.execute('export')
+            if not translation_export.form.file:
+                continue
 
             file_path = os.path.join(module_locale_path,
                 '%s.po' % language.code)
