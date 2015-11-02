@@ -64,7 +64,8 @@ def get_fqdn():
         data = data.strip('\n').strip('\r').strip()
     return data
 
-def test(dbtype, name, modules, failfast, reviews=False, work=None):
+def test(dbtype, name, modules, failfast, reviews=False, work=None,
+    upload=True):
 
     if older_version:
         CONFIG['db_type'] = dbtype
@@ -100,13 +101,16 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None):
         name = name + " ["+','.join(modules)+"]"
 
     logger.info('Upload results to tryton')
-    runner.upload_tryton(dbtype, failfast, name, reviews, work)
+    if upload:
+        runner.upload_tryton(dbtype, failfast, name, reviews, work)
+    else:
+        runner.print_report(dbtype, failfast, name, reviews, work)
 
 @task()
-def module(module, work=None,  dbtype='sqlite', fail_fast=False):
+def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True):
     name = 'Development Test on "%s" for module' % get_fqdn()
     test(failfast=fail_fast, dbtype=dbtype, modules=[module], name=name,
-        work=work)
+        work=work, upload=upload)
 
 
 @task()

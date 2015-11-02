@@ -216,6 +216,45 @@ class TrytonTestRunner(object):
         self._coverage = coverage
         self.pyflakes_result = {}
 
+    def print_report(self, db_type, failfast, name, reviews, work):
+        logger.info("Generating report for execution %s" % name)
+        report = self._generate_report(self.result)
+        logger.info("Report for execution %s" % name)
+
+        for module in report:
+            print "************     ", module, "     ************"
+            result = report[module]
+            path = result['path']
+            print "path:", path
+
+            try:
+                revision = hg_revision(module, path) or '0'
+                branch = get_branch(path) or 'default'
+            except:
+                revision = 'unknown'
+                branch = 'default'
+
+            print "revision:", revision
+            print "branch:", branch
+            print "coverage:", round(self.coverage_result.get(module,
+                    (0, 0, 0))[2], 2)
+
+            print "lines:", self.coverage_result.get(module, (0, 0, 0))[0]
+            print "covered lines", self.coverage_result.get(module,
+                (0, 0, 0))[1]
+
+            for test_result in result['test']:
+                print "\nTest:", test_result['desc']
+                print "type:", test_result['type']
+                print "status:", test_result['status']
+                print test_result['output']
+
+            for test_result in self.pyflakes_result.get(module, []):
+                print "\nTest:", test_result['name']
+                print "type:", test_result['type']
+                print "status:", test_result['status']
+                print test_result['output']
+
     def upload_tryton(self, db_type, failfast, name, reviews, work):
         logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
@@ -324,8 +363,8 @@ class TrytonTestRunner(object):
         args = []
         type_ = 'flake'
         if checker == 'flake8':
-            args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E711,W0232,'
-                'R0903"']
+            args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E131,E711,\
+                W0232,E265,R0903"']
             type_ = 'pep8'
 
         path = os.path.abspath(os.path.normpath(os.path.join(
