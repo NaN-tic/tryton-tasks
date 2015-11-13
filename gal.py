@@ -533,9 +533,10 @@ def get_object(module, fs_id):
     Class = Model.get(model)
     return Class(id)
 
-def create_party(name, street=None, zip=None, city=None,
+def create_party(name, street=None, streetbis=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
-        address_name=None, account_payable=None, account_receivable=None):
+        email=None, address_name=None, account_payable=None,
+        account_receivable=None):
     Address = Model.get('party.address')
     ContactMechanism = Model.get('party.contact_mechanism')
     Country = Model.get('country.country')
@@ -562,6 +563,7 @@ def create_party(name, street=None, zip=None, city=None,
         Address(
             name=address_name,
             street=street,
+            streetbis=streetbis,
             zip=zip,
             city=city,
             country=country,
@@ -574,6 +576,10 @@ def create_party(name, street=None, zip=None, city=None,
         party.contact_mechanisms.append(
             ContactMechanism(type='website',
                 value=website))
+    if email:
+        party.contact_mechanisms.append(
+            ContactMechanism(type='email',
+                value=email))
     party.lang = random.choice(get_languages())
 
     if account_payable:
@@ -879,27 +885,28 @@ def create_products(count=400):
     gal_commit()
 
 @task()
-def create_company(name, street=None, zip=None, city=None,
+def create_company(name, street=None, streetbis=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', currency_code='EUR',
-        phone=None, website=None):
+        phone=None, website=None, email=None):
     '''
     Creates a company in current gal database.
 
     Based on tryton_demo.py in tryton-tools repo:
     http://hg.tryton.org/tryton-tools
     '''
-    gal_action('create_company', name=name, street=street, zip=zip, city=city,
-        subdivision_code=subdivision_code, country_code=country_code,
-        currency_code=currency_code, phone=phone, website=website)
+    gal_action('create_company', name=name, street=street, streetbis=streetbis,
+        zip=zip, city=city, subdivision_code=subdivision_code,
+        country_code=country_code, currency_code=currency_code, phone=phone,
+        website=website, email=email)
     restore()
     connect_database()
 
     Company = Model.get('company.company')
     Currency = Model.get('currency.currency')
 
-    party = create_party(name, street=street, zip=zip, city=city,
-        subdivision_code=subdivision_code, country_code=country_code,
-        phone=phone, website=website)
+    party = create_party(name, street=street, streetbis=streetbis, zip=zip,
+        city=city, subdivision_code=subdivision_code, country_code=country_code,
+        phone=phone, website=website, email=email)
 
     companies = Company.find([('party', '=', party.id)])
     if companies:
