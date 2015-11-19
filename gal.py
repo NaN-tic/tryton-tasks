@@ -250,7 +250,8 @@ def build(filename=None, no_restore=False):
 
     with codecs.open(filename, 'r', 'utf-8') as f:
         for line in f:
-            if line and not line.strip().startswith('#'):
+            line = line.strip()
+            if line and not line.startswith('#'):
                 print t.bold(unicode(line))
                 eval(line)
 
