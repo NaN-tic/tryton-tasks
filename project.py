@@ -3,15 +3,20 @@ import os
 import ssl
 import sys
 import datetime
+import hgapi
 
 from invoke import run, task, Collection
 
 from .config import get_config
 from . import reviewboard
-from .scm import get_branch, branches
+from .scm import get_branch, branches, hg_pull, hg_clone
 from .utils import t
 import logging
 from tabulate import tabulate
+
+from .bucket import pullrequests
+import choice
+
 
 try:
     from proteus import config as pconfig, Model
@@ -79,71 +84,8 @@ def create_test_task(log_file):
 
 
 @task()
-def tasks(party=None, user=None):
-    get_tryton_connection()
-
-    Project = Model.get('project.work')
-    domain = [('state', '=', 'opened')]
-
-    if party:
-        domain.append(('party.name', 'ilike', "%" + party + "%"))
-    if user:
-        domain.append(('assigned_employee', 'ilike', "%" + user + "%"))
-
-    projects = Project.find(domain)
-    for project in projects:
-        print "(%s) %s - (%s) %s [%s]" % (
-            project.assigned_employee and project.assigned_employee.rec_name,
-            project.rec_name,
-            project.effort,
-            project.task_phase.name,
-            project.party.rec_name)
-
-
-@task()
-def close_review(work):
-    get_tryton_connection()
-    Review = Model.get('project.work.codereview')
-    reviews = Review.find([('work.code', '=', work)])
-    for review in reviews:
-        reviewboard.close(review.review_id)
-
-@task()
-def fetch_reviews(branch='default', component=None, exclude_components=None):
-    _fetch_reviews(branch, component, exclude_components)
-
-
-def _fetch_reviews(branch='default', component=None, exclude_components=None):
-    get_tryton_connection()
-    Review = Model.get('project.work.codereview')
-    reviews = Review.find([
-            ('state', '=', 'opened'),
-            ('branch', '=', branch),
-            ])
-    if not exclude_components:
-        exclude_components = []
-    for review in reviews:
-        if component and review.component and \
-                review.component.name != component:
-            continue
-        if review.component and review.component.name in exclude_components:
-            continue
-        if review.component:
-            path = os.path.join('modules', review.component.name)
-        else:
-            path = ''
-        try:
-            print "fetch review:", path, review.review_id
-            reviewboard.fetch(path, review.review_id)
-            reviewboard.create_review_file(path, review.review_id)
-        except:
-            print "Exception"
-            logger.exception("Exception has occured", exc_info=1)
-
-
-@task()
 def fetch_review(work):
-    import traceback
+
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     reviews = Review.find([('work.code', '=', work), ('state', '=', 'opened')])
@@ -152,22 +94,96 @@ def fetch_review(work):
             path = os.path.join('modules', review.component.name)
         else:
             path = ''
+
         if not os.path.exists(path):
-            os.makedirs(path)
+            cl = review.url.split('/')[:-2]
+            clone_url = "/".join(cl)
+            hg_clone(clone_url, path, review.branch)
 
-        try:
-            print "fetch review:", path, review.review_id
-            reviewboard.fetch(path, review.review_id)
-            reviewboard.create_review_file(path, review.review_id)
-        except:
-            # exc_type, exc_value, exc_traceback = sys.exc_info()
-         #   traceback.print_exc()
-            logger.exception("Exception has occured", exc_info=1)
-
+        hg_pull(review.component.name, path, update=True,
+                branch=review.branch)
 
 
 @task()
-def upload_review(work, path, review=None, new=False):
+def decline_review(work, review_id=None, message=None):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    Task = Model.get('project.work')
+
+    tasks = Task.find([('code', '=', work)])
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        sys.exit(1)
+
+    w = tasks[0]
+    reviews = Review.find([('work', '=', w.id), ('state', '=', 'opened')])
+
+    for review in reviews:
+        if review_id and str(review.id) != review_id:
+            print review_id, review.id
+            continue
+
+        show_review(review)
+
+        if not review_id:
+            continue
+
+        confirm = choice.Binary('Are you sure you want to decline?',
+            False).ask()
+        if confirm:
+            owner, repo, request_id = get_request_info(review.url)
+            res = pullrequests.decline(owner, repo, request_id, message)
+            if res and res['state'] == 'MERGED':
+                review.state = 'closed'
+                review.save()
+
+
+def get_request_info(url):
+    rs = url.split('/')
+    owner, repo, request_id = rs[-4], rs[-3], rs[-1]
+    return owner, repo, request_id
+
+
+def show_review(review):
+    print "{id} - {name} - {url}".format(
+            id=review.id, name=review.name, url=review.url)
+
+
+@task()
+def merge_review(work, review_id=None, message=None):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    Task = Model.get('project.work')
+
+    tasks = Task.find([('code', '=', work)])
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        sys.exit(1)
+
+    w = tasks[0]
+    reviews = Review.find([('work', '=', w.id), ('state', '=', 'opened')])
+
+    for review in reviews:
+        if review_id and str(review.id) != review_id:
+            print review_id, review.id
+            continue
+
+        show_review(review)
+
+        if not review_id:
+            continue
+
+        confirm = choice.Binary('Are you sure you want to merge?', False).ask()
+        if confirm:
+            owner, repo, request_id = get_request_info(review.url)
+            res = pullrequests.merge(owner, repo, request_id, message)
+            if res and res['state'] == 'MERGED':
+                review.state = 'closed'
+                review.save()
+
+
+@task()
+def upload_review(work, path, branch, review_name, review=None, new=False):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -177,7 +193,7 @@ def upload_review(work, path, review=None, new=False):
     if not tasks:
         print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
         sys.exit(1)
-    task = tasks[0]
+    work = tasks[0]
 
     module = path.split('/')[-1]
     components = Component.find([('name', '=', module)])
@@ -191,64 +207,42 @@ def upload_review(work, path, review=None, new=False):
     if new and os.path.exists(review_file):
         os.remove(review_file)
 
-    review_id = reviewboard.create(path, task.rec_name,
-        task.comment, task.code, review)
+    repo = hgapi.Repo(path)
+    url = repo.config('paths', 'default')
+    url_list = url.split('/')
+    owner, repo_name = (url_list[-2], url_list[-1])
+
+    if branch not in repo.get_branch_names():
+        print >>sys.stderr, t.red('Error: Branch %s '
+            'was not found on repo.' % branch)
+        sys.exit(0)
+
+    review = pullrequests.create(owner, repo_name, branch, review_name)
+
+    review_id = review['id']
 
     review = Review.find([
             ('review_id', '=', str(review_id)),
-            ('work', '=', task.id),
+            ('work', '=', work.id),
             ])
     if not review:
         review = Review()
     else:
         review = review[0]
 
-    review.name = task.rec_name + "(" + module + ")"
+    review.name = "[{module}]-{task_name}".format(
+            module=module, task_name=review_name)
     review.review_id = str(review_id)
-    review.url = 'http://git.nan-tic.com/reviews/r/%s' % review_id
-    review.work = task
-    review.branch = get_branch(path)
+    review.url = ('https://bitbucket.org/{owner}/{repo}/'
+        'pull-requests/{id}').format(
+            owner=owner,
+            repo=repo_name,
+            id=review_id)
+
+    review.work = work
+    review.branch = branch
     review.component = component
     review.save()
-
-
-def work_report(date):
-    get_tryton_connection()
-
-    Timesheet = Model.get('timesheet.line')
-
-    lines = Timesheet.find([('date', '=', date)])
-    result = {}
-    for line in lines:
-        if not result.get(line.employee.rec_name):
-            result[line.employee.rec_name] = {}
-        work_name = line.project_work.rec_name
-        if not result[line.employee.rec_name].get(work_name):
-            if not line.hours:
-                work_name = '* ' + work_name
-
-            result[line.employee.rec_name][work_name] = {
-                'hours': line.hours,
-                'tracker': line.project_work.tracker.rec_name,
-                'state': line.project_work.state,
-                'phase': line.project_work.task_phase.rec_name,
-            }
-        else:
-            result[line.employee.rec_name][work_name]['hours'] += line.hours
-
-    for employee, tasks in result.iteritems():
-        print "\nemployee:", employee
-        table = []
-        for work, val in tasks.iteritems():
-            table += [[work] + val.values()]
-
-        print tabulate(table)
-
-@task()
-def working(date=None):
-    if date is None:
-        date = datetime.date.today()
-    work_report(date)
 
 
 @task()
@@ -266,18 +260,16 @@ def components(database):
 
 @task()
 def check_migration(database):
-    output = run('psql -d %s -c "select name from ir_module_module where state=\'installed\'"' % database, hide='both')
+    output = run('psql -d %s -c "select name from ir_module_module'
+        ' where state=\'installed\'"' % database, hide='both')
     modules = [x.strip() for x in output.stdout.split('\n')]
     branches(None, modules)
 
 
-
 ProjectCollection = Collection()
 ProjectCollection.add_task(upload_review)
+ProjectCollection.add_task(merge_review)
 ProjectCollection.add_task(fetch_review)
-ProjectCollection.add_task(close_review)
-ProjectCollection.add_task(tasks)
 ProjectCollection.add_task(ct)
-ProjectCollection.add_task(working)
 ProjectCollection.add_task(components)
 ProjectCollection.add_task(check_migration)
