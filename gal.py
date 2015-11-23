@@ -700,6 +700,10 @@ def create_parties(count=1000):
 
 @task()
 def create_bank_accounts():
+    gal_action('create_bank_accounts')
+    restore()
+    connect_database()
+
     Party = Model.get('party.party')
     banks = get_banks()
     if not module_installed('account_bank'):
@@ -744,6 +748,7 @@ def create_bank_accounts():
                         party.payable_company_bank_account = accounts[0]
 
         party.save()
+    gal_commit()
 
 @task()
 def create_product_category(name):
