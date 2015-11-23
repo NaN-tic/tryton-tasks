@@ -15,6 +15,7 @@ python-quilt
 tabulate
 configobj
 PyHamcrest
+choice
 
 # gal
 dateutils
