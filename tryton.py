@@ -140,44 +140,6 @@ def update_post_move_sequence(database, fiscalyear, sequence,
 
 
 @task()
-def parent_compute(database, table, field, host='localhost', port='5432',
-        user='angel', password='password'):
-
-    def _parent_store_compute(cr, table, field):
-        def browse_rec(root, pos=0):
-            where = field + '=' + str(root)
-
-            if not root:
-                where = field + 'IS NULL'
-
-            cr.execute('SELECT id FROM %s WHERE %s \
-                ORDER BY %s' % (table, where, field))
-            pos2 = pos + 1
-            childs = cr.fetchall()
-            for id in childs:
-                pos2 = browse_rec(id[0], pos2)
-            cr.execute('update %s set "left"=%s, "right"=%s\
-                where id=%s' % (table, pos, pos2, root))
-            return pos2 + 1
-
-        query = 'SELECT id FROM %s WHERE %s IS NULL order by %s' % (
-            table, field, field)
-        pos = 0
-        cr.execute(query)
-        for (root,) in cr.fetchall():
-            pos = browse_rec(root, pos)
-        return True
-
-    db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
-        password=password)
-
-    cursor = db.cursor()
-    _parent_store_compute(cursor, table, field)
-    db.commit()
-    db.close()
-
-
-@task()
 def missing(database, config_file=None, install=False, show=True):
     """
     Checks which modules are missing according to the dependencies of the

@@ -98,6 +98,7 @@ def read_config_file(config_file=None, type='repos', unstable=True):
 @task()
 def update_parent_left_right(database, table, field, host='localhost',
         port='5432', user='angel', password='angel'):
+    ''' Compute left/right fields for a parent field in a tryton table '''
     def _parent_store_compute(cr, table, field):
             def browse_rec(root, pos=0):
                 where = field + '=' + str(root)
@@ -128,6 +129,8 @@ def update_parent_left_right(database, table, field, host='localhost',
 
     print "calculating parent_left of table", table, "and field:", field
     _parent_store_compute(db.cursor(), table, field)
+    db.commit()
+    db.close()
 
 
 @task()
@@ -135,7 +138,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
         dbuser=None, dbpassword=None,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
-    Runs the set, clean and update wizards in the given database.
+    Runs the set, clean and update translations wizards in the given database.
     """
     print t.bold('prepare_translations: database=%s, langs=%s') % (database,
         langs)
