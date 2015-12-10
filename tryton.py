@@ -140,7 +140,8 @@ def update_post_move_sequence(database, fiscalyear, sequence,
 
 
 @task()
-def missing(database, config_file=None, install=False, show=True):
+def missing(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+        install=False, show=True):
     """
     Checks which modules are missing according to the dependencies of the
     modules installed in the database.
