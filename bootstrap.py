@@ -41,12 +41,12 @@ def get_tasks(taskpath='tasks'):
 
 
 @task()
-def get_config(configpath='config'):
+def get_config(configpath='config', branch='default'):
     # TODO: add option to update repository
     Config.config_path = path(configpath).abspath()
     if path(configpath).exists():
         print ('Updating config repo')
-        hg_pull(configpath, '.', True)
+        hg_pull(configpath, '.', True, branch=branch)
         return
 
     if not getattr(Config, 'get_config', False):
@@ -57,7 +57,7 @@ def get_config(configpath='config'):
 
     print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-config '
         'repository in "config" directory.')
-    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-config', configpath)
+    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-config', configpath, branch)
     print ""
 
 
@@ -187,7 +187,7 @@ def create_symlinks():
 
 
 @task(default=True)
-def bootstrap(projectpath='', projectname='',
+def bootstrap(branch, projectpath='', projectname='',
         taskspath='tasks',
         configpath='config',
         utilspath='utils',
@@ -216,7 +216,7 @@ def bootstrap(projectpath='', projectname='',
     Config.requirements = True  # Install?
 
     get_tasks(taskspath)
-    get_config(configpath)
+    get_config(configpath, branch=branch)
     get_utils(utilspath)
     activate_virtualenv(projectname)
     install_requirements(upgrade=upgradereqs)
