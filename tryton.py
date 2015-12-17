@@ -5,6 +5,7 @@ import psycopg2
 import sys
 from invoke import task, run, Collection
 
+from .iban import create_iban, IBANError
 from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
     BASE_MODULES)
 
@@ -366,6 +367,52 @@ def delete_modules(database, modules,
     cursor.commit()
 
 
+@task()
+def convert_bank_accounts_to_iban(database,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
+    """
+    Convert all Bank Account Numbers of type 'other' to 'iban'.
+    """
+    if not database:
+        return
+
+    print t.bold("Convert bank account number to IBAN")
+    if not check_database(database, {}):
+        return
+
+    config = pconfig.set_trytond(database=database, config_file=config_file)
+
+    BankAccount = Model.get('bank.account')
+    bank_accounts = BankAccount.find([
+            ('numbers.type', '=', 'other'),
+            ])
+    for bank_account in bank_accounts:
+        if any(n.type == 'iban' for n in bank_account.numbers):
+            continue
+
+        bank_country_code = bank_account.bank.party.vat_country or 'ES'
+        assert bank_country_code == 'ES', (
+            "Unexpected country of bank of account %s" % bank_account.rec_name)
+
+        account_number = bank_account.numbers[0]
+        number = account_number.number.replace(' ', '')
+        assert len(number) == 20, "Unexpected length of number %s" % number
+        try:
+            iban = create_iban(
+                bank_country_code,
+                number[:8], number[10:])
+        except IBANError, err:
+            t.red("Error generating iban from number %s: %s" % (number, err))
+            continue
+        account_number.sequence = 10
+        iban_account_number = bank_account.numbers.new()
+        iban_account_number.type = 'iban'
+        iban_account_number.sequence = 1
+        iban_account_number.number = iban
+        bank_account.save()
+    print ""
+
+
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
 TrytonCollection.add_task(uninstall_task, 'uninstall')
@@ -373,3 +420,4 @@ TrytonCollection.add_task(create_fake_modules)
 TrytonCollection.add_task(forgotten)
 TrytonCollection.add_task(missing)
 TrytonCollection.add_task(update_post_move_sequence)
+TrytonCollection.add_task(convert_bank_accounts_to_iban)
