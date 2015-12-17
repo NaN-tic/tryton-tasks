@@ -11,10 +11,11 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
+import ConfigParser
 import os
 import subprocess
-import ConfigParser
+import sys
+import time
 
 
 # Auxiliary functions
@@ -81,7 +82,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Tryton Doc'
-copyright = u'2014, Nan Projectes de Programari Lliure S.L.'
+copyright = (u'2014-%s, Nan Projectes de Programari Lliure S.L.'
+    % time.strftime('%Y'))
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
