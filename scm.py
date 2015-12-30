@@ -34,13 +34,7 @@ class bcolors:
 
 
 def get_url(url):
-    files = ['~/.ssh/id_dsa', '~/.ssh/id_rsa']
-    exists = False
-    for f in files:
-        if os.path.exists(os.path.expanduser(f)):
-            exists = True
-            break
-    if not exists:
+    if not 'SSH_AUTH_SOCK' in os.environ:
         if url.startswith('ssh'):
             url = 'https' + url[3:]
     return url
