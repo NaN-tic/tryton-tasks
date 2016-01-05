@@ -792,7 +792,6 @@ def clean(force=False, config=None, unstable=True):
         if os.path.exists(repo['path']):
             repos.append(repo)
     p.map(_clean, repos)
-    patches._push()
 
 
 def _hg_branches(module, path, config_branch=None):
