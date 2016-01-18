@@ -17,7 +17,7 @@ except ImportError, e:
     print >> sys.stderr, "trytond importation error: ", e
 
 try:
-    from proteus import config as pconfig, Wizard, Model
+    from proteus import config as pconfig, Wizard, Model,  __version__ as proteus_version
 except ImportError:
     proteus_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                 'proteus')))
@@ -30,7 +30,11 @@ except ImportError:
 
 try:
     from sql import Table
-    ir_module = Table('ir_module_module')
+    print "proteus:", proteus_version
+    if proteus_version <= 3.4:
+        ir_module = Table('ir_module_module')
+    else:
+        ir_module = Table('ir_module')
     ir_model_data = Table('ir_model_data')
 except ImportError:
     ir_module = None
@@ -319,7 +323,11 @@ def uninstall_task(database, modules,
 
     config = pconfig.set_trytond(database=database, config_file=config_file)
 
-    Module = Model.get('ir.module.module')
+    if proteus_version <= 3.4:
+        Module = Model.get('ir.module.module')
+    else:
+        Module = Model.get('ir.module')
+
     modules_to_uninstall = Module.find([
             ('name', 'in', modules),
             ('state', '=', 'installed')
@@ -327,7 +335,10 @@ def uninstall_task(database, modules,
     Module.uninstall([m.id for m in modules_to_uninstall],
         config.context)
 
-    module_install_upgrade = Wizard('ir.module.module.install_upgrade')
+    if proteus_version <= 3.4:
+        module_install_upgrade = Wizard('ir.module.module.install_upgrade')
+    else:
+        module_install_upgrade = Wizard('ir.module.install_upgrade')
     module_install_upgrade.execute('upgrade')
     module_install_upgrade.execute('config')
     print ""
