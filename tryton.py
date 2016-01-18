@@ -19,6 +19,7 @@ except ImportError, e:
 try:
     from proteus import config as pconfig, Wizard, Model,  __version__ as proteus_version
 except ImportError:
+    proteus_version = 3.4
     proteus_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                 'proteus')))
     if os.path.isdir(proteus_path):
@@ -30,7 +31,6 @@ except ImportError:
 
 try:
     from sql import Table
-    print "proteus:", proteus_version
     if proteus_version <= 3.4:
         ir_module = Table('ir_module_module')
     else:
