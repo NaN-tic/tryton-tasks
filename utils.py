@@ -193,7 +193,11 @@ def export_translations(database, modules, langs=None,
 
     config.set_trytond(database=database, config_file=config_file)
 
-    Module = Model.get('ir.module.module')
+    try:
+        Module = Model.get('ir.module')
+    except KeyError:
+        # Compatibility with versions older than 3.8
+        Module = Model.get('ir.module.module')
     if modules == 'all':
         ir_modules = Module.find([
                 ('state', '=', 'installed'),
