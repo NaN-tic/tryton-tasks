@@ -411,7 +411,7 @@ def convert_bank_accounts_to_iban(database,
         try:
             iban = create_iban(
                 bank_country_code,
-                number[:8], number[10:])
+                number[:8], number[8:])
         except IBANError, err:
             t.red("Error generating iban from number %s: %s" % (number, err))
             continue
