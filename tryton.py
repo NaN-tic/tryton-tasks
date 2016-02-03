@@ -31,7 +31,7 @@ except ImportError:
 
 try:
     from sql import Table
-    if proteus_version <= 3.4:
+    if proteus_version < '3.5':
         ir_module = Table('ir_module_module')
     else:
         ir_module = Table('ir_module')
@@ -323,7 +323,7 @@ def uninstall_task(database, modules,
 
     config = pconfig.set_trytond(database=database, config_file=config_file)
 
-    if proteus_version <= 3.4:
+    if proteus_version < '3.5':
         Module = Model.get('ir.module.module')
     else:
         Module = Model.get('ir.module')
@@ -335,7 +335,7 @@ def uninstall_task(database, modules,
     Module.uninstall([m.id for m in modules_to_uninstall],
         config.context)
 
-    if proteus_version <= 3.4:
+    if proteus_version < '3.5':
         module_install_upgrade = Wizard('ir.module.module.install_upgrade')
     else:
         module_install_upgrade = Wizard('ir.module.install_upgrade')
