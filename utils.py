@@ -96,9 +96,12 @@ def read_config_file(config_file=None, type='repos', unstable=True):
 
 
 @task()
-def update_parent_left_right(database, table, field, host='localhost',
-        port='5432', user='angel', password='angel'):
+def update_parent_left_right(database, table, field=None, host='localhost',
+        port='5432', user=None, password=None):
     ''' Compute left/right fields for a parent field in a tryton table '''
+    if field is None:
+        field = 'parent'
+
     def _parent_store_compute(cr, table, field):
             def browse_rec(root, pos=0):
                 where = field + '=' + str(root)
