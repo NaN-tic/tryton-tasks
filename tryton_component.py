@@ -42,7 +42,7 @@ def push(config=None, filter=None):
     Component = Model.get('project.work.component')
 
     print "Fetching module list..."
-    Module = Model.get('ir.module.module')
+    Module = Model.get('ir.module')
     modules = {}
     for module in Module.find([]):
         modules[module.name] = module
