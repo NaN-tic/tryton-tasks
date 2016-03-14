@@ -90,8 +90,7 @@ def connect_database(database=None, password='admin',
             from trytond.protocols.dispatcher import create as tcreate
             tcreate(database, None, language, password)
 
-        config = pconfig.set_trytond(database, password=password,
-            language=language, config_file='trytond.conf')
+        config = pconfig.set_trytond(database, config_file='trytond.conf')
         config.pool.test = False
 
 
@@ -167,7 +166,7 @@ def gal_commit(do_dump=True):
 
 @lru_cache()
 def module_installed(module):
-    Module = Model.get('ir.module.module')
+    Module = Model.get('ir.module')
     return bool(Module.find([
             ('name', '=', module),
             ]))
@@ -348,7 +347,7 @@ def upgrade_modules(modules=None, all=False):
     '''
     assert all or modules
 
-    Module = Model.get('ir.module.module')
+    Module = Model.get('ir.module')
     if all:
         modules = Module.find([
                 ('state', '=', 'installed'),
@@ -360,9 +359,9 @@ def upgrade_modules(modules=None, all=False):
                 ])
 
     Module.upgrade([x.id for x in modules], config.context)
-    Wizard('ir.module.module.install_upgrade').execute('upgrade')
+    Wizard('ir.module.install_upgrade').execute('upgrade')
 
-    ConfigWizardItem = Model.get('ir.module.module.config_wizard.item')
+    ConfigWizardItem = Model.get('ir.module.config_wizard.item')
     for item in ConfigWizardItem.find([('state', '!=', 'done')]):
         item.state = 'done'
         item.save()
@@ -437,7 +436,7 @@ def install_modules(modules):
 
     modules = modules.split(',')
 
-    Module = Model.get('ir.module.module')
+    Module = Model.get('ir.module')
     modules = Module.find([
             ('name', 'in', modules),
             #('state', '!=', 'installed'),
@@ -446,9 +445,9 @@ def install_modules(modules):
     modules = [x.name for x in Module.find([
                 ('state', 'in', ('to install', 'to_upgrade')),
                 ])]
-    Wizard('ir.module.module.install_upgrade').execute('upgrade')
+    Wizard('ir.module.install_upgrade').execute('upgrade')
 
-    ConfigWizardItem = Model.get('ir.module.module.config_wizard.item')
+    ConfigWizardItem = Model.get('ir.module.config_wizard.item')
     for item in ConfigWizardItem.find([('state', '!=', 'done')]):
         item.state = 'done'
         item.save()
@@ -1067,7 +1066,7 @@ def create_fiscal_year(company, year=None):
     connect_database()
 
     FiscalYear = Model.get('account.fiscalyear')
-    Module = Model.get('ir.module.module')
+    Module = Model.get('ir.module')
     Sequence = Model.get('ir.sequence')
     SequenceStrict = Model.get('ir.sequence.strict')
     Company = Model.get('company.company')
