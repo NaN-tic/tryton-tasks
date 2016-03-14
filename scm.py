@@ -1253,7 +1253,7 @@ def prefetch(force=False):
 
 @task()
 def fetch():
-    print t.bold('Pulling and updated local repository...')
+    print t.bold('Pulling and updating local repository...')
     # Replace by a "hg_pull" call
     bashCommand = ['hg', 'pull', '-u']
     execBashCommand(bashCommand, '',
