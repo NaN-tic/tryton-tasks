@@ -19,6 +19,7 @@ from invoke import task, Collection
 from .utils import t
 
 global restore_step
+global commit_msg
 restore_step = True
 
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
@@ -705,6 +706,7 @@ def create_bank_accounts():
     connect_database()
 
     Party = Model.get('party.party')
+    Invoice = Model.get('account.invoice')
     banks = get_banks()
     if not module_installed('account_bank'):
         print t.red('account_bank module must be installed before creating '
@@ -746,6 +748,11 @@ def create_bank_accounts():
                     accounts = company.party.bank_accounts
                     if accounts:
                         party.payable_company_bank_account = accounts[0]
+        for invoice in Invoice.find([('party', '=', party.id)]):
+            if (invoice.payment_type
+                    and invoice.payment_type.account_bank == 'party'):
+                invoice.bank_account = account
+            invoice.save()
 
         party.save()
     gal_commit()
@@ -1668,6 +1675,81 @@ def process_customer_invoices():
     Invoice.post([x.id for x in invoices], config.context)
     gal_commit()
 
+
+def create_invoices(type_, count=100, linecount=10):
+    """
+    It creates 'count' invoices using random products (linecount maximum)
+    and parties.
+
+    If 'count' is not specified 100 is used by default.
+    If 'linecount' is not specified 10 is used by default.
+    """
+    Account = Model.get('account.account')
+    Invoice = Model.get('account.invoice')
+    InvoiceLine = Model.get('account.invoice.line')
+    Party = Model.get('party.party')
+    Product = Model.get('product.product')
+    Term = Model.get('account.invoice.payment_term')
+    Journal = Model.get('account.journal')
+
+    parties = Party.find([])
+    products = Product.find([('salable', '=', True)])
+    terms = Term.find([])
+    if type_.startswith('out'):
+        journal_code = 'REV'
+    else:
+        journal_code = 'EXP'
+    journal, = Journal.find(['code', '=', journal_code], limit=1)
+
+    for c in xrange(count):
+        invoice = Invoice()
+        invoice.type = type_
+        invoice.invoice_date = random_datetime(TODAY + relativedelta(months=-12),
+            TODAY)
+        invoice.party = random.choice(parties)
+        invoice.journal = journal
+
+        if not invoice.payment_term:
+            invoice.payment_term = random.choice(terms)
+
+        for lc in xrange(random.randrange(1, linecount)):
+            line = InvoiceLine()
+            invoice.lines.append(line)
+            line.type = 'line'
+            line.product = random.choice(products)
+            line.quantity = random.randrange(1, 20)
+        invoice.save()
+
+@task()
+def create_customer_invoices(count=100, linecount=10):
+    """
+    It creates 'count' custoemr invoices using random products (linecount
+    maximum) and parties.
+
+    If 'count' is not specified 100 is used by default.
+    If 'linecount' is not specified 10 is used by default.
+    """
+    gal_action('create_customer_invoices', count=count, linecount=linecount)
+    restore()
+    connect_database()
+    create_invoices('out_invoice', count=count, linecount=linecount)
+    gal_commit()
+
+@task()
+def create_supplier_invoices(count=100, linecount=10):
+    """
+    It creates 'count' supplier invoices using random products (linecount
+    maximum) and parties.
+
+    If 'count' is not specified 100 is used by default.
+    If 'linecount' is not specified 10 is used by default.
+    """
+    gal_action('create_customer_invoices', count=count, linecount=linecount)
+    restore()
+    connect_database()
+    create_invoices('in_invoice', count=count, linecount=linecount)
+    gal_commit()
+
 @task()
 def process_supplier_shipments():
     """
@@ -1929,3 +2011,6 @@ GalCollection.add_task(create_production_requests)
 GalCollection.add_task(create_purchase_requests)
 GalCollection.add_task(create_reservations)
 GalCollection.add_task(create_marketing_invoices)
+GalCollection.add_task(create_customer_invoices)
+GalCollection.add_task(create_supplier_invoices)
+
