@@ -1642,6 +1642,39 @@ def process_customer_shipments():
 
     gal_commit()
 
+def process_invoices(type_):
+    """
+    It randomly confirms supplier invoices.
+
+    90% of customer invoices are confirmed.
+    """
+    Invoice = Model.get('account.invoice')
+    invoices = Invoice.find([
+            ('type', '=', type_),
+            ('state', '=', 'draft'),
+            ])
+
+    invoices = random.sample(invoices, int(0.9 * len(invoices)))
+    for invoice in invoices:
+        # TODO: For consistency, better use the date of the maximum
+        # date of the # sales/purchases (if available) composing the lines of
+        # the invoice
+        invoice.invoice_date = random_datetime(
+            TODAY + relativedelta(months=-12), TODAY)
+        if hasattr(invoice, 'payment_type') and not invoice.payment_type:
+            if type_ in ('out_invoice', 'in_credit_note'):
+                payment_type = invoice.party.customer_payment_type
+            else:
+                payment_type = invoice.party.supplier_payment_type
+            if payment_type:
+                invoice.payment_type = payment_type
+            else:
+                invoice.payment_type = random.choice(
+                    get_payment_types('receivable' if type_ in ('out_invoice',
+                            'in_credit_note') else 'payable'))
+        invoice.save()
+    Invoice.post([x.id for x in invoices], config.context)
+
 @task()
 def process_customer_invoices():
     """
@@ -1652,27 +1685,20 @@ def process_customer_invoices():
     gal_action('process_customer_invoices')
     restore()
     connect_database()
+    process_invoices('out_invoice')
+    gal_commit()
 
-    Invoice = Model.get('account.invoice')
-    invoices = Invoice.find([
-            ('type', '=', 'out_invoice'),
-            ('state', '=', 'draft'),
-            ])
-    invoices = random.sample(invoices, int(0.9 * len(invoices)))
-    for invoice in invoices:
-        # TODO: For consistency, better use the date of the maximum
-        # date of the # sales composing the lines of the invoice
-        invoice.invoice_date = random_datetime(
-            TODAY + relativedelta(months=-12), TODAY)
-        if hasattr(invoice, 'payment_type') and not invoice.payment_type:
-            if invoice.party.customer_payment_type:
-                invoice.payment_type = invoice.party.customer_payment_type
-            else:
-                invoice.payment_type = random.choice(
-                    get_payment_types('receivable'))
-        invoice.save()
+@task()
+def process_supplier_invoices():
+    """
+    It randomly confirms supplier invoices.
 
-    Invoice.post([x.id for x in invoices], config.context)
+    90% of customer invoices are confirmed.
+    """
+    gal_action('process_customer_invoices')
+    restore()
+    connect_database()
+    process_invoices('in_invoice')
     gal_commit()
 
 
