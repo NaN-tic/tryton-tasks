@@ -1695,7 +1695,7 @@ def process_supplier_invoices():
 
     90% of customer invoices are confirmed.
     """
-    gal_action('process_customer_invoices')
+    gal_action('process_supplier_invoices')
     restore()
     connect_database()
     process_invoices('in_invoice')
@@ -1770,7 +1770,7 @@ def create_supplier_invoices(count=100, linecount=10):
     If 'count' is not specified 100 is used by default.
     If 'linecount' is not specified 10 is used by default.
     """
-    gal_action('create_customer_invoices', count=count, linecount=linecount)
+    gal_action('create_supplier_invoices', count=count, linecount=linecount)
     restore()
     connect_database()
     create_invoices('in_invoice', count=count, linecount=linecount)
