@@ -16,6 +16,7 @@ tabulate
 configobj
 PyHamcrest
 choice
+faulthandler
 
 # gal
 dateutils
