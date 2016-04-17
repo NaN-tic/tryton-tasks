@@ -6,6 +6,29 @@ from invoke import task, Collection, run
 from .config import get_config
 from .utils import read_config_file, NO_MODULE_REPOS, BASE_MODULES
 
+import httplib
+from urlparse import urlparse
+from .scm import hg_clone
+import tempfile
+
+def check_url(url):
+    p = urlparse(url)
+    conn = httplib.HTTPConnection(p.netloc)
+    conn.request('HEAD', p.path)
+    resp = conn.getresponse()
+    return resp.status < 400
+
+def check_module(module):
+    URLS = [
+        'https://bitbucket.org/zikzakmedia/trytond-',
+        'https://bitbucket.org/trytonspain/trytond-',
+        'https://bitbucket.org/nantic/trytond-',
+        ]
+    for test in URLS:
+        url = test + module
+        if check_url(test + module):
+            return url
+
 try:
     from proteus import config as pconfig, Model
 except ImportError, e:
@@ -82,5 +105,49 @@ def push(config=None, filter=None):
             print "%d SLOC" % c.sloc
         c.save()
 
+@task()
+def upload_file():
+    get_tryton_connection()
+    Component = Model.get('project.work.component')
+
+    print "Fetching component list..."
+    components = {}
+    for component in Component.find([]):
+        components[component.name] = component
+
+    with open('modules.txt', 'r') as f:
+        modules = f.read().split()
+
+    tempdir = tempfile.mkdtemp()
+
+    print "Updating components:", modules
+    for module in modules:
+        print "Updating %s..." % module
+        if module in components:
+            c = components[module]
+        else:
+            c = Component()
+            c.name = module
+            c.url = check_module(module)
+        c.sloc = None
+
+        path = os.path.join(tempdir, module)
+        hg_clone(c.url, path)
+
+        if os.path.isdir(path):
+            result = run('cd %s; sloccount *' % path, hide=True, warn=True)
+            lines = [x for x in result.stdout.splitlines() if 'Total Physical Source Lines of Code (SLOC)' in x]
+            if lines:
+                value = lines[0]
+                value = value.split('=')[1].strip()
+                value = value.replace(',', '').replace('.', '')
+                c.sloc = int(value)
+        if c.sloc is None:
+            print "No SLOC could be calculated."
+        else:
+            print "%d SLOC" % c.sloc
+        c.save()
+
 ComponentCollection = Collection()
 ComponentCollection.add_task(push)
+ComponentCollection.add_task(upload_file)
