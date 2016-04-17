@@ -148,6 +148,34 @@ def upload_file():
             print "%d SLOC" % c.sloc
         c.save()
 
+@task()
+def sloccount():
+    get_tryton_connection()
+    Component = Model.get('project.work.component')
+
+    print "Fetching component list..."
+    tempdir = tempfile.mkdtemp()
+    for component in Component.find([]):
+        print "Updating %s..." % component.name
+        path = os.path.join(tempdir, component.name)
+        hg_clone(component.url, path)
+        if os.path.isdir(path):
+            result = run('cd %s; sloccount *' % path, hide=True, warn=True)
+            lines = [x for x in result.stdout.splitlines()
+                if 'Total Physical Source Lines of Code (SLOC)' in x]
+            if lines:
+                value = lines[0]
+                value = value.split('=')[1].strip()
+                value = value.replace(',', '').replace('.', '')
+                component.sloc = int(value)
+                component.save()
+                print '%d SLOC saved.' % component.sloc
+            else:
+                print 'No SLOC could be calculated.'
+
+
+
 ComponentCollection = Collection()
 ComponentCollection.add_task(push)
 ComponentCollection.add_task(upload_file)
+ComponentCollection.add_task(sloccount)
