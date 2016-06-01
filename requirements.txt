@@ -5,8 +5,6 @@ hgapi
 invoke==0.12.0
 path.py
 pyactiveresource
-python-sql>=0.2
-psycopg2
 psutil
 --allow-external RBTools
 --allow-unverified RBTools
@@ -25,3 +23,15 @@ functools32
 
 # bitbucket
 git+https://github.com/angelnan/bitbucketcli.git
+
+# trytond
+lxml>=2.0
+relatorio>=0.2.0
+Genshi
+python-dateutil
+polib
+psycopg2>=2.5.0
+python-sql>=0.8
+werkzeug
+wrapt
+
