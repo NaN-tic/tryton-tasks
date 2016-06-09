@@ -74,7 +74,7 @@ def check_database(database, connection_params):
 
 def set_context(database_name, config_file=os.environ.get('TRYTOND_CONFIG')):
     CONFIG.update_etc(config_file)
-    if not Transaction().cursor:
+    if not Transaction().connection:
         return Transaction().start(database_name, 0)
     else:
         return contextlib.nested(Transaction().new_cursor(),
@@ -152,7 +152,7 @@ def missing(database, config_file=os.environ.get('TRYTOND_CONFIG'),
     modules installed in the database.
     """
     set_context(database, config_file)
-    cursor = Transaction().cursor
+    cursor = Transaction().connection.cursor()
     cursor.execute(*ir_module.select(ir_module.name,
                         where=ir_module.state.in_(('installed', 'to install',
                                 'to upgrade', 'to remove'))))
@@ -196,7 +196,7 @@ def forgotten(database, config_file=os.environ.get('TRYTOND_CONFIG'),
     are specifically listed.
     """
     with set_context(database, config_file):
-        cursor = Transaction().cursor
+        cursor = Transaction().connection.cursor()
         cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
         db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
 
@@ -359,7 +359,7 @@ def delete_modules(database, modules,
 
     print t.bold("delete: ") + ", ".join(modules)
     set_context(database, config_file)
-    cursor = Transaction().cursor
+    cursor = Transaction().connection.cursor()
     cursor.execute(*ir_module.select(ir_module.name,
                         where=(ir_module.state.in_(('installed', 'to install',
                                 'to upgrade', 'to remove')) &
@@ -375,7 +375,7 @@ def delete_modules(database, modules,
                 ", ".join(installed_modules))
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
-    cursor.commit()
+    Transaction().commit()
 
 
 @task()
