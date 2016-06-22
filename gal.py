@@ -89,7 +89,7 @@ def connect_database(database=None, password='admin',
 
         if not db_exist():
             from trytond.protocols.dispatcher import create as tcreate
-            tcreate(database, None, language, password)
+            tcreate(None, database, None, language, password)
 
         config = pconfig.set_trytond(database, config_file='trytond.conf')
         config.pool.test = False
@@ -208,6 +208,8 @@ def replay(name):
 
     # Disable commits before replaying
     commits_enabled = False
+    # Just add this line to avoid pyflakes warnings
+    commits_enabled
     print 'Replaying actions:'
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
@@ -244,7 +246,7 @@ def build(filename=None, no_restore=False):
     print "Building %s..." % filename
 
     global restore_step
-    resore_step = True
+    restore_step = True
     if no_restore:
         restore_step = False
 
@@ -526,7 +528,6 @@ def get_model_id(module, fs_id):
             ('module', '=', 'account_es'),
             ('fs_id', '=', fs_id),
             ])
-    Class = Model.get(data.model)
     return data.model, data.db_id
 
 def get_object(module, fs_id):
@@ -607,7 +608,6 @@ def create_party(name, street=None, streetbis=None, zip=None, city=None,
             party.sale_price_list = random.choice(price_lists)
     if hasattr(party, 'include_347'):
         party.include_347 = True
-
     party.save()
     return party
 
@@ -648,10 +648,9 @@ def create_random_parties(count=4000):
         phone = random.choice(phones)
         while len(phone) < 9:
             phone += str(random.randrange(9))
-        create_party(company, street=street, zip=None, city=None,
+        party = create_party(company, street=street, zip=None, city=None,
             subdivision_code=None, country_code='ES', phone=phone,
             website=None, address_name=name)
-
     gal_commit()
 
 
@@ -1333,7 +1332,7 @@ def create_opportunities(count=100, linecount=10):
         if not opp.payment_term:
             opp.payment_term = random.choice(terms)
         opp.probability = random.randrange(1, 9) * 10
-        opp.amount = random.randrange(1, 10) * 1000
+        opp.amount = Decimal(random.randrange(1, 10) * 1000)
 
         for lc in xrange(random.randrange(1, linecount)):
             line = OpportunityLine()
@@ -1378,7 +1377,7 @@ def process_opportunities():
     opps = random.sample(opps, int(0.8 * len(opps)))
     opps = [Opportunity(x) for x in opps]
     if opps:
-        wizard = Wizard('sale.opportunity.convert_opportunity', opps)
+        Wizard('sale.opportunity.convert_opportunity', opps)
     gal_commit()
 
 @task()
@@ -1454,8 +1453,11 @@ def create_sales(count=100, linecount=10):
     products = Product.find([('salable', '=', True)])
     terms = Term.find([])
 
+    sales = []
     for c in xrange(count):
+        print "Iteration:", c
         sale = Sale()
+        sales.append(sale)
         sale.sale_date = random_datetime(TODAY + relativedelta(months=-12),
             TODAY)
         sale.party = random.choice(parties)
@@ -1467,7 +1469,8 @@ def create_sales(count=100, linecount=10):
             sale.lines.append(line)
             line.product = random.choice(products)
             line.quantity = random.randrange(1, 20)
-        sale.save()
+        #sale.save()
+    Sale.save(sales)
 
     gal_commit()
 
@@ -1709,7 +1712,6 @@ def create_invoices(type_, count=100, linecount=10):
     If 'count' is not specified 100 is used by default.
     If 'linecount' is not specified 10 is used by default.
     """
-    Account = Model.get('account.account')
     Invoice = Model.get('account.invoice')
     InvoiceLine = Model.get('account.invoice.line')
     Party = Model.get('party.party')
@@ -1787,7 +1789,6 @@ def process_supplier_shipments():
     gal_action('process_supplier_shipments')
     restore()
     connect_database()
-    Move = Model.get('stock.move')
     Shipment = Model.get('stock.shipment.in')
     Purchase = Model.get('purchase.purchase')
 
@@ -1799,7 +1800,6 @@ def process_supplier_shipments():
         shipment.supplier = purchase.party
         shipment.save()
         shipments.append(shipment)
-        lines = []
         for line in purchase.lines:
             for move in line.moves:
                 # TODO: Improve performance, but append crashes
@@ -1904,8 +1904,8 @@ def create_csb43():
     gal_action('create_csb43')
     restore()
     connect_database()
-    from retrofix import c43
-    from retrofix.record import Record
+    #from retrofix import c43
+    #from retrofix.record import Record
 
     #records = []
     #record = Record(c43.FILE_HEADER_RECORD)
@@ -1958,7 +1958,7 @@ def create_csb43():
 #    record.free
 #    records.append(record)
 
-    c43.write()
+    #c43.write()
 
     gal_commit()
 
