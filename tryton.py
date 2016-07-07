@@ -77,7 +77,7 @@ def set_context(database_name, config_file=os.environ.get('TRYTOND_CONFIG')):
     if not Transaction().connection:
         return Transaction().start(database_name, 0)
     else:
-        return contextlib.nested(Transaction().new_cursor(),
+        return contextlib.nested(Transaction().new_transaction(),
             Transaction().set_user(0),
             Transaction().reset_context())
 
