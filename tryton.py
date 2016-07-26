@@ -424,6 +424,69 @@ def convert_bank_accounts_to_iban(database,
     print ""
 
 
+@task(help={
+        'max-lines': 'reconcile moves using 2 to "max_lines" moves '
+        'iteratively (2, 3, ...). By default: 4',
+        })
+def automatic_reconciliation(database, max_lines=4,
+        config_file=os.environ.get('TRYTOND_CONFIG')):
+    """
+    Launch Automatic Reconciliation wizard for all databases and years
+    """
+    if not database:
+        return
+
+    print t.bold("Automatic Reconciliation for %s" % database)
+    if not check_database(database, {}):
+        return
+
+    config = pconfig.set_trytond(database=database, config_file=config_file)
+    Company = Model.get('company.company')
+    FiscalYear = Model.get('account.fiscalyear')
+    User = Model.get('res.user')
+
+    companies = Company.find([])
+    fiscal_years = FiscalYear.find([('state', '=', 'open')])
+
+    print ("It will reconcile %d companies and %d years. Do you want to "
+        "continue? [yN]" % (len(companies), len(fiscal_years)))
+    confirmation = sys.stdin.read(1)
+    if confirmation != "y":
+        return
+
+    user = User(config.user)
+    original_company = user.main_company
+    for company in companies:
+        print "  - Reconcile company %s" % (company.rec_name)
+        user.main_company = company
+        user.save()
+        config._context = User.get_preferences(True, config.context)
+
+        for fiscal_year in FiscalYear.find([
+                    ('company', '=', company.id),
+                    ('state', '=', 'open'),
+                    ]):
+            for max_lines in (2, 3, 4):
+                print "    - Reconcile year %s using %s lines" % (
+                    fiscal_year.name, max_lines)
+                automatic_reconcile = Wizard('account.move_reconcile')
+                assert automatic_reconcile.form.company == company, \
+                    'Unexpected company "%s" (%s)' % (
+                        automatic_reconcile.form.company, company)
+                # get accounts and parties field to avoid
+                # "Model has no attribute 'accounts'" error
+                automatic_reconcile.form.accounts
+                automatic_reconcile.form.parties
+                automatic_reconcile.form.max_lines = str(max_lines)
+                automatic_reconcile.form.max_months = 12
+                automatic_reconcile.form.start_date = fiscal_year.start_date
+                automatic_reconcile.form.end_date = fiscal_year.end_date
+                automatic_reconcile.execute('reconcile')
+
+    user.main_company = original_company
+    user.save()
+
+
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
 TrytonCollection.add_task(uninstall_task, 'uninstall')
@@ -432,3 +495,4 @@ TrytonCollection.add_task(forgotten)
 TrytonCollection.add_task(missing)
 TrytonCollection.add_task(update_post_move_sequence)
 TrytonCollection.add_task(convert_bank_accounts_to_iban)
+TrytonCollection.add_task(automatic_reconciliation)
