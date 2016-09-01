@@ -61,7 +61,16 @@ def check_output(*args):
     stdout, stderr = process.communicate()
     data = stdout + stderr
     if process.returncode:
-        print stdout, t.red(stderr)
+        if isinstance(stdout, str):
+            stdout = stdout.decode('utf-8')
+        if isinstance(stderr, str):
+            stderr = stderr.decode('utf-8')
+        if stdout and stderr:
+            print stdout, t.red(stderr)
+        elif stdout:
+            print stdout
+        elif stderr:
+            print t.red(stderr)
     else:
         print t.green('Ok')
     return data
