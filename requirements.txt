@@ -1,6 +1,6 @@
 blessings
 coverage
-GitPython>=0.3.2.RC1
+GitPython>=0.3.2
 hgapi
 invoke==0.12.2
 path.py
