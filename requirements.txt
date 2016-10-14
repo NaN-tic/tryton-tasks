@@ -16,6 +16,10 @@ PyHamcrest
 choice
 faulthandler
 
+# git
+nose
+mock
+
 # gal
 dateutils
 xmltodict
