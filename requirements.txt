@@ -23,4 +23,5 @@ xmltodict
 functools32
 
 # bitbucket
+markerlib
 git+https://github.com/angelnan/bitbucketcli.git
