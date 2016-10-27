@@ -1273,14 +1273,22 @@ def fetch():
     bashCommand = ['pip', 'install', '-r', 'config/requirements.txt',
         '--exists-action','s']
     execBashCommand(bashCommand,
-        'Requirements Installed Succesfully',
+        'Config Requirements Installed Succesfully',
         "It's not possible to apply patche(es)")
 
     bashCommand = ['pip', 'install', '-r', 'tasks/requirements.txt',
         '--exists-action','s']
     execBashCommand(bashCommand,
-        'Requirements Installed Succesfully',
+        'Tasks Requirements Installed Succesfully',
         "It's not possible to apply patche(es)")
+
+    if os.path.isfile('requirements.txt'):
+        bashCommand = ['pip', 'install', '-r', 'requirements.txt',
+            '--exists-action','s']
+        execBashCommand(bashCommand,
+            'Root Requirements Installed Succesfully',
+            "It's not possible to apply patche(es)")
+
     print t.bold('Fetched.')
 
 
