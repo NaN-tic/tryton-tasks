@@ -2,7 +2,6 @@
 from .scm import ScmCollection as ns
 from .bootstrap import BootstrapCollection
 from .config import ConfigCollection
-from .bucket.bitbucket import BitbucketCollection
 from .utils import UtilsCollection
 from .tryton import TrytonCollection
 from .tests import TestCollection
@@ -18,7 +17,6 @@ from .startup import StartupCollection
 from .sao import SaoCollection
 
 ns.add_collection(BootstrapCollection, 'bs')
-ns.add_collection(BitbucketCollection, 'bucket')
 ns.add_collection(UtilsCollection, 'utils')
 ns.add_collection(ConfigCollection, 'config')
 ns.add_collection(TrytonCollection, 'tryton')

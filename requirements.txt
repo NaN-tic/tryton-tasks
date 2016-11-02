@@ -25,10 +25,6 @@ dateutils
 xmltodict
 functools32
 
-# bitbucket
-markerlib
-git+https://github.com/angelnan/bitbucketcli.git
-
 # trytond
 lxml>=2.0
 relatorio>=0.2.0
