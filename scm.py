@@ -104,6 +104,24 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
             else:
                 print >> sys.stderr, name, repo_path, url
 
+@task()
+def close_branch(directory, branch):
+    """ Close branch for all modules """
+
+    for module_path in lpath(directory).dirs():
+        repo = hgapi.Repo(module_path)
+
+        branches = []
+        try:
+            branches = [x['name'] for x in repo.get_branches() if x]
+        except:
+            continue
+
+        if branch in branches:
+            print module_path
+            repo.hg_update(branch, True)
+            repo.hg_commit('close branch', close_branch=True)
+
 
 @task()
 def unknown(unstable=True, status=False, show=True, remove=False, quiet=False):
@@ -537,10 +555,10 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             source = None
             branch = None
             extras = r[5].split(';')
-            
+
             if extras:
                 for extra in extras:
-                    if 'branch' in extra:                 
+                    if 'branch' in extra:
                         branch = extra.split('branch=')[1]
                     if 'source' in extra:
                         source = extra.split('source=')[1]
@@ -563,10 +581,10 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
                 change[key]['branch'].append(branch)
                 change[key]['nodes'].append(r[1])
                 change[key]['rev'].append(rid)
-                
+
 
             revisions[r[1]] = rid
-        
+
         return change
 
     def print_changeset(key, rev):
@@ -587,7 +605,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
     revs = repo.hg_log(template=template)
     changes= changesets(revs)
-    
+
     start = None
     for r, val in changes.iteritems():
 
@@ -597,7 +615,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
         if first_branch not in val['branch']:
             start = val['rid']
             continue
-        
+
         if 'Create branch' in val['desc']:
             continue
 
@@ -1384,3 +1402,4 @@ ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
 ScmCollection.add_task(prefetch)
 ScmCollection.add_task(branches)
+ScmCollection.add_task(close_branch)
