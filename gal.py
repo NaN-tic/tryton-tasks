@@ -89,7 +89,7 @@ def connect_database(database=None, password='admin',
 
         if not db_exist():
             from trytond.protocols.dispatcher import create as tcreate
-            tcreate(None, database, None, language, password)
+            tcreate(database, None, language, password)
 
         config = pconfig.set_trytond(database, config_file='trytond.conf')
         config.pool.test = False
