@@ -3,6 +3,8 @@ import contextlib
 import os
 import psycopg2
 import sys
+import socket
+import getpass
 from invoke import task, run, Collection
 
 from .iban import create_iban, IBANError
@@ -10,6 +12,7 @@ from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
     BASE_MODULES)
 
 try:
+    from trytond.pool import Pool
     from trytond.transaction import Transaction
     from trytond.modules import *
     #from trytond.modules import Graph, Node, get_module_info
@@ -487,6 +490,42 @@ def automatic_reconciliation(database, max_lines=4,
     user.save()
 
 
+@task()
+def adduser(dbname, user, conf_file=None):
+    '''Create new user or reset the password if the user exist'''
+    if not conf_file:
+        conf_file = 'server-%s.cfg' % (socket.gethostname())
+    if not os.path.isfile(conf_file):
+        print t.red("File '%s' not found" % (conf_file))
+        return
+    CONFIG.update_etc(conf_file)
+
+    Pool.start()
+    pool = Pool(dbname)
+    pool.init()
+
+    with Transaction().start(dbname, 1, context={'active_test': False}):
+        User = pool.get('res.user')
+
+        users = User.search([
+            ('login', '=', user),
+            ], limit=1)
+        if users:
+            u, = users
+        else:
+            admin, = User.search([
+                ('login', '=', 'admin'),
+                ], limit=1)
+            u, = User.copy([admin])
+            u.name = user
+            u.login = user
+
+        u.password = getpass.getpass()
+        u.save()
+
+        Transaction().cursor.commit()
+        print t.green("You could login with '%s' at '%s'" % (u.login, dbname))
+
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
 TrytonCollection.add_task(uninstall_task, 'uninstall')
@@ -496,3 +535,4 @@ TrytonCollection.add_task(missing)
 TrytonCollection.add_task(update_post_move_sequence)
 TrytonCollection.add_task(convert_bank_accounts_to_iban)
 TrytonCollection.add_task(automatic_reconciliation)
+TrytonCollection.add_task(adduser)
