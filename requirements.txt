@@ -24,3 +24,4 @@ functools32
 
 # bitbucket
 markerlib
+requests
