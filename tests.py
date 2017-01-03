@@ -101,10 +101,7 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None,
         name = name + " ["+','.join(modules)+"]"
 
     logger.info('Upload results to tryton')
-    if upload:
-        runner.upload_tryton(dbtype, failfast, name, reviews, work)
-    else:
-        runner.print_report(dbtype, failfast, name, reviews, work)
+    runner.print_report(dbtype, failfast, name, reviews, work)
 
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True):
