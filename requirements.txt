@@ -3,7 +3,7 @@ coverage
 GitPython>=0.3.2.RC1
 hgapi
 invoke==0.12.2
-path.py
+path.py==8.2.1
 pyactiveresource
 psutil
 --allow-external RBTools
