@@ -1195,7 +1195,6 @@ def update(config=None, unstable=True, clean=False, development=True,
 def git_revision(module, path, verbose):
     print "Git revision not implented"
 
-
 def hg_revision(module, path, verbose=False):
     t = Terminal()
     path_repo = path
