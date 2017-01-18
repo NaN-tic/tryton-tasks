@@ -261,22 +261,10 @@ class TrytonTestRunner(object):
         logger.info("Report for execution %s" % name)
         get_tryton_connection()
         Test = Model.get('project.test.build')
-        TestGroup = Model.get('project.test.build.group')
+        # TestGroup = Model.get('project.test.build.group')
         Component = Model.get('project.work.component')
         TestResult = Model.get('project.test.build.result')
-        ProjectWork = Model.get('project.work')
 
-        group = TestGroup()
-        group.name = name
-        group.failfast = failfast
-        group.reviews = reviews
-        group.start = self.startTime
-        group.end = self.stopTime
-        group.db_type = db_type
-
-        if work:
-            work, = ProjectWork.find([('code', '=', work)])
-            group.work = work
         for module in report:
             logger.info("Create Test Report for Module: %s" % module)
             result = report[module]
@@ -317,10 +305,7 @@ class TrytonTestRunner(object):
                 tr.description = test_result['output']
                 tr.state = test_result['status']
                 test.test.append(tr)
-            group.builds.append(test)
-        logger.info("Saving Test group: %s" % name)
-        group.save()
-        logger.info("Saved Test group: %s" % name)
+            test.save()
 
     def coverage_report(self):
         f = StringIO.StringIO()
