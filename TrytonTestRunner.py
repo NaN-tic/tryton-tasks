@@ -10,7 +10,8 @@ from coverage import coverage
 import re
 import logging
 import ssl
-
+from dateutil import parser
+import hgapi
 
 try:
     from proteus import config as pconfig, Model
@@ -115,6 +116,7 @@ class _TestResult(TestResult):
         self.error_count = 0
         self.verbosity = verbosity
         self.failfast = failfast
+        self.outputBuffer = StringIO.StringIO()
 
         # result is a list of result in 4 tuple
         # (
@@ -128,7 +130,7 @@ class _TestResult(TestResult):
     def startTest(self, test):
         TestResult.startTest(self, test)
         # just one buffer for both stdout and stderr
-        self.outputBuffer = StringIO.StringIO()
+
         stdout_redirector.fp = self.outputBuffer
         stderr_redirector.fp = self.outputBuffer
         self.stdout0 = sys.stdout
@@ -146,7 +148,7 @@ class _TestResult(TestResult):
             sys.stderr = self.stderr0
             self.stdout0 = None
             self.stderr0 = None
-        return self.outputBuffer.getvalue()
+        return self.outputBuffer and self.outputBuffer.getvalue()
 
     def stopTest(self, test):
         # Usually one of addSuccess, addError or addFailure would have been
@@ -171,6 +173,7 @@ class _TestResult(TestResult):
         self.error_count += 1
         TestResult.addError(self, test, err)
         _, _exc_str = self.errors[-1]
+
         output = self.complete_output()
         self.result.append((2, test, output, _exc_str))
         if self.verbosity > 1:
@@ -274,12 +277,11 @@ class TrytonTestRunner(object):
                 component = Component(name=module)
                 component.save()
             path = result['path']
-            try:
-                revision = hg_revision(module, path) or '0'
-                branch = get_branch(path) or 'default'
-            except:
-                revision = 'unknown'
-                branch = 'default'
+            repo = hgapi.Repo(path)
+            rev = repo.hg_rev()
+            rev = repo.revisions(slice(rev, rev))[0]
+            branch = rev.branch
+
             test = Test()
             test.coverage = round(self.coverage_result.get(module,
                     (0, 0, 0))[2], 2)
@@ -287,8 +289,11 @@ class TrytonTestRunner(object):
             test.covered_lines = self.coverage_result.get(module, (0, 0, 0))[1]
             test.component = component
             test.branch = branch
-            test.revision = revision
+            test.revision = rev.node
             test.execution = datetime.datetime.now()
+            test.revision_date = parser.parse(rev.date)
+            test.revision_author = rev.author
+            test.revision_description = rev.desc
 
             for test_result in result['test']:
                 tr = TestResult()
@@ -406,6 +411,7 @@ class TrytonTestRunner(object):
         self._coverage.save()
         print >> sys.stderr, '\nTime Elapsed: %s' % (self.stopTime -
             self.startTime)
+
         self.generateReport(test, result)
         self.coverage_report()
         self.runflakes('flake8', test)
