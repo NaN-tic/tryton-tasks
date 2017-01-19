@@ -3,7 +3,7 @@ coverage
 GitPython>=0.3.2.RC1
 hgapi
 invoke==0.12.2
-path.py==8.2.1
+path.py>=10.0
 pyactiveresource
 psutil
 --allow-external RBTools
@@ -35,4 +35,3 @@ psycopg2>=2.5.0
 python-sql>=0.8
 werkzeug
 wrapt
-

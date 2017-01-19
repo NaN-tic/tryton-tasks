@@ -4,7 +4,7 @@ import ConfigParser
 import os
 from blessings import Terminal
 from invoke import Collection, task, run
-from path import path
+from path import Path
 
 from .utils import _ask_ok, _check_required_file, _exit
 from .scm import hg_clone, hg_pull, clone, fetch
@@ -16,14 +16,14 @@ Config = ConfigParser.ConfigParser()
 # TODO: l'us que faig del config potser correspon a context
 # http://docs.pyinvoke.org/en/latest/getting_started.html#handling-configuration-state
 
-INITIAL_PATH = path.getcwd()
+INITIAL_PATH = Path.getcwd()
 
 
 @task()
 def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
-    if path(taskpath).exists():
+    if Path(taskpath).exists():
         print 'Updating tasks repo'
         hg_pull(taskpath, '.', True)
         return
@@ -43,8 +43,8 @@ def get_tasks(taskpath='tasks'):
 @task()
 def get_config(configpath='config', branch='default'):
     # TODO: add option to update repository
-    Config.config_path = path(configpath).abspath()
-    if path(configpath).exists():
+    Config.config_path = Path(configpath).abspath()
+    if Path(configpath).exists():
         print ('Updating config repo')
         hg_pull(configpath, '.', True, branch=branch)
         return
@@ -65,7 +65,7 @@ def get_config(configpath='config', branch='default'):
 def get_utils(utilspath='utils'):
     # TODO: add option to update repository
     Config.utils_path = utilspath
-    if path(utilspath).exists():
+    if Path(utilspath).exists():
         print 'Updating utils repo'
         hg_pull(utilspath, '.', True)
         return
@@ -113,7 +113,7 @@ def activate_virtualenv(projectname):
         return
 
     if 'WORKON_HOME' in os.environ:
-        virtualenv_path = path(os.environ['WORKON_HOME']).joinpath(
+        virtualenv_path = Path(os.environ['WORKON_HOME']).joinpath(
             projectname)
         if virtualenv_path.exists() and virtualenv_path.isdir():
             activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
@@ -165,10 +165,10 @@ def install_proteus(proteuspath=None, upgrade=False):
             cmd.insert(2, '-u')
         run(' '.join(cmd))
     else:
-        if not path(proteuspath).exists():
+        if not Path(proteuspath).exists():
             _exit(INITIAL_PATH, "ERROR: Proteus path '%s' doesn't exists."
                 % proteuspath)
-        cwd = path.getcwd()
+        cwd = Path.getcwd()
         os.chdir(proteuspath)
         run('python setup.py install')
         os.chdir(cwd)
@@ -177,7 +177,7 @@ def install_proteus(proteuspath=None, upgrade=False):
 
 @task()
 def create_symlinks():
-    cwd = path.getcwd()
+    cwd = Path.getcwd()
     if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
         print 'Symlinks script not found'
         return
@@ -195,7 +195,7 @@ def bootstrap(branch, projectpath='', projectname='',
         upgradereqs=False):
 
     if projectpath:
-        projectpath = path(projectpath)
+        projectpath = Path(projectpath)
         os.chdir(projectpath)
     elif INITIAL_PATH.basename() == 'tasks':
         projectpath = INITIAL_PATH.parent()
@@ -226,7 +226,7 @@ def bootstrap(branch, projectpath='', projectname='',
 
     create_symlinks()
 
-    if path.getcwd() != INITIAL_PATH:
+    if Path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
 
 
