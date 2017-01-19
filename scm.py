@@ -8,7 +8,7 @@ import sys
 from blessings import Terminal
 from multiprocessing import Process
 from multiprocessing import Pool
-from path import path as lpath
+from path import Path
 import shutil
 from collections import OrderedDict
 
@@ -108,7 +108,7 @@ def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
 def close_branch(directory, branch):
     """ Close branch for all modules """
 
-    for module_path in lpath(directory).dirs():
+    for module_path in Path(directory).dirs():
         repo = hgapi.Repo(module_path)
 
         branches = []
@@ -136,7 +136,7 @@ def unknown(unstable=True, status=False, show=True, remove=False, quiet=False):
 
     modules_wo_repo = []
     repo_not_in_cfg = []
-    for module_path in lpath('./modules').dirs():
+    for module_path in Path('./modules').dirs():
         module_name = module_path.basename()
         if module_name in configs_module_list:
             continue

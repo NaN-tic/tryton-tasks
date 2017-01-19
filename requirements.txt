@@ -3,7 +3,7 @@ coverage
 GitPython>=0.3.2
 hgapi
 invoke==0.12.2
-path.py
+path.py>=10.0
 pyactiveresource
 psutil
 --allow-external RBTools
@@ -23,7 +23,6 @@ functools32
 
 # bitbucket
 markerlib
-git+https://github.com/angelnan/bitbucketcli.git
 
 # trytond
 lxml>=2.0
@@ -35,4 +34,3 @@ psycopg2>=2.5.0
 python-sql>=0.8
 werkzeug
 wrapt
-

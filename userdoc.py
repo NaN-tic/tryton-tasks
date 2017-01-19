@@ -4,12 +4,12 @@ import ConfigParser
 import os
 from blessings import Terminal
 from invoke import task, run, Collection
-from path import path
+from path import Path
 import glob
 
 t = Terminal()
 
-INITIAL_PATH = path.getcwd()
+INITIAL_PATH = Path.getcwd()
 
 
 @task()
@@ -26,15 +26,15 @@ def install_requirements(requirement_file, upgrade=False):
 def create_symlinks(origin, destination, lang='es', remove=True):
     if remove:
         # Removing existing symlinks
-        for link_file in path(destination).listdir():
+        for link_file in Path(destination).listdir():
             if link_file.islink():
                 link_file.remove()
 
     for module_doc_dir in glob.glob('%s/*/doc/%s' % (origin, lang)):
-        module_name = str(path(module_doc_dir).parent.parent.basename())
-        symlink = path(destination).joinpath(module_name)
+        module_name = str(Path(module_doc_dir).parent.parent.basename())
+        symlink = Path(destination).joinpath(module_name)
         if not symlink.exists():
-            path(destination).relpathto(path(module_doc_dir)).symlink(symlink)
+            Path(destination).relpathto(Path(module_doc_dir)).symlink(symlink)
 
 
 def update_modules(userdocpath='userdoc'):
@@ -48,8 +48,8 @@ def update_modules(userdocpath='userdoc'):
 def make(dbname, builder='html', source='source-doc',
         destination="public_data/doc", clean=False):
     if clean:
-        if path(destination).exists():
-            path(destination).rmtree()
+        if Path(destination).exists():
+            Path(destination).rmtree()
 
     os.environ['DB_NAME'] = dbname
     os.environ['PYTHONPATH'] = 'proteus:trytond'
@@ -71,7 +71,7 @@ def make(dbname, builder='html', source='source-doc',
 def make_link(origin, destination):
     directory = os.path.dirname(destination)
     if not os.path.exists(destination):
-        path(directory).relpathto(path(origin)).symlink(destination)
+        Path(directory).relpathto(Path(origin)).symlink(destination)
 
 
 @task()

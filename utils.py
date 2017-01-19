@@ -1,6 +1,6 @@
 from blessings import Terminal
 from invoke import task, Collection
-from path import path
+from path import Path
 import ConfigParser
 import os
 import psycopg2
@@ -33,7 +33,7 @@ t = Terminal()
 
 
 def _exit(initial_path, message=None):
-    if path.getcwd() != initial_path:
+    if Path.getcwd() != initial_path:
         os.chdir(initial_path)
     if not message:
         return sys.exit(0)
