@@ -15,6 +15,7 @@ from .pypi import PypiCollection
 from .meeting import MeetingCollection
 from .startup import StartupCollection
 from .sao import SaoCollection
+from .database import DatabaseCollection
 
 ns.add_collection(BootstrapCollection, 'bs')
 ns.add_collection(UtilsCollection, 'utils')
@@ -31,3 +32,4 @@ ns.add_collection(PypiCollection, 'pypi')
 ns.add_collection(MeetingCollection, 'meeting')
 ns.add_collection(StartupCollection, 'startup')
 ns.add_collection(SaoCollection, 'sao')
+ns.add_collection(DatabaseCollection, 'database')
