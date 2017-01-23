@@ -99,7 +99,7 @@ def copy(from_, to, to_owner=None):
         to_host, to_database = None, to
     print from_host, from_database, to_host, to_database
     if not from_host and not to_host:
-        print 'Copying from %s to %s' % (from_host, to_host)
+        print 'Copying from %s to %s' % (from_database, to_database)
         if local_copy_with_template(from_database, to_database, to_owner):
             return
         local_copy(from_database, to_database)
