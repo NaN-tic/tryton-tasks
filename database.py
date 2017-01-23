@@ -3,8 +3,8 @@ from invoke import Collection, task, run
 import psycopg2
 import time
 
-JOBS = 2
-FORMAT = 'custom'
+JOBS = 3
+FORMAT = 'directory'
 
 def execute(command, **kwargs):
     if not 'warn' in kwargs:
