@@ -53,7 +53,7 @@ def drop(database):
 def owner(database, to_owner):
     connection = psycopg2.connect('dbname=%s' % database)
     cursor = connection.cursor()
-    cursor.execute("SELECT pg_catalog.pg_get_userbyid(d.datdba) FROM "
+    cursor.execute("SELECT pg_catalog.pg_get_userbyid(datdba) FROM "
         "pg_catalog.pg_database WHERE datname = '%s' ORDER BY 1;" % database)
     from_owner = cursor.fetchone()[0]
     cursor.execute('ALTER DATABASE "%s" OWNER TO "%s"' % (database, to_owner))
