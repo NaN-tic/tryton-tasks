@@ -51,13 +51,28 @@ def drop(database):
 
 @task()
 def owner(database, to_owner):
+    '''
+    invoke database.owner <database> <to_owner>
+    '''
     connection = psycopg2.connect('dbname=%s' % database)
     cursor = connection.cursor()
-    cursor.execute("SELECT pg_catalog.pg_get_userbyid(datdba) FROM "
-        "pg_catalog.pg_database WHERE datname = '%s' ORDER BY 1;" % database)
-    from_owner = cursor.fetchone()[0]
     cursor.execute('ALTER DATABASE "%s" OWNER TO "%s"' % (database, to_owner))
-    cursor.execute('REASSIGN OWNED BY "%s" TO "%s"' % (from_owner, to_owner))
+
+    cursor.execute("SELECT tablename FROM pg_tables WHERE "
+        "schemaname = 'public'")
+    tables = set([x[0] for x in cursor.fetchall()])
+    cursor.execute("SELECT sequence_name FROM information_schema.sequences "
+        "WHERE sequence_schema = 'public'")
+    tables |= set([x[0] for x in cursor.fetchall()])
+    cursor.execute("SELECT table_name FROM information_schema.views WHERE "
+        "table_schema = 'public'")
+    tables |= set([x[0] for x in cursor.fetchall()])
+    for table in tables:
+        cursor.execute('ALTER TABLE public."%s" OWNER TO "%s"' % (table,
+                to_owner))
+    connection.commit()
+    print 'Changed %d tables, sequences and views to %s' % (len(tables),
+        to_owner)
 
 def local_copy_with_template(from_database, to_database, to_owner):
     # If we're on the same host, just try to use CREATE DATABASE with
