@@ -16,6 +16,11 @@ def execute(command, **kwargs):
 
 @task()
 def dump(database):
+    '''
+    Dumps the content of the given database to
+    ~/backups/<database name>-<timestamp> in PostgreSQL directory format using
+    3 jobs/processes.
+    '''
     path = '~/backups/' + database + '-' + time.strftime('%Y-%m-%d_%H:%M:%S')
     jobs = JOBS
     if FORMAT != 'directory':
@@ -32,6 +37,11 @@ def dump(database):
 
 @task()
 def restore(path, database):
+    '''
+    Restores the content of the given path into the given database name.
+    The content of the path should be in PostgreSQL directory format and it
+    uses 3 jobs/processes.
+    '''
     jobs = JOBS
     if FORMAT not in ('directory', 'custom'):
         jobs = 1
@@ -46,13 +56,17 @@ def restore(path, database):
 
 @task()
 def drop(database):
+    '''
+    Drops the given database but makes a backup using the database.dump command
+    first.
+    '''
     dump(database)
     execute('dropdb %s' % database)
 
 @task()
 def owner(database, to_owner):
     '''
-    invoke database.owner <database> <to_owner>
+    Changes the owner of the given database to the given owner username.
     '''
     connection = psycopg2.connect('dbname=%s' % database)
     cursor = connection.cursor()
@@ -102,6 +116,12 @@ def local_copy(from_database, to_database):
 @task()
 def copy(from_, to, to_owner=None):
     '''
+    Copies the content a database into a new one. Databases may be in different
+    hosts. Optionally it also allows you to specify the target owner which
+    is a shortcut for calling database.owner in the same command.
+
+    Syntax:
+
     invoke database.copy [from_host:]from_database [to_host:]to_database
     '''
     if ':' in from_:
