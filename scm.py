@@ -632,7 +632,6 @@ def compare_branches(first_branch, second_branch, module=None,
     the revision_id may change when grafting commits from branches
     '''
     Config = read_config_file(config, unstable=unstable)
-    processes = []
     for section in Config.sections():
         if module and section != module:
             continue
