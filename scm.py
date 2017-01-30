@@ -550,48 +550,53 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
                 continue
 
             r = rev.split('##')
-            rid = r[0].zfill(5)
+            rid = r[0]
+            if not rid:
+                continue
+            rid = rid.zfill(5)
+            node = r[1]
+            description = r[2]
+            tags = r[3] if len(r) >= 4 else ''
+            date = r[4] if len(r) >= 5 else None
+            extras = r[5] if len(r) >= 6 else ''
+            data = {}
+            for extra in extras.split(';'):
+                key, _, value = extra.partition('=')
+                data[key] = value
 
-            source = None
-            branch = None
-            extras = r[5].split(';')
-
-            if extras:
-                for extra in extras:
-                    if 'branch' in extra:
-                        branch = extra.split('branch=')[1]
-                    if 'source' in extra:
-                        source = extra.split('source=')[1]
-                    if 'rebase_source' in extra:
-                        source = extra.split('rebase_source=')[1]
-
-            key = source or r[1]
+            key = data.get('source') or node
 
             if not change.get(key):
+                branches = []
+                if 'branch' in data:
+                    branches.append(data['branch'])
                 change[key] = {
                     'rev': [rid],
-                    'nodes': [r[1]],
-                    'desc': r[2],
-                    'tags': r[3],
-                    'date': r[4],
+                    'nodes': [node],
+                    'desc': description,
+                    'tags': tags,
+                    'date': date,
                     'extras': extras,
-                    'branch': [branch],
-                }
+                    'branch': branches,
+                    }
             else:
-                change[key]['branch'].append(branch)
-                change[key]['nodes'].append(r[1])
+                change[key]['branch'].append(data['branch'])
+                change[key]['nodes'].append(node)
                 change[key]['rev'].append(rid)
-
 
             revisions[r[1]] = rid
 
         return change
 
     def print_changeset(key, rev):
-
-        print "\n" + bcolors.HEADER + key + ':' + ",".join(rev['rev']) + ' (Branch:' + \
-            ",".join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
-        print rev['desc']
+        res = ''
+        res += ('\n- ' + bcolors.HEADER + key + ' (Branch:' +
+            ','.join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
+            + '\n')
+        res += '  ' + rev['desc'].encode('ascii', 'ignore') + '\n'
+        for id, branch in zip(rev.get('nodes', []), rev.get('branch', [])):
+            res += '  %s:%s\n' % (branch, id)
+        return res
 
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
@@ -606,6 +611,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     revs = repo.hg_log(template=template)
     changes= changesets(revs)
 
+    res = ''
     start = None
     for r, val in changes.iteritems():
 
@@ -620,7 +626,8 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             continue
 
         if second_branch not in val['branch']:
-            print_changeset(r, val)
+            res += print_changeset(r, val)
+    return res
 
 
 @task()
@@ -636,8 +643,6 @@ def compare_branches(first_branch, second_branch, module=None,
         if module and section != module:
             continue
 
-        print "Module:" , section
-        print "*******************************************************"
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         if repo == 'git':
@@ -646,7 +651,12 @@ def compare_branches(first_branch, second_branch, module=None,
             print >> sys.stderr, "Not developed yet"
             continue
 
-        hg_compare_branches(section, path, first_branch, second_branch)
+        output = hg_compare_branches(section, path, first_branch, second_branch)
+        if output:
+            print
+            print "Module:" , section
+            print '-' * (len(section) + 8)
+            print output
 
 
 def hg_summary(module, path, verbose):
