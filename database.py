@@ -143,9 +143,32 @@ def copy(from_, to, to_owner=None):
             owner(to_database, to_owner)
         return
 
+@task()
+def cluster(database):
+    '''
+    Runs CLUSTER to all tables in the database using its primary key (which
+    should be the "id" field in Tryton tables).
+
+    This may reduce substatially the size of the database and can be run
+    concurrently with other processes.
+
+    Note that decreasing the database size may not always improve
+    performance (it may degradate writes in some circumstances).
+    '''
+    connection = psycopg2.connect('dbname=%s' % database)
+    cursor = connection.cursor()
+    cursor.execute("SELECT table_name, table_schema FROM information_schema.tables WHERE "
+        "table_type = 'BASE TABLE' AND table_schema='public'")
+    for table, schema in cursor.fetchall():
+        cursor.execute('CLUSTER "%s"."%s" USING "%s_pkey"' % (schema, table,
+                table))
+    connection.commit()
+    connection.close()
+
 
 DatabaseCollection = Collection()
 DatabaseCollection.add_task(drop)
 DatabaseCollection.add_task(dump)
 DatabaseCollection.add_task(owner)
 DatabaseCollection.add_task(copy)
+DatabaseCollection.add_task(cluster)
