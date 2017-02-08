@@ -593,7 +593,9 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
         res += ('\n- ' + bcolors.HEADER + key + ' (Branch:' +
             ','.join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
             + '\n')
-        res += '  ' + rev['desc'].encode('ascii', 'ignore') + '\n'
+        for line in rev['desc'].encode('ascii', 'ignore').splitlines():
+            res += '  %s\n' % line
+        res += '\n'
         for id, branch in zip(rev.get('nodes', []), rev.get('branch', [])):
             res += '  %s:%s\n' % (branch, id)
         return res
@@ -612,8 +614,10 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     changes= changesets(revs)
 
     res = ''
+    existing_branches = set()
     start = None
     for r, val in changes.iteritems():
+        existing_branches |= set(val['branch'])
 
         if first_branch not in val['branch'] and start is None:
             continue
@@ -627,6 +631,9 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
         if second_branch not in val['branch']:
             res += print_changeset(r, val)
+    if not second_branch in existing_branches:
+        res += ('Branch %s does not exist. Available branches: %s' %
+            (second_branch, ', '.join(existing_branches)))
     return res
 
 
