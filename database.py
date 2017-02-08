@@ -85,6 +85,7 @@ def owner(database, to_owner):
         cursor.execute('ALTER TABLE public."%s" OWNER TO "%s"' % (table,
                 to_owner))
     connection.commit()
+    connection.close()
     print 'Changed %d tables, sequences and views to %s' % (len(tables),
         to_owner)
 
