@@ -81,7 +81,11 @@ def read_config_file(config_file=None, type='repos', unstable=True):
                     continue
                 if 'templates' in r:
                     continue
-                Config.readfp(open(os.path.join(r, files)))
+                path = os.path.join(r, files)
+                if os.path.isfile(path):
+                    # Check if file exists because it may be a symlink to
+                    # ../local.cfg and it might not exist.
+                    Config.readfp(open(path))
 
     if type == 'all':
         return Config
