@@ -558,7 +558,8 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             description = r[2]
             tags = r[3] if len(r) >= 4 else ''
             date = r[4] if len(r) >= 5 else None
-            extras = r[5] if len(r) >= 6 else ''
+            files = r[5] if len(r) >=6 else None
+            extras = r[6] if len(r) >= 7 else ''
             data = {}
             for extra in extras.split(';'):
                 key, _, value = extra.partition('=')
@@ -578,6 +579,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
                     'date': date,
                     'extras': extras,
                     'branch': branches,
+                    'files': files,
                     }
             else:
                 change[key]['branch'].append(data['branch'])
@@ -590,7 +592,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
     def print_changeset(key, rev):
         res = ''
-        res += ('\n- ' + bcolors.HEADER + key + ' (Branch:' +
+        res += ('\n- ' + bcolors.HEADER + rev['rev'][0] +":"+key + ' (Branch:' +
             ','.join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
             + '\n')
         for line in rev['desc'].encode('ascii', 'ignore').splitlines():
@@ -605,7 +607,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
 
-    template = ('{rev}##{node}##{desc}##{tags}##{date|isodate}##'
+    template = ('{rev}##{node}##{desc}##{tags}##{date|isodate}##{files}##'
         '{join(extras,";")}***')
     repo = hgapi.Repo(path_repo)
 
@@ -618,6 +620,8 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     start = None
     for r, val in changes.iteritems():
         existing_branches |= set(val['branch'])
+        if not val['files']:
+            continue
 
         if first_branch not in val['branch'] and start is None:
             continue
@@ -628,10 +632,20 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
         if 'Create branch' in val['desc']:
             continue
+        command = ['contains', '-t', '--revno', str(int(val['rev'][0]))]
+        contained = False
+        try:
+            contained = repo.hg_command(*command)
+        except:
+            pass
+
+        if contained:
+            continue
 
         if second_branch not in val['branch']:
             res += print_changeset(r, val)
-    if not second_branch in existing_branches:
+
+    if second_branch not in existing_branches:
         res += ('Branch %s does not exist. Available branches: %s' %
             (second_branch, ', '.join(existing_branches)))
     return res
