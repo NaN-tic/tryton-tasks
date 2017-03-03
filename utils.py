@@ -28,7 +28,7 @@ if os.path.isdir(trytond_path):
 NO_MODULE_REPOS = ['trytond', 'tryton', 'proteus', 'nereid_app', 'sao',
     'tasks', 'utils', 'config', 'patches']
 BASE_MODULES = ['ir', 'res', 'tests', 'webdav']
-
+CORE_FILES = ['core.cfg']
 t = Terminal()
 
 
@@ -66,7 +66,8 @@ def get_config_files():
     return config_files
 
 
-def read_config_file(config_file=None, type='repos', unstable=True):
+def read_config_file(config_file=None, type='repos', unstable=True,
+        avoid_core=True):
     assert type in ('repos', 'patches', 'all'), "Invalid 'type' param"
 
     Config = ConfigParser.ConfigParser()
@@ -75,6 +76,8 @@ def read_config_file(config_file=None, type='repos', unstable=True):
     else:
         for r, d, f in os.walk("./config"):
             for files in f:
+                if avoid_core and files in CORE_FILES:
+                    continue
                 if not files.endswith(".cfg"):
                     continue
                 if not unstable and files.endswith("-unstable.cfg"):

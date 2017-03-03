@@ -11,6 +11,7 @@ from multiprocessing import Pool
 from path import Path
 import shutil
 from collections import OrderedDict
+import yaml
 
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
@@ -539,6 +540,9 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
     revisions = {}
 
+    config = yaml.load(open('upgrades/commits.yml', 'r').read())
+    skip = config.get(module, [])
+
     def changesets(revs):
         revs = revs.split('***')
         change = OrderedDict()
@@ -632,6 +636,7 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
         if 'Create branch' in val['desc']:
             continue
+
         command = ['contains', '-t', '--revno', str(int(val['rev'][0]))]
         contained = False
         try:
@@ -640,6 +645,9 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
             pass
 
         if contained:
+            continue
+
+        if val['nodes'] and str(val['nodes'][0]) in skip:
             continue
 
         if second_branch not in val['branch']:
@@ -653,15 +661,25 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
 @task()
 def compare_branches(first_branch, second_branch, module=None,
-        config=None, unstable=True):
+        config=None, unstable=True, module_file_list=None):
     '''
     Finds commits that exist on first branch but doesn't exist on
     second_branch. In order to identify a commit, its description is used as
     the revision_id may change when grafting commits from branches
     '''
-    Config = read_config_file(config, unstable=unstable)
+
+    module_list = []
+    if module_file_list:
+        file_ = open(module_file_list)
+        module_list = [x.replace('\n','') for x in file_.readlines()]
+
+
+    Config = read_config_file(config, type='repos', unstable=unstable)
     for section in Config.sections():
         if module and section != module:
+            continue
+
+        if module_file_list and section not in module_list:
             continue
 
         repo = Config.get(section, 'repo')
