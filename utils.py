@@ -67,7 +67,7 @@ def get_config_files():
 
 
 def read_config_file(config_file=None, type='repos', unstable=True,
-        avoid_core=True):
+        avoid_core=False):
     assert type in ('repos', 'patches', 'all'), "Invalid 'type' param"
 
     Config = ConfigParser.ConfigParser()
