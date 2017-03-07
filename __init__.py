@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from .scm import ScmCollection as ns
 from .bootstrap import BootstrapCollection
+from .bucket.bitbucket import BitbucketCollection
 from .config import ConfigCollection
 from .utils import UtilsCollection
 from .tryton import TrytonCollection
@@ -18,6 +19,7 @@ from .sao import SaoCollection
 from .database import DatabaseCollection
 
 ns.add_collection(BootstrapCollection, 'bs')
+ns.add_collection(BitbucketCollection, 'bucket')
 ns.add_collection(UtilsCollection, 'utils')
 ns.add_collection(ConfigCollection, 'config')
 ns.add_collection(TrytonCollection, 'tryton')

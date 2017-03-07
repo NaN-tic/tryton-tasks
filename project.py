@@ -13,7 +13,7 @@ from .scm import get_branch, branches, hg_pull, hg_clone
 from .utils import t
 import logging
 from tabulate import tabulate
-
+from .bucket import pullrequests
 import choice
 
 
@@ -135,7 +135,141 @@ def check_migration(database):
     branches(None, modules)
 
 
+
+@task()
+def decline_review(work, review_id=None, message=None):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    Task = Model.get('project.work')
+
+    tasks = Task.find([('code', '=', work)])
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        sys.exit(1)
+
+    w = tasks[0]
+    reviews = Review.find([('work', '=', w.id), ('state', '=', 'opened')])
+
+    for review in reviews:
+        if review_id and str(review.id) != review_id:
+            print review_id, review.id
+            continue
+
+        show_review(review)
+
+        if not review_id:
+            continue
+
+        confirm = choice.Binary('Are you sure you want to decline?',
+            False).ask()
+        if confirm:
+            owner, repo, request_id = get_request_info(review.url)
+            res = pullrequests.decline(owner, repo, request_id, message)
+            if res and res['state'] == 'MERGED':
+                review.state = 'closed'
+                review.save()
+
+
+@task()
+def merge_review(work, review_id=None, message=None):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    Task = Model.get('project.work')
+
+    tasks = Task.find([('code', '=', work)])
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        sys.exit(1)
+
+    w = tasks[0]
+    reviews = Review.find([('work', '=', w.id), ('state', '=', 'opened')])
+
+    for review in reviews:
+        if review_id and str(review.id) != review_id:
+            print review_id, review.id
+            continue
+
+        show_review(review)
+
+        if not review_id:
+            continue
+
+        confirm = choice.Binary('Are you sure you want to merge?', False).ask()
+        if confirm:
+            owner, repo, request_id = get_request_info(review.url)
+            res = pullrequests.merge(owner, repo, request_id, message)
+            if res and res['state'] == 'MERGED':
+                review.state = 'closed'
+                review.save()
+
+
+@task()
+def upload_review(work, path, branch, review_name, review=None, new=False):
+    get_tryton_connection()
+    Review = Model.get('project.work.codereview')
+    Task = Model.get('project.work')
+    Component = Model.get('project.work.component')
+
+    tasks = Task.find([('code', '=', work)])
+    if not tasks:
+        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        sys.exit(1)
+    work = tasks[0]
+
+    module = path.split('/')[-1]
+    components = Component.find([('name', '=', module)])
+    if not components:
+        component = Component(name=module)
+        component.save()
+    else:
+        component = components[0]
+
+    review_file = os.path.join(path, '.review.cfg')
+    if new and os.path.exists(review_file):
+        os.remove(review_file)
+
+    repo = hgapi.Repo(path)
+    url = repo.config('paths', 'default')
+    url_list = url.split('/')
+    owner, repo_name = (url_list[-2], url_list[-1])
+
+    if branch not in repo.get_branch_names():
+        print >>sys.stderr, t.red('Error: Branch %s '
+            'was not found on repo.' % branch)
+        sys.exit(0)
+
+    review = pullrequests.create(owner, repo_name, branch, review_name)
+
+    review_id = review['id']
+
+    review = Review.find([
+            ('review_id', '=', str(review_id)),
+            ('work', '=', work.id),
+            ])
+    if not review:
+        review = Review()
+    else:
+        review = review[0]
+
+    review.name = "[{module}]-{task_name}".format(
+            module=module, task_name=review_name)
+    review.review_id = str(review_id)
+    review.url = ('https://bitbucket.org/{owner}/{repo}/'
+        'pull-requests/{id}').format(
+            owner=owner,
+            repo=repo_name,
+            id=review_id)
+
+    review.work = work
+    review.branch = branch
+    review.component = component
+    review.save()
+
+
 ProjectCollection = Collection()
 ProjectCollection.add_task(ct)
 ProjectCollection.add_task(components)
 ProjectCollection.add_task(check_migration)
+ProjectCollection.add_task(upload_review)
+ProjectCollection.add_task(merge_review)
+ProjectCollection.add_task(fetch_review)
