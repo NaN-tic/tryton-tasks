@@ -16,6 +16,7 @@ PyHamcrest
 choice
 faulthandler
 pyyaml
+requests
 
 # git
 nose
