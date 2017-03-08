@@ -15,6 +15,7 @@ configobj
 PyHamcrest
 choice
 faulthandler
+pyyaml
 
 # git
 nose
