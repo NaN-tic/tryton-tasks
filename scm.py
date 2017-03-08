@@ -615,7 +615,6 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
         '{join(extras,";")}***')
     repo = hgapi.Repo(path_repo)
 
-
     revs = repo.hg_log(template=template)
     changes= changesets(revs)
 
@@ -671,10 +670,10 @@ def compare_branches(first_branch, second_branch, module=None,
     module_list = []
     if module_file_list:
         file_ = open(module_file_list)
-        module_list = [x.replace('\n','') for x in file_.readlines()]
+        module_list = [x.replace(' ','').replace('\n','') for x in file_.readlines()]
 
-
-    Config = read_config_file(config, type='repos', unstable=unstable)
+    Config = read_config_file(config, type='repos', unstable=unstable,
+        avoid_core=True)
     for section in Config.sections():
         if module and section != module:
             continue
