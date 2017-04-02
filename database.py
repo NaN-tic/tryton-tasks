@@ -15,13 +15,19 @@ def execute(command, **kwargs):
     return run(command, **kwargs)
 
 @task()
-def dump(database):
+def dump(database, ssh=None):
     '''
     Dumps the content of the given database to
     ~/backups/<database name>-<timestamp> in PostgreSQL directory format using
     3 jobs/processes.
     '''
-    path = '~/backups/' + database + '-' + time.strftime('%Y-%m-%d_%H:%M:%S')
+    if ssh:
+        path = '.'
+    else:
+        path = '~'
+    path += '/backups/'
+    relative_path = database + '-' + time.strftime('%Y-%m-%d_%H:%M:%S')
+    path += relative_path
     jobs = JOBS
     if FORMAT != 'directory':
         jobs = 1
@@ -32,11 +38,13 @@ def dump(database):
             'path': path,
             'database': database,
             })
+    if ssh:
+        command = '%s %s' % (ssh, command)
     execute(command)
-    return path
+    return path, relative_path
 
 @task()
-def restore(path, database):
+def restore(path, database, ssh=None):
     '''
     Restores the content of the given path into the given database name.
     The content of the path should be in PostgreSQL directory format and it
@@ -52,6 +60,8 @@ def restore(path, database):
             'path': path,
             'database': database,
             })
+    if ssh:
+        command = '%s %s' % (ssh, command)
     return execute(command)
 
 @task()
@@ -110,9 +120,22 @@ def local_copy_with_template(from_database, to_database, to_owner):
     return True
 
 def local_copy(from_database, to_database):
-    path = dump(from_database)
+    path, _ = dump(from_database)
     execute('createdb %s' % to_database)
     restore(path, to_database)
+
+def remote_dump(host, database):
+    remote_path, relative_path = dump(database, 'ssh %s' % host)
+    local_path = '~/backups/'
+    execute('rsync -avzr %s:%s %s' % (host, remote_path, local_path))
+    local_path += relative_path
+    return local_path, relative_path
+
+def remote_restore(local_path, relative_path, host, database):
+    remote_path = './backups/'
+    execute('rsync -avzr %s %s:%s' % (local_path, host, remote_path))
+    remote_path += relative_path
+    restore(remote_path, database, 'ssh %s' % host)
 
 @task()
 def copy(from_, to, to_owner=None):
@@ -124,6 +147,9 @@ def copy(from_, to, to_owner=None):
     Syntax:
 
     invoke database.copy [from_host:]from_database [to_host:]to_database
+
+    Note that owner only can be changed when the to_host is empty (that is,
+    database is copied to the local machine).
     '''
     if ':' in from_:
         from_host, from_database = from_.split(':')
@@ -133,15 +159,26 @@ def copy(from_, to, to_owner=None):
         to_host, to_database = to.split(':')
     else:
         to_host, to_database = None, to
-    print from_host, from_database, to_host, to_database
     if not from_host and not to_host:
-        print 'Copying from %s to %s' % (from_database, to_database)
         if local_copy_with_template(from_database, to_database, to_owner):
             return
-        local_copy(from_database, to_database)
+
+    # Dump
+    if from_host:
+        local_path, relative_path = remote_dump(from_host, from_database)
+    else:
+        local_path, relative_path = dump(from_database)
+
+    # Restore
+    if to_host:
+        execute('ssh %s createdb %s' % (to_host, to_database))
+        remote_restore(local_path, relative_path, to_host, to_database)
+    else:
+        execute('createdb %s' % to_database)
+        restore(local_path, to_database)
         if to_owner:
             owner(to_database, to_owner)
-        return
+
 
 @task()
 def cluster(database):
