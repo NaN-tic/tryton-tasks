@@ -523,7 +523,7 @@ def adduser(dbname, user, conf_file=None):
         u.password = getpass.getpass()
         u.save()
 
-        Transaction().cursor.commit()
+        Transaction().commit()
         print t.green("You could login with '%s' at '%s'" % (u.login, dbname))
 
 TrytonCollection = Collection()
