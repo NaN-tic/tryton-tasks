@@ -404,7 +404,8 @@ def convert_bank_accounts_to_iban(database,
         if any(n.type == 'iban' for n in bank_account.numbers):
             continue
 
-        bank_country_code = bank_account.bank.party.vat_country or 'ES'
+        bank_country_code = bank_account.bank.party.vat_code[0:2] \
+                if bank_account.bank.party.vat_code else 'ES'
         assert bank_country_code == 'ES', (
             "Unexpected country of bank of account %s" % bank_account.rec_name)
 
