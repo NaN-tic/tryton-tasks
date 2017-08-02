@@ -258,7 +258,7 @@ class TrytonTestRunner(object):
                 print "status:", test_result['status']
                 print test_result['output']
 
-    def upload_tryton(self, db_type, failfast, name, reviews, work):
+    def upload_tryton(self, db_type, failfast, name):
         logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
         logger.info("Report for execution %s" % name)
