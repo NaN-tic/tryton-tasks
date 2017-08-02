@@ -219,7 +219,7 @@ class TrytonTestRunner(object):
         self._coverage = coverage
         self.pyflakes_result = {}
 
-    def print_report(self, db_type, failfast, name, reviews, work):
+    def print_report(self, db_type, failfast, name):
         logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
         logger.info("Report for execution %s" % name)
@@ -367,7 +367,7 @@ class TrytonTestRunner(object):
                     for t in tests if 'modules.' in t.__module__])
 
         for f in sorted(os.listdir(path)):
-            if modules and not f in modules:
+            if modules and f not in modules:
                 continue
             p = '%s/%s' % (path, f)
             if not os.path.isdir(p):
@@ -401,7 +401,7 @@ class TrytonTestRunner(object):
         "Run the given test case or test suite."
         if self._coverage is None:
             self._coverage = coverage()
-        #Start only coverage when not started
+        # Start only coverage when not started
         if not self._coverage._started:
             self._coverage.start()
         result = _TestResult(self.verbosity, failfast=self.failfast)
