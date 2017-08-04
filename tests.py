@@ -143,7 +143,7 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
         except hgapi.HgException, e:
             print "Error running %s: %s" % (e.exit_code, str(e))
 
-        if build and build[0].test_state == 'pass' and build[0].coverage == 'pass':
+        if build and build[0].test_state == 'pass':
             return
 
     logger.info("Testing module:" + module)
