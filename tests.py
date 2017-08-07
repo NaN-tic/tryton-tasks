@@ -146,7 +146,6 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
         except hgapi.HgException, e:
             print "Error running %s: %s" % (e.exit_code, str(e))
 
-        print "build:", build[0].test_state
         if build:
             return
 
