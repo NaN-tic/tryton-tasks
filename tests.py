@@ -13,6 +13,12 @@ import time
 from coverage import coverage
 from .utils import read_config_file
 import tryton_component as component
+from multiprocessing import Pool
+import hgapi
+from .tryton_component import get_tryton_connection
+
+MAX_PROCESSES = 4
+
 
 TEST_FILE = 'tests.log'
 open(TEST_FILE, 'w').close()
@@ -45,6 +51,12 @@ except ImportError:
     except:
         pass
 
+try:
+    from proteus import Model
+except ImportError, e:
+    print >> sys.stderr, "trytond importation error: ", e
+
+
 def check_output(*args):
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -64,8 +76,8 @@ def get_fqdn():
         data = data.strip('\n').strip('\r').strip()
     return data
 
-def test(dbtype, name, modules, failfast, reviews=False, work=None,
-    upload=True):
+
+def test(dbtype, name, modules, failfast, upload=True):
 
     if older_version:
         CONFIG['db_type'] = dbtype
@@ -102,170 +114,54 @@ def test(dbtype, name, modules, failfast, reviews=False, work=None,
 
     logger.info('Upload results to tryton')
     if upload:
-        runner.upload_tryton(dbtype, failfast, name, reviews, work)
+        runner.upload_tryton(dbtype, failfast, name)
     else:
-        runner.print_report(dbtype, failfast, name, reviews, work)
+        runner.print_report(dbtype, failfast, name)
+
 
 @task()
 def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True):
-    name = 'Development Test on "%s" for module' % get_fqdn()
-    test(failfast=fail_fast, dbtype=dbtype, modules=[module], name=name,
-        work=work, upload=upload)
+    _module(module, dbtype, fail_fast, upload)
+
+
+def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
+
+    if upload:
+        get_tryton_connection()
+        Build = Model.get('project.test.build')
+        Config = read_config_file()
+
+        repo = scm.get_repo(module, Config, 'revision')
+        repo = hgapi.Repo(repo['path'])
+        build = None
+        try:
+            rev = repo.hg_rev()
+            revision = repo.revision(rev)
+            build = Build.find([
+                ('component.name', '=', module),
+                ('revision', '=', revision.node)], order=[('execution','Desc'),],
+                limit=1)
+
+        except hgapi.HgException, e:
+            print "Error running %s: %s" % (e.exit_code, str(e))
+
+        print "build:", build[0].test_state
+        if build:
+            return
+
+    logger.info("Testing module:" + module)
+    test(failfast=fail_fast, dbtype=dbtype, modules=[module], name=module,
+        upload=upload)
 
 
 @task()
 def modules(dbtype='sqlite', force=False):
     Config = read_config_file()
+    p = Pool(MAX_PROCESSES)
+    p.map(_module, Config.sections())
 
-    components = {}
-    if not force:
-        components = component._pull()
-
-    to_test = []
-
-    for section in Config.sections():
-        comp = components.get(section, False)
-
-        if force or not comp:
-            to_test.append(section)
-            continue
-
-        test_revision = comp.last_build and comp.last_build.revision
-        repo = scm.get_repo(section, Config, 'revision')
-        if (test_revision or (test_revision and
-                scm.hg_is_last_revision(repo['path'], test_revision))):
-            continue
-        to_test.append(section)
-
-    print "Testing :", len(to_test), "/", len(Config.sections())
-    for tm in to_test:
-        try:
-            print "Testing module:", tm
-            module(tm)
-            #run('inv test.module -m %s' % tm)
-        except:
-            logger.exception("Exception has occured", exc_info=1)
-
-
-
-@task()
-def runall(test_file, dbtype='sqlite', branch='default', exclude_reviews=False,
-        fail_fast=False):
-
-    try:
-        logger.info('Setting to branch: %s', branch)
-        setup(branch)
-        logger.info('Testing Branch %s with:'
-            ' Include reviews: %s'
-            ' Database Type: %s'
-            ' Fail Fast: %s' % (branch, False, dbtype, fail_fast))
-        runtests(test_file, branch, include_reviews=False,
-            dbtype=dbtype, fail_fast=fail_fast)
-        if not exclude_reviews:
-            logger.info('Testing Branch %s with Reviews:'
-            ' Include reviews: %s'
-            ' Database Type: %s'
-            ' Fail Fast: %s' % (branch, True, dbtype, fail_fast))
-            runtests(test_file, branch, development=False,
-                include_reviews=True, dbtype=dbtype, fail_fast=fail_fast)
-    except:
-        logger.exception("Exception has occured", exc_info=1)
-        project.create_test_task(TEST_FILE)
-
-
-def runtests(test_file=None, branch='default', development=False,
-        include_reviews=False, dbtype='sqlite', fail_fast=False):
-
-    directory = tempfile.mkdtemp()
-    run("cp . %s -R" % directory)
-    old_dir = os.getcwd()
-    os.chdir(directory)
-    try:
-        setup(branch, development, fetch=False)
-    except:
-        project.create_test_task(TEST_FILE)
-        logger.exception("Exception has occured", exc_info=1)
-        return
-
-    sections = []
-    if test_file:
-        config = utils.read_config_file(test_file)
-        sections = config.sections()
-
-    if test_file and include_reviews:
-        try:
-            logger.info('Fetching reviews')
-            project._fetch_reviews(branch,
-                exclude_components=config.sections() + ['OpenERP'])
-        except:
-            logger.exception("Exception has occured", exc_info=1)
-            os.chdir(old_dir)
-            run("rm -Rf %s" % directory)
-            project.create_test_task(TEST_FILE)
-            return
-
-    name = 'Generic Modules'
-    if development:
-            name = '%s - Development' % name
-    if include_reviews:
-        name = '%s with reviews' % name
-
-    logger.info('%s Testing...' % name)
-
-    test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews, name=name,
-        modules=None)
-
-    for section in sections:
-
-        name2 = name + "/" + section
-        repos_to_clone = [section]
-        try:
-            repos_to_clone += config.get(section, 'requires').split(',')
-        except NoOptionError:
-            pass
-
-        repos_to_remove = []
-        for to_clone in repos_to_clone:
-            repo = scm.get_repo(to_clone, config, 'clone', development)
-            if repo['branch'] != branch:
-                continue
-            func = repo['function']
-            func(repo['url'], repo['path'], repo['branch'], repo['revision'])
-            repos_to_remove.append(repo['path'])
-        if include_reviews:
-            try:
-                project.fetch_reviews(branch, component=section)
-            except:
-                logger.exception("Exception has occured", exc_info=1)
-                project.create_test_task(TEST_FILE)
-                return
-
-        logger.info('%s Testing...' % name2)
-        test(failfast=fail_fast, dbtype=dbtype, reviews=include_reviews,
-            modules=section, name=name2)
-        for to_remove in repos_to_remove:
-            utils.remove_dir(to_remove, quiet=True)
-
-    os.chdir(old_dir)
-    run("rm -Rf %s" % directory)
-
-
-@task()
-def clean(force=True):
-    scm.prefetch(force=force)
-
-
-def setup(branch='default', force=True, fetch=True):
-    scm.hg_update('config', 'config', force, branch=branch)
-    scm.update(clean=force)
-    if fetch:
-        scm.fetch()
-    scm.unknown(remove=True, quiet=force)
 
 
 TestCollection = Collection()
-TestCollection.add_task(clean)
-TestCollection.add_task(runall)
 TestCollection.add_task(module)
 TestCollection.add_task(modules)
-

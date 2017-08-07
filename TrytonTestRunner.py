@@ -10,7 +10,8 @@ from coverage import coverage
 import re
 import logging
 import ssl
-
+from dateutil import parser
+import hgapi
 
 try:
     from proteus import config as pconfig, Model
@@ -115,6 +116,7 @@ class _TestResult(TestResult):
         self.error_count = 0
         self.verbosity = verbosity
         self.failfast = failfast
+        self.outputBuffer = StringIO.StringIO()
 
         # result is a list of result in 4 tuple
         # (
@@ -146,7 +148,7 @@ class _TestResult(TestResult):
             sys.stderr = self.stderr0
             self.stdout0 = None
             self.stderr0 = None
-        return self.outputBuffer.getvalue()
+        return self.outputBuffer and self.outputBuffer.getvalue()
 
     def stopTest(self, test):
         # Usually one of addSuccess, addError or addFailure would have been
@@ -216,7 +218,7 @@ class TrytonTestRunner(object):
         self._coverage = coverage
         self.pyflakes_result = {}
 
-    def print_report(self, db_type, failfast, name, reviews, work):
+    def print_report(self, db_type, failfast, name):
         logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
         logger.info("Report for execution %s" % name)
@@ -255,28 +257,16 @@ class TrytonTestRunner(object):
                 print "status:", test_result['status']
                 print test_result['output']
 
-    def upload_tryton(self, db_type, failfast, name, reviews, work):
+    def upload_tryton(self, db_type, failfast, name):
         logger.info("Generating report for execution %s" % name)
         report = self._generate_report(self.result)
         logger.info("Report for execution %s" % name)
         get_tryton_connection()
         Test = Model.get('project.test.build')
-        TestGroup = Model.get('project.test.build.group')
+        # TestGroup = Model.get('project.test.build.group')
         Component = Model.get('project.work.component')
         TestResult = Model.get('project.test.build.result')
-        ProjectWork = Model.get('project.work')
 
-        group = TestGroup()
-        group.name = name
-        group.failfast = failfast
-        group.reviews = reviews
-        group.start = self.startTime
-        group.end = self.stopTime
-        group.db_type = db_type
-
-        if work:
-            work, = ProjectWork.find([('code', '=', work)])
-            group.work = work
         for module in report:
             logger.info("Create Test Report for Module: %s" % module)
             result = report[module]
@@ -286,12 +276,11 @@ class TrytonTestRunner(object):
                 component = Component(name=module)
                 component.save()
             path = result['path']
-            try:
-                revision = hg_revision(module, path) or '0'
-                branch = get_branch(path) or 'default'
-            except:
-                revision = 'unknown'
-                branch = 'default'
+            repo = hgapi.Repo(path)
+            rev = repo.hg_rev()
+            rev = repo.revisions(slice(rev, rev))[0]
+            branch = rev.branch
+
             test = Test()
             test.coverage = round(self.coverage_result.get(module,
                     (0, 0, 0))[2], 2)
@@ -299,8 +288,11 @@ class TrytonTestRunner(object):
             test.covered_lines = self.coverage_result.get(module, (0, 0, 0))[1]
             test.component = component
             test.branch = branch
-            test.revision = revision
+            test.revision = rev.node
             test.execution = datetime.datetime.now()
+            test.revision_date = parser.parse(rev.date)
+            test.revision_author = rev.author
+            test.revision_description = rev.desc
 
             for test_result in result['test']:
                 tr = TestResult()
@@ -317,10 +309,7 @@ class TrytonTestRunner(object):
                 tr.description = test_result['output']
                 tr.state = test_result['status']
                 test.test.append(tr)
-            group.builds.append(test)
-        logger.info("Saving Test group: %s" % name)
-        group.save()
-        logger.info("Saved Test group: %s" % name)
+            test.save()
 
     def coverage_report(self):
         f = StringIO.StringIO()
@@ -377,7 +366,7 @@ class TrytonTestRunner(object):
                     for t in tests if 'modules.' in t.__module__])
 
         for f in sorted(os.listdir(path)):
-            if modules and not f in modules:
+            if modules and f not in modules:
                 continue
             p = '%s/%s' % (path, f)
             if not os.path.isdir(p):
