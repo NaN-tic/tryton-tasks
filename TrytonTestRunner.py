@@ -354,7 +354,7 @@ class TrytonTestRunner(object):
         type_ = 'flake'
         if checker == 'flake8':
             args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E131,E711,\
-                W0232,E265,R0903"']
+                W0232,E265,R0903,W503"']
             type_ = 'pep8'
 
         path = os.path.abspath(os.path.normpath(os.path.join(
