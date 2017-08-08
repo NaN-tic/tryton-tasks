@@ -138,13 +138,16 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
         try:
             rev = repo.hg_rev()
             revision = repo.revision(rev)
-            build = Build.find([('component.name', '=', module),
-                ('revision', '=', revision.node)])
+            build = Build.find([
+                ('component.name', '=', module),
+                ('revision', '=', revision.node)],
+                order=[('execution', 'Desc')],
+                limit=1)
 
         except hgapi.HgException, e:
             print "Error running %s: %s" % (e.exit_code, str(e))
 
-        if build and build[0].test_state == 'pass' and build[0].coverage == 'pass':
+        if build:
             return
 
     logger.info("Testing module:" + module)

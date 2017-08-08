@@ -345,6 +345,7 @@ class TrytonTestRunner(object):
                     percentage = 100.0 * float(covered) / float(lines)
                 self.coverage_result[key] = (lines, covered, percentage)
 
+
     def runflakes(self, checker, tests=None):
         """
         Possible values for checker: pyflakes, flake8
@@ -354,7 +355,7 @@ class TrytonTestRunner(object):
         type_ = 'flake'
         if checker == 'flake8':
             args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E131,E711,\
-                W0232,E265,R0903"']
+                W0232,E265,R0903,W503"']
             type_ = 'pep8'
 
         path = os.path.abspath(os.path.normpath(os.path.join(
@@ -367,7 +368,7 @@ class TrytonTestRunner(object):
                     for t in tests if 'modules.' in t.__module__])
 
         for f in sorted(os.listdir(path)):
-            if modules and not f in modules:
+            if modules and f not in modules:
                 continue
             p = '%s/%s' % (path, f)
             if not os.path.isdir(p):
@@ -401,7 +402,7 @@ class TrytonTestRunner(object):
         "Run the given test case or test suite."
         if self._coverage is None:
             self._coverage = coverage()
-        #Start only coverage when not started
+        # Start only coverage when not started
         if not self._coverage._started:
             self._coverage.start()
         result = _TestResult(self.verbosity, failfast=self.failfast)
