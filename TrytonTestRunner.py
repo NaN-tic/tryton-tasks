@@ -252,7 +252,7 @@ class TrytonTestRunner(object):
                 print "status:", test_result['status']
                 print test_result['output']
 
-            for test_result in self.pyflakes_result.get(module, []):
+            for test_result in self.pyflakes_result.get(module, []).values():
                 print "\nTest:", test_result['name']
                 print "type:", test_result['type']
                 print "status:", test_result['status']
@@ -303,7 +303,7 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 test.test.append(tr)
 
-            for test_result in self.pyflakes_result.get(module, []):
+            for test_result in self.pyflakes_result.get(module, []).values():
                 tr = TestResult()
                 tr.name = test_result['name']
                 tr.type = test_result['type']
@@ -354,8 +354,7 @@ class TrytonTestRunner(object):
         args = []
         type_ = 'flake'
         if checker == 'flake8':
-            args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E131,E711,\
-                W0232,E265,R0903,W503"']
+            args = ['--ignore="E120,E121,E123,E124,E126,E127,E128,E131,E711,W0232,E265,R0903,W503"']
             type_ = 'pep8'
 
         path = os.path.abspath(os.path.normpath(os.path.join(
@@ -378,9 +377,12 @@ class TrytonTestRunner(object):
             parameters = [checker, d] + args
             output = check_output(parameters)
             module = os.path.basename(d)
-            self.pyflakes_result.setdefault(module, [])
+            self.pyflakes_result.setdefault(module, {})
             for error in output.split('\n'):
                 if not error:
+                    continue
+                # ignore paramater not work.
+                if 'W503' in error:
                     continue
                 # Don't report import * errors on __init__ files as it is a
                 # common pattern on tryton.
@@ -391,12 +393,14 @@ class TrytonTestRunner(object):
                 if ("'suite' imported but unused" in error and
                         'tests/__init__.py' in error):
                     continue
-                self.pyflakes_result[module].append({
+                if not self.pyflakes_result[module].get(checker):
+                    self.pyflakes_result[module][checker] = {
                         'name': checker,
                         'type': type_,
-                        'output': error,
+                        'output': '',
                         'status': 'fail',
-                        })
+                    }
+                self.pyflakes_result[module][checker]['output'] += '\n' + error
 
     def run(self, test):
         "Run the given test case or test suite."

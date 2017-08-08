@@ -115,6 +115,7 @@ def test(dbtype, name, modules, failfast, upload=True):
 
     logger.info('Upload results to tryton')
     if upload:
+        print "upload:", upload
         runner.upload_tryton(dbtype, failfast, name)
     else:
         runner.print_report(dbtype, failfast, name)
