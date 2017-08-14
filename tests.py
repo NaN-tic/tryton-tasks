@@ -120,11 +120,12 @@ def test(dbtype, name, modules, failfast, upload=True):
 
 
 @task()
-def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True):
-    _module(module, dbtype, fail_fast, upload)
+def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True,
+        force=False):
+    _module(module, dbtype, fail_fast, upload, force)
 
 
-def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
+def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
 
     if upload:
         get_tryton_connection()
@@ -139,13 +140,14 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True):
             revision = repo.revision(rev)
             build = Build.find([
                 ('component.name', '=', module),
-                ('revision', '=', revision.node)], order=[('execution','Desc'),],
+                ('revision', '=', revision.node)],
+                order=[('execution', 'Desc')],
                 limit=1)
 
         except hgapi.HgException, e:
             print "Error running %s: %s" % (e.exit_code, str(e))
 
-        if build:
+        if build and not force:
             return
 
     logger.info("Testing module:" + module)
@@ -160,7 +162,7 @@ def modules(dbtype='sqlite', force=False):
     p.map(_module, Config.sections())
 
 
-
 TestCollection = Collection()
 TestCollection.add_task(module)
 TestCollection.add_task(modules)
+
