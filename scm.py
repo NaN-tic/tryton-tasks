@@ -240,7 +240,7 @@ def _clone(repo):
 @task()
 def clone(config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
-    hg_pull('config', '.', True)
+    hg_pull('config', 'config', True)
 
     Config = read_config_file(config, unstable=unstable)
     p = Pool(MAX_PROCESSES)
