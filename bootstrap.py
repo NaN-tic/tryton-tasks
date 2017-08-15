@@ -25,7 +25,7 @@ def get_tasks(taskpath='tasks'):
     Config.tasks_path = taskpath
     if Path(taskpath).exists():
         print 'Updating tasks repo'
-        hg_pull(taskpath, '.', True)
+        hg_pull(taskpath, taskpath, True)
         return
 
     if not getattr(Config, 'get_tasks', False):
@@ -46,7 +46,7 @@ def get_config(configpath='config', branch='default'):
     Config.config_path = Path(configpath).abspath()
     if Path(configpath).exists():
         print ('Updating config repo')
-        hg_pull(configpath, '.', True, branch=branch)
+        hg_pull(configpath, configpath, True, branch=branch)
         return
 
     if not getattr(Config, 'get_config', False):
@@ -67,7 +67,7 @@ def get_utils(utilspath='utils'):
     Config.utils_path = utilspath
     if Path(utilspath).exists():
         print 'Updating utils repo'
-        hg_pull(utilspath, '.', True)
+        hg_pull(utilspath, utilspath, True)
         return
 
     if not getattr(Config, 'get_utils'):
