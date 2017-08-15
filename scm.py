@@ -217,20 +217,27 @@ def hg_clone(url, path, branch="default", revision=None):
     if revision:
         extended_args.append('-u')
         extended_args.append(revision)
-    try:
-        client = hgapi.hg_clone(url, path, *extended_args)
-        res = check_revision(client, path, revision, branch)
-    except hgapi.HgException, e:
-        print t.bold_red('[' + path + ']')
-        print "Error running %s: %s" % (e.exit_code, str(e))
-        return -1
-    except:
-        return -1
-
-    print "Repo " + t.bold(path) + t.green(" Updated") + \
-        " to Revision:" + revision
-    return res
-
+    retries = 2
+    while retries:
+        retries -= 1
+        try:
+            client = hgapi.hg_clone(url, path, *extended_args)
+            res = check_revision(client, path, revision, branch)
+            print "Repo " + t.bold(path) + t.green(" Updated") + \
+                " to Revision:" + revision
+            return res
+        except hgapi.HgException, e:
+            if retries:
+                print t.bold_yellow('[' + path + '] (%d)' % retries)
+            else:
+                print t.bold_red('[' + path + '] (%d)' % retries)
+            print "Error running %s: %s" % (e.exit_code, str(e))
+            if retries:
+                continue
+            return -1
+        except:
+            print t.bold_red('[' + path + '] failed')
+            return -1
 
 def _clone(repo):
     return repo['function'](repo['url'], repo['path'],
@@ -1042,19 +1049,28 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
         return -1
 
     repo = hgapi.Repo(path)
-    try:
-        repo.hg_pull()
-        if update:
-            return hg_update_ng(module, path, clean, branch=branch,
-                revision=revision, ignore_missing=ignore_missing)
-    except hgapi.HgException, e:
-        print t.bold_red('[' + module + ']')
-        print "Error running %s : %s" % (e.exit_code, str(e))
-        return -1
-    except:
-        return -1
-    return 0
-
+    retries = 2
+    while retries:
+        retries -= 1
+        try:
+            repo.hg_pull()
+            if update:
+                return hg_update_ng(module, path, clean, branch=branch,
+                    revision=revision, ignore_missing=ignore_missing)
+            return 0
+        except hgapi.HgException, e:
+            import traceback
+            traceback.print_stack()
+            if retries:
+                print t.bold_yellow('[' + path + '] (%d)' % retries)
+            else:
+                print t.bold_red('[' + path + ']')
+            print "Error running %s : %s" % (e.exit_code, str(e))
+            if retries:
+                continue
+            return -1
+        except:
+            return -1
 
 def _pull(repo):
     return repo['function'](repo['name'], repo['path'], update=repo['update'],
