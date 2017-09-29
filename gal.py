@@ -10,6 +10,7 @@ import json
 import datetime
 import codecs
 import iban
+import traceback
 from functools32 import lru_cache
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
@@ -74,6 +75,28 @@ def check_output(*args):
     else:
         print t.green('Ok')
     return data
+
+# Execute method that shows the exception and line number of the 'exec' call.
+# Snippet taken from:
+# https://stackoverflow.com/questions/28836078/how-to-get-the-line-number-of-an-error-from-exec-or-execfile-in-python
+
+class InterpreterError(Exception): pass
+
+def execute(cmd, globals=None, locals=None, description='source string'):
+    try:
+        exec(cmd, globals, locals)
+    except SyntaxError as err:
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        line_number = err.lineno
+    except Exception as err:
+        error_class = err.__class__.__name__
+        detail = err.args[0]
+        cl, exc, tb = sys.exc_info()
+        line_number = traceback.extract_tb(tb)[-1][1]
+    else:
+        return
+    raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
 
 def connect_database(database=None, password='admin',
         database_type='postgresql', language=None):
@@ -328,7 +351,7 @@ def execute_script(script):
     elif script.endswith('.py'):
         with open(script, 'r') as f:
             code = f.read()
-        exec(code)
+        execute(code)
     else:
         print >>sys.stderr, t.red("Don't know how to execute %s" % script)
         sys.exit(1)
