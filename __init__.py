@@ -9,7 +9,6 @@ from .tests import TestCollection
 from .reviewboard import ReviewCollection
 from .tryton_component import ComponentCollection
 from .project import ProjectCollection
-from .userdoc import DocCollection
 from .patches import QuiltCollection
 from .gal import GalCollection
 from .pypi import PypiCollection
@@ -27,7 +26,6 @@ ns.add_collection(TestCollection, 'test')
 ns.add_collection(ReviewCollection, 'rb')
 ns.add_collection(ComponentCollection, 'component')
 ns.add_collection(ProjectCollection, 'project')
-ns.add_collection(DocCollection, 'doc')
 ns.add_collection(QuiltCollection, 'quilt')
 ns.add_collection(GalCollection, 'gal')
 ns.add_collection(PypiCollection, 'pypi')
