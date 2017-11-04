@@ -741,6 +741,7 @@ def create_bank_accounts():
     if not module_installed('account_bank'):
         print t.red('account_bank module must be installed before creating '
             'bank accounts.')
+    good_number = None
     for party in Party.find([]):
         BankAccount = Model.get('bank.account')
         AccountNumber = Model.get('bank.account.number')
@@ -752,14 +753,29 @@ def create_bank_accounts():
         number = AccountNumber()
         account.numbers.append(number)
         country = 'ES'
-        account_code = bank.bank_code
-        account_code += ''.join([str(x) for x in random.sample(range(10) *
-                    4, 4)])
-        account_number = ''.join([str(x) for x in random.sample(range(10) *
-                    12, 12)])
         number.type = 'iban'
-        number.number = iban.create_iban(country, account_code, account_number)
-        account.save()
+        if not good_number:
+            while True:
+                account_code = bank.bank_code
+                account_code += ''.join([str(x) for x in random.sample(range(10) *
+                            4, 4)])
+                account_number = ''.join([str(x) for x in random.sample(range(10) *
+                            12, 12)])
+                number.number = iban.create_iban(country, account_code,
+                    account_number)
+                print 'Looping...', number.number
+                #x = iban.check_iban(number.number)
+                try:
+                    good_number = number.number
+                    account.save()
+                    print 'Ok!'
+                    break
+                except Exception, e:
+                    print 'Exception: ', str(e)
+                    pass
+        else:
+            number.number = good_number
+            account.save()
 
         if module_installed('account_bank'):
             if hasattr(party, 'payable_bank_account'):
