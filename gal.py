@@ -680,7 +680,7 @@ def create_random_parties(count=4000):
         phone = random.choice(phones)
         while len(phone) < 9:
             phone += str(random.randrange(9))
-        party = create_party(company, street=street, zip=None, city=None,
+        create_party(company, street=street, zip=None, city=None,
             subdivision_code=None, country_code='ES', phone=phone,
             website=None, address_name=name)
     gal_commit()
