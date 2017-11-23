@@ -39,16 +39,21 @@ settings = get_config()
 
 
 def get_tryton_connection():
-    tryton = settings['tryton']
+    if 'TRYTOND_TESTER_URI' in os.environ:
+        url = os.environ['TRYTOND_TESTER_URI']
+    else:
+        tryton = settings['tryton']
+        url = tryton['server']
     try:
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-        return pconfig.set_xmlrpc(tryton['server'], context=ssl_context)
+
+        return pconfig.set_xmlrpc(url, context=ssl_context)
     except AttributeError:
         # If python is older than 2.7.9 it doesn't have
         # ssl.create_default_context() but it neither verify certificates
-        return pconfig.set_xmlrpc(tryton['server'])
+        return pconfig.set_xmlrpc(url)
 
 
 def _pull():

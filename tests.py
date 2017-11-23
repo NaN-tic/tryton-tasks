@@ -1,18 +1,13 @@
 #!/usr/bin/env python
-from invoke import task, run, Collection
+from invoke import task, Collection
 import os
 import subprocess
 import sys
-import tempfile
 import scm
-import utils
-import project
-from ConfigParser import NoOptionError
 import logging
 import time
 from coverage import coverage
 from .utils import read_config_file
-import tryton_component as component
 from multiprocessing import Pool
 import hgapi
 from .tryton_component import get_tryton_connection
