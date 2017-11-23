@@ -110,8 +110,9 @@ def test(dbtype, name, modules, failfast, upload=True):
 
     logger.info('Upload results to tryton')
     if upload:
-        print "upload:", upload
+        print("Uploading to Tryton '%s'" % name)
         runner.upload_tryton(dbtype, failfast, name)
+        print("'%s' uploaded." % name)
     else:
         runner.print_report(dbtype, failfast, name)
 
@@ -153,9 +154,9 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
 
 
 @task()
-def modules(dbtype='sqlite', force=False):
+def modules(dbtype='sqlite', force=False, processes=MAX_PROCESSES):
     Config = read_config_file()
-    p = Pool(MAX_PROCESSES)
+    p = Pool(processes)
     p.map(_module, Config.sections())
 
 
