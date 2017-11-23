@@ -7,7 +7,7 @@ import scm
 import logging
 import time
 from coverage import coverage
-from .utils import read_config_file
+from .utils import read_config_file, NO_MODULE_REPOS
 from multiprocessing import Pool
 import hgapi
 from .tryton_component import get_tryton_connection
@@ -157,7 +157,8 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
 def modules(dbtype='sqlite', force=False, processes=MAX_PROCESSES):
     Config = read_config_file()
     p = Pool(processes)
-    p.map(_module, Config.sections())
+    repos = [x for x in Config.sections() if x not in NO_MODULE_REPOS]
+    p.map(_module, repos)
 
 
 
