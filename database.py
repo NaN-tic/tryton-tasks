@@ -197,9 +197,14 @@ def cluster(database):
     cursor.execute("SELECT table_name, table_schema FROM information_schema.tables WHERE "
         "table_type = 'BASE TABLE' AND table_schema='public'")
     for table, schema in cursor.fetchall():
-        cursor.execute('CLUSTER "%s"."%s" USING "%s_pkey"' % (schema, table,
-                table))
-    connection.commit()
+        try:
+            query = 'CLUSTER "%s"."%s" USING "%s_pkey"' % (schema, table,
+                    table)
+            cursor.execute(query)
+            connection.commit()
+        except psycopg2.ProgrammingError:
+            print('Error executing: %s' % query)
+            connection.rollback()
     connection.close()
 
 
