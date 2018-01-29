@@ -12,6 +12,7 @@ from path import Path
 import shutil
 from collections import OrderedDict
 import yaml
+import ConfigParser
 
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
@@ -293,7 +294,6 @@ def print_status(module, files):
     if msg:
         msg.insert(0, "[%s]" % module)
         print '\n'.join(msg)
-
 
 
 def git_status(module, path, url, verbose):
@@ -1372,6 +1372,26 @@ def fetch():
     print t.bold('Fetched.')
 
 
+
+@task()
+def module_version(config=None):
+    '''
+    Check version of module
+    '''
+    config = read_config_file(config)
+    for section in config.sections():
+        path = config.get(section, 'path')
+        cfg_file = os.path.join(path, section,  'tryton.cfg')
+        if not os.path.exists(cfg_file):
+            print >> sys.stderr, t.red("Missing tryton.cfg file:") + t.bold(
+                cfg_file)
+            continue
+        Config = ConfigParser.ConfigParser()
+        Config.readfp(open(cfg_file))
+        version = Config.get('tryton', 'version')
+        print section, version
+
+
 def increase_module_version(module, path, version):
     '''
     Increase version of module
@@ -1465,3 +1485,4 @@ ScmCollection.add_task(clean)
 ScmCollection.add_task(prefetch)
 ScmCollection.add_task(branches)
 ScmCollection.add_task(close_branch)
+ScmCollection.add_task(module_version)

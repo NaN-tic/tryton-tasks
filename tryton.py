@@ -6,6 +6,7 @@ import sys
 import socket
 import getpass
 from invoke import task, run, Collection
+import ConfigParser
 
 from .iban import create_iban, IBANError
 from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
@@ -527,6 +528,41 @@ def adduser(dbname, user, conf_file=None):
         Transaction().commit()
         print t.green("You could login with '%s' at '%s'" % (u.login, dbname))
 
+
+
+@task()
+def installed_module_version(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+        config=None):
+    '''
+    Check version of installed module
+    '''
+
+    set_context(database, config_file)
+    cursor = Transaction().connection.cursor()
+    cursor.execute(*ir_module.select(ir_module.name,
+        where=ir_module.state.in_(('installed',))))
+    module_list = set([name for (name,) in cursor.fetchall()])
+
+    config = read_config_file(config)
+
+    for module in module_list:
+        if not config.has_section(module):
+            print >> sys.stderr, t.red("Missing Module on filesystem:") + t.bold(
+                module)
+            continue
+
+        path = config.get(module, 'path')
+        cfg_file = os.path.join(path, module,  'tryton.cfg')
+        if not os.path.exists(cfg_file):
+            print >> sys.stderr, t.red("Missing tryton.cfg file:") + t.bold(
+                cfg_file)
+            continue
+        Config = ConfigParser.ConfigParser()
+        Config.readfp(open(cfg_file))
+        version = Config.get('tryton', 'version')
+        print module, version
+
+
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
 TrytonCollection.add_task(uninstall_task, 'uninstall')
@@ -537,3 +573,4 @@ TrytonCollection.add_task(update_post_move_sequence)
 TrytonCollection.add_task(convert_bank_accounts_to_iban)
 TrytonCollection.add_task(automatic_reconciliation)
 TrytonCollection.add_task(adduser)
+TrytonCollection.add_task(installed_module_version)
