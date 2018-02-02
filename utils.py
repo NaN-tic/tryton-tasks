@@ -103,8 +103,8 @@ def read_config_file(config_file=None, type='repos', unstable=True,
 
 
 @task()
-def update_parent_left_right(database, table, field=None, host='localhost',
-        port='5432', user=None, password=None):
+def update_parent_left_right(database, table, field=None, host=None, port=None,
+        user=None, password=None):
     ''' Compute left/right fields for a parent field in a tryton table '''
     if field is None:
         field = 'parent'
@@ -134,8 +134,9 @@ def update_parent_left_right(database, table, field=None, host='localhost',
                 pos = browse_rec(root, pos)
             return True
 
-    db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
-        password=password)
+    db = _check_database(database, host, port, user, password)
+    if not db:
+        return
 
     print "calculating parent_left of table", table, "and field:", field
     _parent_store_compute(db.cursor(), table, field)
@@ -307,12 +308,12 @@ def _check_database(database, host=None, port=None, dbuser=None,
     if dbpassword:
         connection_params['password'] = dbpassword
     try:
-        psycopg2.connect(**connection_params)
+        db = psycopg2.connect(**connection_params)
     except Exception, e:
         print t.bold('Invalid database connection params:')
         print str(e)
         return False
-    return True
+    return db
 
 
 def execBashCommand(command, success_msg="", fail_msg="", quiet=True):
