@@ -15,7 +15,7 @@ configobj
 PyHamcrest
 choice
 faulthandler
-requests
+requests[security]
 
 # gal
 dateutils
