@@ -4,6 +4,7 @@ from invoke import Collection, task, run
 from .utils import read_config_file, get_config_files
 from .scm import get_repo
 from collections import OrderedDict
+import hgapi
 
 
 def get_config():
@@ -63,6 +64,32 @@ def set_branch(branch, config=None):
         Config.write(f_d)
         f_d.close()
 
+@task()
+def add_modules(config, version, owner, modules="./modules"):
+    Config = read_config_file(config, type='all', unstable=True)
+
+    for d in [x for x in os.listdir(modules) if os.path.isdir(
+            os.path.join(modules, x))]:
+        path = os.path.join(modules, d)
+        cfg_file = os.path.join(path, 'tryton.cfg')
+        if not os.path.exists(cfg_file):
+            continue
+        Config = ConfigParser.ConfigParser()
+        Config.readfp(open(cfg_file))
+        v = Config.get('tryton', 'version')
+        if v != version:
+            continue
+
+        repo = hgapi.Repo(path)
+        url = repo.config('paths', 'default')
+
+        if owner and "/%s/" % owner not in url:
+            continue
+
+        add_module(config, path, url)
+
+
+
 
 @task()
 def add_module(config, path, url=None):
@@ -70,8 +97,6 @@ def add_module(config, path, url=None):
     Config = read_config_file(config, type='all', unstable=True)
     module = os.path.basename(path)
     url = run('cd %s; hg paths default' % (path)).stdout.split('\n')[0]
-    if 'http' in url:
-        url = 'ssh://hg@bitbucket.org/nantic/trytond-%s' % module
     branch = run('cd %s;hg branch' % (path)).stdout.split('\n')[0]
     cfile = open(config, 'w+')
     if not Config.has_section(module):
@@ -90,3 +115,4 @@ ConfigCollection = Collection()
 ConfigCollection.add_task(add_module)
 ConfigCollection.add_task(set_branch)
 ConfigCollection.add_task(set_revision)
+ConfigCollection.add_task(add_modules)

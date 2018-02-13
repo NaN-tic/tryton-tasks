@@ -35,7 +35,7 @@ except ImportError:
 
 try:
     from sql import Table
-    if proteus_version < '3.5':
+    if proteus_version < '4.0':
         ir_module = Table('ir_module_module')
     else:
         ir_module = Table('ir_module')
