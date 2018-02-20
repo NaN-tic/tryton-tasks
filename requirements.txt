@@ -33,7 +33,7 @@ relatorio>=0.2.0
 Genshi
 python-dateutil
 polib
-psycopg2>=2.5.0
+psycopg2-binary>=2.5.0
 python-sql>=0.8
 werkzeug
 wrapt
