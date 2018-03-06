@@ -14,7 +14,6 @@ from .utils import t
 import logging
 from tabulate import tabulate
 
-from .bucket import pullrequests
 import choice
 
 
@@ -104,6 +103,39 @@ def fetch_review(work):
                 branch=review.branch)
 
 
+def get_request_info(url):
+    rs = url.split('/')
+    owner, repo, request_id = rs[-4], rs[-3], rs[-1]
+    return owner, repo, request_id
+
+
+def show_review(review):
+    print "{id} - {name} - {url}".format(
+            id=review.id, name=review.name, url=review.url)
+
+
+@task()
+def components(database):
+    get_tryton_connection()
+
+    DBComponent = Model.get('nantic.database.component')
+
+    components = DBComponent.find([('database.name', '=', database),
+            ('state', '=', 'accepted')])
+
+    for component in components:
+        print component.component.name
+
+
+@task()
+def check_migration(database):
+    output = run('psql -d %s -c "select name from ir_module_module'
+        ' where state=\'installed\'"' % database, hide='both')
+    modules = [x.strip() for x in output.stdout.split('\n')]
+    branches(None, modules)
+
+
+
 @task()
 def decline_review(work, review_id=None, message=None):
     get_tryton_connection()
@@ -136,17 +168,6 @@ def decline_review(work, review_id=None, message=None):
             if res and res['state'] == 'MERGED':
                 review.state = 'closed'
                 review.save()
-
-
-def get_request_info(url):
-    rs = url.split('/')
-    owner, repo, request_id = rs[-4], rs[-3], rs[-1]
-    return owner, repo, request_id
-
-
-def show_review(review):
-    print "{id} - {name} - {url}".format(
-            id=review.id, name=review.name, url=review.url)
 
 
 @task()
@@ -203,23 +224,15 @@ def upload_review(work, path, branch, review_name, review=None, new=False):
     else:
         component = components[0]
 
-    review_file = os.path.join(path, '.review.cfg')
-    if new and os.path.exists(review_file):
-        os.remove(review_file)
-
     repo = hgapi.Repo(path)
     url = repo.config('paths', 'default')
     url_list = url.split('/')
     owner, repo_name = (url_list[-2], url_list[-1])
 
-    if branch not in repo.get_branch_names():
-        print >>sys.stderr, t.red('Error: Branch %s '
-            'was not found on repo.' % branch)
-        sys.exit(0)
+    review = reviewboard.create(module, work.rec_name,
+            (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
-    review = pullrequests.create(owner, repo_name, branch, review_name)
-
-    review_id = review['id']
+    review_id = review
 
     review = Review.find([
             ('review_id', '=', str(review_id)),
@@ -231,10 +244,9 @@ def upload_review(work, path, branch, review_name, review=None, new=False):
         review = review[0]
 
     review.name = "[{module}]-{task_name}".format(
-            module=module, task_name=review_name)
+            module=module, task_name=work.rec_name)
     review.review_id = str(review_id)
-    review.url = ('https://bitbucket.org/{owner}/{repo}/'
-        'pull-requests/{id}').format(
+    review.url = ('http://reviews.nan-tic.com/r/{id}').format(
             owner=owner,
             repo=repo_name,
             id=review_id)
@@ -245,31 +257,10 @@ def upload_review(work, path, branch, review_name, review=None, new=False):
     review.save()
 
 
-@task()
-def components(database):
-    get_tryton_connection()
-
-    DBComponent = Model.get('nantic.database.component')
-
-    components = DBComponent.find([('database.name', '=', database),
-            ('state', '=', 'accepted')])
-
-    for component in components:
-        print component.component.name
-
-
-@task()
-def check_migration(database):
-    output = run('psql -d %s -c "select name from ir_module_module'
-        ' where state=\'installed\'"' % database, hide='both')
-    modules = [x.strip() for x in output.stdout.split('\n')]
-    branches(None, modules)
-
-
 ProjectCollection = Collection()
-ProjectCollection.add_task(upload_review)
-ProjectCollection.add_task(merge_review)
-ProjectCollection.add_task(fetch_review)
 ProjectCollection.add_task(ct)
 ProjectCollection.add_task(components)
 ProjectCollection.add_task(check_migration)
+ProjectCollection.add_task(upload_review)
+# ProjectCollection.add_task(merge_review)
+# ProjectCollection.add_task(fetch_review)
