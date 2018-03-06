@@ -13,7 +13,7 @@ from .scm import get_branch, branches, hg_pull, hg_clone
 from .utils import t
 import logging
 from tabulate import tabulate
-from .bucket import pullrequests
+# from .bucket import pullrequests
 import choice
 
 
@@ -204,7 +204,7 @@ def merge_review(work, review_id=None, message=None):
 
 
 @task()
-def upload_review(work, path, branch, review_name, review=None, new=False):
+def upload_review(work, path, branch='default'):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -224,23 +224,15 @@ def upload_review(work, path, branch, review_name, review=None, new=False):
     else:
         component = components[0]
 
-    review_file = os.path.join(path, '.review.cfg')
-    if new and os.path.exists(review_file):
-        os.remove(review_file)
-
     repo = hgapi.Repo(path)
     url = repo.config('paths', 'default')
     url_list = url.split('/')
     owner, repo_name = (url_list[-2], url_list[-1])
 
-    if branch not in repo.get_branch_names():
-        print >>sys.stderr, t.red('Error: Branch %s '
-            'was not found on repo.' % branch)
-        sys.exit(0)
+    review = reviewboard.create(module, work.rec_name,
+            (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
-    review = pullrequests.create(owner, repo_name, branch, review_name)
-
-    review_id = review['id']
+    review_id = review
 
     review = Review.find([
             ('review_id', '=', str(review_id)),
@@ -252,10 +244,9 @@ def upload_review(work, path, branch, review_name, review=None, new=False):
         review = review[0]
 
     review.name = "[{module}]-{task_name}".format(
-            module=module, task_name=review_name)
+            module=module, task_name=work.rec_name)
     review.review_id = str(review_id)
-    review.url = ('https://bitbucket.org/{owner}/{repo}/'
-        'pull-requests/{id}').format(
+    review.url = ('http://reviews.nan-tic.com/r/{id}').format(
             owner=owner,
             repo=repo_name,
             id=review_id)
@@ -271,5 +262,5 @@ ProjectCollection.add_task(ct)
 ProjectCollection.add_task(components)
 ProjectCollection.add_task(check_migration)
 ProjectCollection.add_task(upload_review)
-ProjectCollection.add_task(merge_review)
-ProjectCollection.add_task(fetch_review)
+# ProjectCollection.add_task(merge_review)
+# ProjectCollection.add_task(fetch_review)

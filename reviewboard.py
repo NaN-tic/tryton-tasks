@@ -55,6 +55,7 @@ def get_root():
     review = settings['reviewboard']
     client = RBClient(review['server'])
     client.login(review['user'], review['password'])
+
     return client.get_root()
 
 
@@ -65,22 +66,20 @@ def get_repository():
 
 
 @task()
-def create(module, summary, description, bug, review=None, group='NaN'):
+def create(module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
     diff, base_diff = module_diff(module, show=False, addremove=True)
     root = get_root()
-    if review:
-        create_review_file(module, review)
-        review_request = root.get_review_request(review_request_id=review)
-    elif review_file(module):
-        review_request = root.get_review_request(
-            review_request_id=review_file(module))
-    else:
+    review_id = review_file(module)
+    if review_id is None:
         review_request = root.get_review_requests().create(
             repository=get_repository())
         create_review_file(module, review_request.id)
+    else:
+        review_request = root.get_review_request(
+            review_request_id=review_file(module))
 
     review_request.get_diffs().upload_diff(diff.encode('utf-8'),
         base_diff.encode('utf-8'))
@@ -136,7 +135,7 @@ def fetch(module, review):
 
 @task()
 def close_all():
-    root = get_root()
+    root = get_root(root)
     requests = root.get_review_requests()
     for request in requests:
         request = request.update(status='discarded')
