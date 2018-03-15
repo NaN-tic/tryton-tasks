@@ -1372,6 +1372,22 @@ def fetch():
     print t.bold('Fetched.')
 
 
+def _module_version(modules):
+    config = read_config_file()
+    for section in modules:
+        if section not in config.sections():
+            print section, "; Not Found"
+            continue
+        path = config.get(section, 'path')
+        cfg_file = os.path.join(path, section,  'tryton.cfg')
+        if not os.path.exists(cfg_file):
+            print >> sys.stderr, t.red("Missing tryton.cfg file:") + t.bold(
+                cfg_file)
+            continue
+        Config = ConfigParser.ConfigParser()
+        Config.readfp(open(cfg_file))
+        version = Config.get('tryton', 'version')
+        print section,';',"'"+version
 
 @task()
 def module_version(config=None):

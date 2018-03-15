@@ -9,7 +9,7 @@ from invoke import run, task, Collection
 
 from .config import get_config
 from . import reviewboard
-from .scm import get_branch, branches, hg_pull, hg_clone
+from .scm import get_branch, branches, hg_pull, hg_clone, _module_version
 from .utils import t
 import logging
 from tabulate import tabulate
@@ -128,11 +128,16 @@ def components(database):
 
 
 @task()
-def check_migration(database):
-    output = run('psql -d %s -c "select name from ir_module_module'
-        ' where state=\'installed\'"' % database, hide='both')
+def check_migration(database, version=3.4):
+
+    module_table = 'ir_module'
+    if version == 3.4:
+        module_table = 'ir_module_module'
+
+    output = run('psql -A -d %s -c "select name from %s'
+        ' where state=\'installed\'"' % (database, module_table), hide='both')
     modules = [x.strip() for x in output.stdout.split('\n')]
-    branches(None, modules)
+    _module_version(modules[1:-1])
 
 
 
