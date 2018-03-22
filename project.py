@@ -221,7 +221,7 @@ def upload_review(work, path, branch='default'):
         sys.exit(1)
     work = tasks[0]
 
-    module = path.split('/')[-1]
+    module = os.path.realpath(path).split('/')[-1]
     components = Component.find([('name', '=', module)])
     if not components:
         component = Component(name=module)
@@ -234,7 +234,7 @@ def upload_review(work, path, branch='default'):
     url_list = url.split('/')
     owner, repo_name = (url_list[-2], url_list[-1])
 
-    review = reviewboard.create(module, work.rec_name,
+    review = reviewboard.create(path, work.rec_name,
             (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
     review_id = review
