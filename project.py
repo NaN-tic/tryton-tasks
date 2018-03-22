@@ -249,7 +249,7 @@ def upload_review(work, path, branch='default'):
         review = review[0]
 
     review.name = "[{module}]-{task_name}".format(
-            module=module, task_name=work.rec_name)
+            module=module, task_name=work.rec_name.encode('utf-8'))
     review.review_id = str(review_id)
     review.url = ('http://reviews.nan-tic.com/r/{id}').format(
             owner=owner,
