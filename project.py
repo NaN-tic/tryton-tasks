@@ -204,7 +204,7 @@ def merge_review(work, review_id=None, message=None):
 
 
 @task()
-def upload_review(work, path, branch, review_name, review=None, new=False):
+def upload_review(work, path, branch='default'):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
