@@ -5,6 +5,10 @@ from .utils import read_config_file, get_config_files
 from .scm import get_repo
 from collections import OrderedDict
 import hgapi
+from pick import pick
+from path import Path
+from .utils import t, _ask_ok, get_config_files, read_config_file, \
+    execBashCommand, remove_dir, NO_MODULE_REPOS
 
 
 def get_config():
@@ -111,8 +115,64 @@ def add_module(config, path, url=None):
     Config.write(cfile)
     cfile.close()
 
+@task()
+def unknown(unstable=True, status=False, show=True, remove=False, quiet=False,
+        add=False):
+    """
+    Return a list of modules/repositories that exists in filesystem but not in
+    config files
+    ;param status: show status for unknown repositories.
+    """
+    Config = read_config_file(unstable=unstable)
+    configs_module_list = [section for section in Config.sections()
+        if section not in NO_MODULE_REPOS]
+
+    modules_wo_repo = []
+    repo_not_in_cfg = []
+    for module_path in Path('./modules').dirs():
+        module_name = module_path.basename()
+        if module_name in configs_module_list:
+            continue
+
+        if (module_path.joinpath('.hg').isdir() or
+                module_path.joinpath('.git').isdir()):
+            repo_not_in_cfg.append(module_name)
+            if status and module_path.joinpath('.hg').isdir():
+                hg_status(module_name, module_path.parent, False, None)
+            elif status and module_path.joinpath('.git').isdir():
+                git_status(module_name, module_path.parent, False, None)
+        else:
+            modules_wo_repo.append(module_name)
+
+    if show:
+        if modules_wo_repo:
+            print t.bold("Unknown module (without repository):")
+            print "  - " + "\n  - ".join(modules_wo_repo)
+            print ""
+        if not status and repo_not_in_cfg:
+            print t.bold("Unknown repository:")
+            print "  - " + "\n  - ".join(repo_not_in_cfg)
+            print ""
+
+    if add:
+        config_files = get_config_files()
+        for repo in modules_wo_repo + repo_not_in_cfg:
+            title = 'Add "%s" to Config Fille:' % repo
+            option, index = pick(config_files, title, default_index=1)
+            path = os.path.join('./modules', repo)
+            add_module(option, path)
+
+    if remove:
+        for repo in modules_wo_repo + repo_not_in_cfg:
+            path = os.path.join('./modules', repo)
+            remove_dir(path, quiet)
+
+    return modules_wo_repo, repo_not_in_cfg
+
+
 ConfigCollection = Collection()
 ConfigCollection.add_task(add_module)
 ConfigCollection.add_task(set_branch)
 ConfigCollection.add_task(set_revision)
 ConfigCollection.add_task(add_modules)
+ConfigCollection.add_task(unknown)
