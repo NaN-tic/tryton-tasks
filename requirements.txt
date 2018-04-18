@@ -18,6 +18,7 @@ choice
 faulthandler
 pyyaml
 requests[security]
+pick
 
 # git
 nose

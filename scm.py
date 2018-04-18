@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from invoke import Collection, task, run
 from datetime import date
+import utils
 import hgapi
 import git
 import os
@@ -13,6 +14,8 @@ import shutil
 from collections import OrderedDict
 import yaml
 import ConfigParser
+
+
 
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand, \
@@ -123,52 +126,6 @@ def close_branch(directory, branch):
             print module_path
             repo.hg_update(branch, True)
             repo.hg_commit('close branch', close_branch=True)
-
-
-@task()
-def unknown(unstable=True, status=False, show=True, remove=False, quiet=False):
-    """
-    Return a list of modules/repositories that exists in filesystem but not in
-    config files
-    ;param status: show status for unknown repositories.
-    """
-    Config = read_config_file(unstable=unstable)
-    configs_module_list = [section for section in Config.sections()
-        if section not in NO_MODULE_REPOS]
-
-    modules_wo_repo = []
-    repo_not_in_cfg = []
-    for module_path in Path('./modules').dirs():
-        module_name = module_path.basename()
-        if module_name in configs_module_list:
-            continue
-
-        if (module_path.joinpath('.hg').isdir() or
-                module_path.joinpath('.git').isdir()):
-            repo_not_in_cfg.append(module_name)
-            if status and module_path.joinpath('.hg').isdir():
-                hg_status(module_name, module_path.parent, False, None)
-            elif status and module_path.joinpath('.git').isdir():
-                git_status(module_name, module_path.parent, False, None)
-        else:
-            modules_wo_repo.append(module_name)
-
-    if show:
-        if modules_wo_repo:
-            print t.bold("Unknown module (without repository):")
-            print "  - " + "\n  - ".join(modules_wo_repo)
-            print ""
-        if not status and repo_not_in_cfg:
-            print t.bold("Unknown repository:")
-            print "  - " + "\n  - ".join(repo_not_in_cfg)
-            print ""
-
-    if remove:
-        for repo in modules_wo_repo + repo_not_in_cfg:
-            path = os.path.join('./modules', repo)
-            remove_dir(path, quiet)
-
-    return modules_wo_repo, repo_not_in_cfg
 
 
 def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
@@ -1487,7 +1444,6 @@ ScmCollection.add_task(pull)
 ScmCollection.add_task(update)
 ScmCollection.add_task(repo_list)
 ScmCollection.add_task(fetch)
-ScmCollection.add_task(unknown)
 ScmCollection.add_task(stat)
 ScmCollection.add_task(branch)
 ScmCollection.add_task(missing_branch)
