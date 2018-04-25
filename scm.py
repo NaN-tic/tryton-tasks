@@ -853,6 +853,8 @@ def _hg_branches(module, path, config_branch=None):
     print msg
 
 
+
+
 @task()
 def branches(config=None, modules=None):
 
@@ -1055,6 +1057,53 @@ def pull(config=None, unstable=True, update=True, development=False,
     if not no_quilt:
         patches._push()
     return sum(exit_codes)
+
+
+def hg_commit(module, path, msg):
+    path_repo = os.path.join(path, module)
+    if not os.path.exists(path_repo):
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
+        return
+
+    cwd = os.getcwd()
+    os.chdir(path_repo)
+
+    cmd = ['hg', 'commit', '-m', "'"+msg+"'"]
+    result = run(' '.join(cmd), warn=True, hide='both')
+    print t.bold("= " + module + " =")
+    print result.stdout
+    print result.stderr
+    os.chdir(cwd)
+
+@task()
+def commit(msg, config=None, unstable=True):
+    '''
+    Pushes all pending commits to the repo url.
+
+    url that start with http are excluded.
+    '''
+    Config = read_config_file(config, unstable=unstable)
+    processes = []
+    p = None
+    for section in Config.sections():
+        repo = Config.get(section, 'repo')
+        path = Config.get(section, 'path')
+        # Don't push to repos that start with http as we don't have access to
+        url = Config.get(section, 'url')
+        if url[:4] == 'http':
+            continue
+        if repo == 'hg':
+            func = hg_commit
+        elif repo == 'git':
+            continue
+        else:
+            print >> sys.stderr, "Not developed yet"
+            continue
+        p = Process(target=func, args=(section, path, msg))
+        p.start()
+        processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 
 def hg_push(module, path, url, new_branches=False):
@@ -1408,6 +1457,9 @@ def increase_module_version(module, path, version):
     with open(filename, 'w') as fp:
         fp.write(content)
 
+    cmd = ['hg', 'commit', '-m', 'Increase version']
+    run(' '.join(cmd), warn=True, hide='both')
+
     os.chdir(cwd)
 
 
@@ -1458,3 +1510,4 @@ ScmCollection.add_task(prefetch)
 ScmCollection.add_task(branches)
 ScmCollection.add_task(close_branch)
 ScmCollection.add_task(module_version)
+ScmCollection.add_task(commit)
