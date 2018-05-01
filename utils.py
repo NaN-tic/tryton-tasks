@@ -81,6 +81,8 @@ def read_config_file(config_file=None, type='repos', unstable=True):
                     continue
                 if 'templates' in r:
                     continue
+                if not os.path.exists(os.path.join(r, files)):
+                    continue
                 Config.readfp(open(os.path.join(r, files)))
 
     if type == 'all':
