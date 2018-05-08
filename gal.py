@@ -102,11 +102,12 @@ def connect_database(database=None, password='admin',
         database_type='postgresql', language=None):
     if database is None:
         database = 'gal'
-    if language is None:
-        language = 'en_US'
+
     global config
     global version
     if proteus_version.startswith('3.2'):
+        if language is None:
+            language = 'en_US'
         config = pconfig.set_trytond(database, database_type=database_type,
             password=password, language=language, config_file='trytond.conf')
     else:
@@ -120,8 +121,16 @@ def connect_database(database=None, password='admin',
         from trytond.tests.test_tryton import db_exist
 
         if not db_exist():
-            from trytond.protocols.dispatcher import create as tcreate
-            tcreate(None, database, None, language, password)
+            try:
+                from trytond.protocols.dispatcher import create as tcreate
+                if language is None:
+                    language = 'en_US'
+                tcreate(None, database, None, language, password)
+            except:
+                from trytond.tests.test_tryton import create_db as tcreate
+                if language is None:
+                    language = 'en'
+                tcreate(database, language)
 
         config = pconfig.set_trytond(database, config_file='trytond.conf')
         config.pool.test = False
@@ -198,7 +207,7 @@ def gal_commit(do_dump=True):
     gal_repo().hg_commit(commit_msg)
 
 @lru_cache()
-def module_installed(module):
+def module_activated(module):
     Module = Model.get('ir.module')
     return bool(Module.find([
             ('name', '=', module),
@@ -385,16 +394,16 @@ def upgrade_modules(modules=None, all=False):
     Module = Model.get('ir.module')
     if all:
         modules = Module.find([
-                ('state', '=', 'installed'),
+                ('state', '=', 'activated'),
                 ])
     else:
         modules = Module.find([
                 ('name', 'in', modules),
-                ('state', '=', 'installed'),
+                ('state', '=', 'activated'),
                 ])
 
     Module.upgrade([x.id for x in modules], config.context)
-    Wizard('ir.module.install_upgrade').execute('upgrade')
+    Wizard('ir.module.activate_upgrade').execute('upgrade')
 
     ConfigWizardItem = Model.get('ir.module.config_wizard.item')
     for item in ConfigWizardItem.find([('state', '!=', 'done')]):
@@ -455,7 +464,7 @@ def set_active_languages(lang_codes=None):
 
 
 @task()
-def install_modules(modules):
+def activate_modules(modules):
     '''
     Installs the given modules (for example, 'party,product') to current gal
     database.
@@ -463,35 +472,35 @@ def install_modules(modules):
     Function taken from tryton_demo.py in tryton-tools repo:
     http://hg.tryton.org/tryton-tools
     '''
-    gal_action('install_modules', modules=modules)
+    gal_action('activate_modules', modules=modules)
     restore()
     connect_database()
     # Clear cache
-    module_installed.cache_clear()
+    module_activated.cache_clear()
 
     modules = modules.split(',')
 
     Module = Model.get('ir.module')
     modules = Module.find([
             ('name', 'in', modules),
-            #('state', '!=', 'installed'),
+            #('state', '!=', 'activated'),
             ])
-    Module.install([x.id for x in modules], config.context)
+    Module.activate([x.id for x in modules], config.context)
     modules = [x.name for x in Module.find([
-                ('state', 'in', ('to install', 'to_upgrade')),
+                ('state', 'in', ('to activate', 'to upgrade')),
                 ])]
-    Wizard('ir.module.install_upgrade').execute('upgrade')
+    Wizard('ir.module.activate_upgrade').execute('upgrade')
 
     ConfigWizardItem = Model.get('ir.module.config_wizard.item')
     for item in ConfigWizardItem.find([('state', '!=', 'done')]):
         item.state = 'done'
         item.save()
 
-    installed_modules = [m.name
-        for m in Module.find([('state', '=', 'installed')])]
+    activated_modules = [m.name
+        for m in Module.find([('state', '=', 'activated')])]
 
     gal_commit()
-    return modules, installed_modules
+    return modules, activated_modules
 
 
 @task()
@@ -531,7 +540,7 @@ def get_payment_types(kind):
 def get_languages():
     Lang = Model.get('ir.lang')
     return Lang.find([
-            ('code', 'in', ['ca_ES', 'es_ES', 'en_US']),
+            ('code', 'in', ['ca', 'es', 'en']),
             ])
 
 @lru_cache()
@@ -541,7 +550,7 @@ def get_price_lists():
 
 @lru_cache()
 def get_banks():
-    if not module_installed('bank'):
+    if not module_activated('bank'):
         return
     Bank = Model.get('bank')
     return Bank.find([])
@@ -567,7 +576,7 @@ def get_object(module, fs_id):
     Class = Model.get(model)
     return Class(id)
 
-def create_party(name, street=None, streetbis=None, zip=None, city=None,
+def create_party(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None,
         email=None, address_name=None, account_payable=None,
         account_receivable=None):
@@ -597,7 +606,6 @@ def create_party(name, street=None, streetbis=None, zip=None, city=None,
         Address(
             name=address_name,
             street=street,
-            streetbis=streetbis,
             zip=zip,
             city=city,
             country=country,
@@ -738,8 +746,8 @@ def create_bank_accounts():
     Party = Model.get('party.party')
     Invoice = Model.get('account.invoice')
     banks = get_banks()
-    if not module_installed('account_bank'):
-        print t.red('account_bank module must be installed before creating '
+    if not module_activated('account_bank'):
+        print t.red('account_bank module must be activated before creating '
             'bank accounts.')
     good_number = None
     for party in Party.find([]):
@@ -777,7 +785,7 @@ def create_bank_accounts():
             number.number = good_number
             account.save()
 
-        if module_installed('account_bank'):
+        if module_activated('account_bank'):
             if hasattr(party, 'payable_bank_account'):
                 party.payable_bank_account = account
             if hasattr(party, 'receivable_bank_account'):
@@ -876,6 +884,8 @@ def create_product(name, code="", template=None, cost_price=None,
             template.salable = True
         if hasattr(template, 'purchasable'):
             template.purchasable = True
+        if hasattr(template, 'producible'):
+            template.producible = True
 
         if (hasattr(template, 'account_expense')
                 or hasattr(template, 'account_revenue')):
@@ -897,7 +907,7 @@ def create_product(name, code="", template=None, cost_price=None,
                 ])
             if revenue:
                 template.account_revenue = revenue[0]
-        if module_installed('account_es'):
+        if module_activated('account_es'):
             if hasattr(template, 'customer_taxes'):
                 tax, = Tax.find([
                         ('template', '=',
@@ -944,7 +954,7 @@ def create_products(count=400):
     gal_commit()
 
 @task()
-def create_company(name, street=None, streetbis=None, zip=None, city=None,
+def create_company(name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', currency_code='EUR',
         phone=None, website=None, email=None):
     '''
@@ -953,7 +963,7 @@ def create_company(name, street=None, streetbis=None, zip=None, city=None,
     Based on tryton_demo.py in tryton-tools repo:
     http://hg.tryton.org/tryton-tools
     '''
-    gal_action('create_company', name=name, street=street, streetbis=streetbis,
+    gal_action('create_company', name=name, street=street,
         zip=zip, city=city, subdivision_code=subdivision_code,
         country_code=country_code, currency_code=currency_code, phone=phone,
         website=website, email=email)
@@ -963,7 +973,7 @@ def create_company(name, street=None, streetbis=None, zip=None, city=None,
     Company = Model.get('company.company')
     Currency = Model.get('currency.currency')
 
-    party = create_party(name, street=street, streetbis=streetbis, zip=zip,
+    party = create_party(name, street=street, zip=zip,
         city=city, subdivision_code=subdivision_code, country_code=country_code,
         phone=phone, website=website, email=email)
 
@@ -1131,8 +1141,8 @@ def create_fiscal_year(company, year=None):
 
     company, = Company.find([('party.name', '=', company)])
 
-    installed_modules = [m.name
-        for m in Module.find([('state', '=', 'installed')])]
+    activated_modules = [m.name
+        for m in Module.find([('state', '=', 'activated')])]
 
     post_move_sequence = Sequence.find([
             ('name', '=', '%s' % year),
@@ -1158,7 +1168,9 @@ def create_fiscal_year(company, year=None):
         fiscalyear.end_date = date + relativedelta(month=12, day=31)
         fiscalyear.company = company
         fiscalyear.post_move_sequence = post_move_sequence
-        if 'account_invoice' in installed_modules:
+        if 'account_invoice' in activated_modules:
+            InvoiceSequence = Model.get('account.fiscalyear.invoice_sequence')
+            invoice_sequence = InvoiceSequence()
             for attr, name in (('out_invoice_sequence', 'Customer Invoice'),
                     ('in_invoice_sequence', 'Supplier Invoice'),
                     ('out_credit_note_sequence', 'Customer Credit Note'),
@@ -1176,7 +1188,9 @@ def create_fiscal_year(company, year=None):
                         code='account.invoice',
                         company=company)
                     sequence.save()
-                setattr(fiscalyear, attr, sequence)
+                setattr(invoice_sequence, attr, sequence)
+            del fiscalyear.invoice_sequences[0]
+            fiscalyear.invoice_sequences.append(invoice_sequence)
         fiscalyear.save()
 
     if not fiscalyear.periods:
@@ -1423,9 +1437,12 @@ def process_opportunities():
         nopps.append(opp)
     opps = nopps
     opps = random.sample(opps, int(0.8 * len(opps)))
+    #opps = Opportunity.browse([x.id for x in opps])
     opps = [Opportunity(x) for x in opps]
     if opps:
-        Wizard('sale.opportunity.convert_opportunity', opps)
+        #Opportunity.click('convert', opps)
+        Opportunity.click(opps, 'convert')
+        #Wizard('sale.opportunity.convert_opportunity', opps)
     gal_commit()
 
 @task()
@@ -1442,7 +1459,7 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
     PriceListLine = Model.get('product.price_list.line')
     Product = Model.get('product.product')
     Category = Model.get('product.category')
-    category_module = module_installed('product_price_list_category')
+    category_module = module_activated('product_price_list_category')
 
     categories = Category.find()
     products = Product.find([('salable', '=', True)])
@@ -1533,7 +1550,7 @@ def process_sales():
     10% of existing draft sales are left in confirmed state
     70% of existing draft sales are left in processed state
     """
-    gal_action('create_payment_terms')
+    gal_action('process_sales')
     restore()
     connect_database()
 
@@ -2055,7 +2072,7 @@ GalCollection.add_task(galfile)
 GalCollection.add_task(execute_script)
 GalCollection.add_task(update_all)
 GalCollection.add_task(set_active_languages)
-GalCollection.add_task(install_modules)
+GalCollection.add_task(activate_modules)
 GalCollection.add_task(load_spanish_banks)
 GalCollection.add_task(load_spanish_zips)
 GalCollection.add_task(create_parties)
