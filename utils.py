@@ -211,12 +211,12 @@ def export_translations(database, modules, langs=None,
         Module = Model.get('ir.module.module')
     if modules == 'all':
         ir_modules = Module.find([
-                ('state', '=', 'installed'),
+                ('state', 'in', ['installed', 'activated']),
                 ])
     else:
         modules = modules.split(',')
         ir_modules = Module.find([
-                ('state', '=', 'installed'),
+                ('state', 'in', ['installed', 'activated']),
                 ('name', 'in', modules),
                 ])
         missing_modules = set(modules) - set(m.name for m in ir_modules)
