@@ -210,8 +210,9 @@ def gal_commit(do_dump=True):
 def module_activated(module):
     Module = Model.get('ir.module')
     return bool(Module.find([
-            ('name', '=', module),
-            ]))
+                ('name', '=', module),
+                ('state', '=', 'active'),
+                ]))
 
 @task()
 def create(language=None, password=None):
