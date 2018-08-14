@@ -23,7 +23,7 @@ except ImportError, e:
 try:
     from proteus import config as pconfig, Wizard, Model,  __version__ as proteus_version
 except ImportError:
-    proteus_version = 3.4
+    proteus_version = '3.4'
     proteus_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                 'proteus')))
     if os.path.isdir(proteus_path):
