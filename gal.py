@@ -11,7 +11,10 @@ import datetime
 import codecs
 import iban
 import traceback
-from functools32 import lru_cache
+try:
+    from functools32 import lru_cache
+except:
+    from functools import lru_cache
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from decimal import Decimal
