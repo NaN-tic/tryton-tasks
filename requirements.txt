@@ -8,8 +8,6 @@ pyactiveresource
 python-sql>=0.2
 psycopg2
 psutil
---allow-external RBTools
---allow-unverified RBTools
 RBTools
 python-quilt
 tabulate
