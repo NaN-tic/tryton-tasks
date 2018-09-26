@@ -6,8 +6,8 @@ invoke==0.12.2
 path.py>=10.0
 pyactiveresource
 psutil
---allow-external RBTools
---allow-unverified RBTools
+#--allow-external RBTools
+#--allow-unverified RBTools
 RBTools
 python-quilt
 tabulate
