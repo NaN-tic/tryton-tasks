@@ -135,7 +135,7 @@ def fetch(module, review):
 
 @task()
 def close_all():
-    root = get_root(root)
+    root = get_root()
     requests = root.get_review_requests()
     for request in requests:
         request = request.update(status='discarded')
