@@ -15,7 +15,6 @@ import yaml
 import ConfigParser
 import patches
 from .utils import t, _ask_ok, read_config_file, execBashCommand
-from .config import unknown
 
 MAX_PROCESSES = 25
 
@@ -1312,7 +1311,9 @@ def revision(config=None, unstable=True, verbose=True):
 def prefetch(force=False):
     """ Ensures clean enviroment """
 
-    unknown(unstable=True, status=False, show=False, remove=True)
+    # TODO: We cannot call unknown because it's in config.py and
+    # trying to import it causes a cyclic import
+    #unknown(unstable=True, status=False, show=False, remove=True)
 
     clean(force=force)
     Config = read_config_file()
