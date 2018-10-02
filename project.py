@@ -2,17 +2,15 @@
 import os
 import ssl
 import sys
-import datetime
 import hgapi
 
 from invoke import run, task, Collection
 
 from .config import get_config
 from . import reviewboard
-from .scm import get_branch, branches, hg_pull, hg_clone, _module_version
+from .scm import hg_pull, hg_clone, _module_version
 from .utils import t
 import logging
-from tabulate import tabulate
 # from .bucket import pullrequests
 import choice
 

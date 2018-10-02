@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from invoke import Collection, task, run
 from datetime import date
-import utils
 import hgapi
 import git
 import os
@@ -14,12 +13,9 @@ import shutil
 from collections import OrderedDict
 import yaml
 import ConfigParser
-
-
-
 import patches
-from .utils import t, _ask_ok, read_config_file, execBashCommand, \
-    remove_dir, NO_MODULE_REPOS
+from .utils import t, _ask_ok, read_config_file, execBashCommand
+from .config import unknown
 
 MAX_PROCESSES = 25
 
