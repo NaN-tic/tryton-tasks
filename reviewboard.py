@@ -3,6 +3,7 @@
 import ConfigParser
 import os
 import tempfile
+import choice
 
 from invoke import task, run, Collection
 try:
@@ -73,6 +74,13 @@ def create(module, summary, description, bug, group='NaN'):
     diff, base_diff = module_diff(module, show=False, addremove=True)
     root = get_root()
     review_id = review_file(module)
+
+    if review_id:
+        upgrade_review = choice.Binary('Do you like upgrade the review '
+            '%s (%s)?' % (review_id, module), True).ask()
+        if not upgrade_review:
+            review_id = None
+
     if review_id is None:
         review_request = root.get_review_requests().create(
             repository=get_repository())
