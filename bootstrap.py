@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ConfigParser
+import configparser
 import os
 from blessings import Terminal
 from invoke import Collection, task, run
@@ -11,7 +11,7 @@ from .scm import hg_clone, hg_pull, clone, fetch
 
 
 t = Terminal()
-Config = ConfigParser.ConfigParser()
+Config = configparser.ConfigParser()
 
 # TODO: l'us que faig del config potser correspon a context
 # http://docs.pyinvoke.org/en/latest/getting_started.html#handling-configuration-state
@@ -24,7 +24,7 @@ def get_tasks(taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
     if Path(taskpath).exists():
-        print 'Updating tasks repo'
+        print('Updating tasks repo')
         hg_pull(taskpath, taskpath, True)
         return
 
@@ -37,7 +37,7 @@ def get_tasks(taskpath='tasks'):
     print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-tasks '
         'repository in "tasks" directory.')
     hg_clone('ssh://hg@bitbucket.org/nantic/tryton-tasks', taskpath)
-    print ""
+    print("")
 
 
 @task()
@@ -58,7 +58,7 @@ def get_config(configpath='config', branch='default'):
     print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-config '
         'repository in "config" directory.')
     hg_clone('ssh://hg@bitbucket.org/nantic/tryton-config', configpath, branch)
-    print ""
+    print("")
 
 
 @task()
@@ -66,7 +66,7 @@ def get_utils(utilspath='utils'):
     # TODO: add option to update repository
     Config.utils_path = utilspath
     if Path(utilspath).exists():
-        print 'Updating utils repo'
+        print('Updating utils repo')
         hg_pull(utilspath, utilspath, True)
         return
 
@@ -79,7 +79,7 @@ def get_utils(utilspath='utils'):
     print ('Cloning ssh://hg@bitbucket.org/nantic/nan_tryton_utils '
         'repository in "utils" directory.')
     hg_clone('ssh://hg@bitbucket.org/nantic/nan_tryton_utils', utilspath)
-    print ""
+    print("")
 
 
 @task()
@@ -117,7 +117,7 @@ def activate_virtualenv(projectname):
             projectname)
         if virtualenv_path.exists() and virtualenv_path.isdir():
             activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
-            print "Activating virtualenv %s" % projectname
+            print("Activating virtualenv %s" % projectname)
             run(activate_this_path)
 
 
@@ -126,7 +126,7 @@ def install_requirements(upgrade=False):
     if not Config.requirements:
         return
     if not hasattr(Config, 'virtualenv_active') and os.geteuid() != 0:
-        resp = raw_input('It can\'t install requirements because you aren\'t '
+        resp = input('It can\'t install requirements because you aren\'t '
             'the Root user and you aren\'t in a Virtualenv. You will have to '
             'install requirements manually as root with command:\n'
             '  $ pip install [--upgrade] -r requirements.txt\n'
@@ -139,7 +139,7 @@ def install_requirements(upgrade=False):
         if resp.lower() in ('', 's', 'skip'):
             return
 
-    print 'Installing dependencies.'
+    print('Installing dependencies.')
     _check_required_file('requirements.txt', Config.config_path.basename(),
         Config.config_path)
     if upgrade:
@@ -149,7 +149,7 @@ def install_requirements(upgrade=False):
     else:
         run('pip install -r %s/requirements.txt' % Config.config_path)
         #    _out=options.output, _err=sys.stderr)
-    print ""
+    print("")
 
 
 # TODO: prepare_local() => set configuration options for future bootstrap based
@@ -158,7 +158,7 @@ def install_requirements(upgrade=False):
 
 @task()
 def install_proteus(proteuspath=None, upgrade=False):
-    print "Installing proteus."
+    print("Installing proteus.")
     if proteuspath is None:
         cmd = ['pip', 'install', 'proteus']
         if upgrade:
@@ -172,14 +172,14 @@ def install_proteus(proteuspath=None, upgrade=False):
         os.chdir(proteuspath)
         run('python setup.py install')
         os.chdir(cwd)
-    print ""
+    print("")
 
 
 @task()
 def create_symlinks():
     cwd = Path.getcwd()
     if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
-        print 'Symlinks script not found'
+        print('Symlinks script not found')
         return
     os.chdir(os.path.join(cwd, 'utils'))
     run('./script-symlinks.sh', warn=True)

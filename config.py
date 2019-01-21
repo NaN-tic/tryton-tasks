@@ -1,5 +1,5 @@
 import os
-import ConfigParser
+import configparser
 from invoke import Collection, task, run
 from .utils import read_config_file, get_config_files
 from .scm import get_repo
@@ -13,12 +13,12 @@ from .utils import t, _ask_ok, get_config_files, read_config_file, \
 
 def get_config():
     """ Get config file for tasks module """
-    parser = ConfigParser.ConfigParser()
+    parser = configparser.ConfigParser()
     config_path = '%s/.tryton-tasks.cfg' % os.getenv('HOME')
     parser.read(config_path)
     settings = {}
     for section in parser.sections():
-        usection = unicode(section, 'utf-8')
+        usection = str(section)
         settings[usection] = {}
         for name, value, in parser.items(section):
             settings[usection][name] = value
@@ -78,18 +78,18 @@ def add_modules(config, version, owner, modules="./modules"):
         cfg_file = os.path.join(path, 'tryton.cfg')
         if not os.path.exists(cfg_file):
             continue
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         Config.readfp(open(cfg_file))
         v = Config.get('tryton', 'version')
-        if v != version:
-            continue
+        # if v != version:
+        #     continue
 
         repo = hgapi.Repo(path)
         url = repo.config('paths', 'default')
 
         if owner and "/%s/" % owner not in url:
             continue
-
+        print("module:", path)
         add_module(config, path, url)
 
 
@@ -110,7 +110,7 @@ def add_module(config, path, url=None):
         Config.set(module, 'url', url)
         Config.set(module, 'path', './trytond/trytond/modules')
 
-    Config._sections = OrderedDict(sorted(Config._sections.iteritems(),
+    Config._sections = OrderedDict(sorted(iter(Config._sections.items()),
         key=lambda x: x[0]))
     Config.write(cfile)
     cfile.close()
@@ -146,13 +146,13 @@ def unknown(unstable=True, status=False, show=True, remove=False, quiet=False,
 
     if show:
         if modules_wo_repo:
-            print t.bold("Unknown module (without repository):")
-            print "  - " + "\n  - ".join(modules_wo_repo)
-            print ""
+            print(t.bold("Unknown module (without repository):"))
+            print("  - " + "\n  - ".join(modules_wo_repo))
+            print("")
         if not status and repo_not_in_cfg:
-            print t.bold("Unknown repository:")
-            print "  - " + "\n  - ".join(repo_not_in_cfg)
-            print ""
+            print(t.bold("Unknown repository:"))
+            print("  - " + "\n  - ".join(repo_not_in_cfg))
+            print("")
 
     if add:
         config_files = get_config_files()

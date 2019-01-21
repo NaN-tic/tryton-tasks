@@ -1,7 +1,7 @@
 from blessings import Terminal
 from invoke import task, Collection
 from path import Path
-import ConfigParser
+import configparser
 import os
 import psycopg2
 import shutil
@@ -17,8 +17,8 @@ except ImportError:
         sys.path.insert(0, proteus_path)
     try:
         from proteus import config, Wizard, Model
-    except ImportError, e:
-        print >> sys.stderr, "proteus importation error: ", e
+    except ImportError as e:
+        print("proteus importation error: ", e, file=sys.stderr)
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
@@ -41,7 +41,7 @@ def _exit(initial_path, message=None):
 
 
 def _ask_ok(prompt, default_answer=None):
-    ok = raw_input(prompt) or default_answer
+    ok = input(prompt) or default_answer
     if ok.lower() in ('y', 'ye', 'yes'):
         return True
     if ok.lower() in ('n', 'no', 'nop', 'nope'):
@@ -70,7 +70,7 @@ def read_config_file(config_file=None, type='repos', unstable=True,
         avoid_core=False):
     assert type in ('repos', 'patches', 'all'), "Invalid 'type' param"
 
-    Config = ConfigParser.ConfigParser()
+    Config = configparser.ConfigParser()
     if config_file is not None:
         Config.readfp(open(config_file))
     else:
@@ -138,7 +138,7 @@ def update_parent_left_right(database, table, field=None, host='localhost',
     if not db:
         return
 
-    print "calculating parent_left of table", table, "and field:", field
+    print("calculating parent_left of table", table, "and field:", field)
     _parent_store_compute(db.cursor(), table, field)
     db.commit()
     db.close()
@@ -151,8 +151,8 @@ def prepare_translations(database, langs=None, host=None, port=None,
     """
     Runs the set, clean and update translations wizards in the given database.
     """
-    print t.bold('prepare_translations: database=%s, langs=%s') % (database,
-        langs)
+    print(t.bold('prepare_translations: database=%s, langs=%s') % (database,
+        langs))
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
@@ -169,7 +169,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
                 ('code', 'in', langs),
                 ])
         if set(langs) != set(l.code for l in languages):
-            print t.bold('Invalid languages: %s') % languages
+            print(t.bold('Invalid languages: %s') % languages)
             return
 
     translation_set = Wizard('ir.translation.set')
@@ -184,7 +184,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
         translation_update = Wizard('ir.translation.update')
         translation_update.form.language = language
         translation_update.execute('update')
-        print "%s translation updated" % language.name
+        print("%s translation updated" % language.name)
 
 
 @task()
@@ -197,8 +197,8 @@ def export_translations(database, modules, langs=None,
     If no languages are specified, the ones marked as translatable in the
     database are used.
     """
-    print t.bold('export_translations: %s, %s, %s') % (database, modules,
-        langs)
+    print(t.bold('export_translations: %s, %s, %s') % (database, modules,
+        langs))
     if not _check_database(database, host, port, dbuser, dbpassword):
         return
 
@@ -221,7 +221,7 @@ def export_translations(database, modules, langs=None,
                 ])
         missing_modules = set(modules) - set(m.name for m in ir_modules)
         if missing_modules:
-            print t.bold('Invalid modules: %s') % missing_modules
+            print(t.bold('Invalid modules: %s') % missing_modules)
             return
 
     Lang = Model.get('ir.lang')
@@ -235,7 +235,7 @@ def export_translations(database, modules, langs=None,
                 ('code', 'in', langs),
                 ])
         if set(langs) != set(l.code for l in languages):
-            print 'Invalid languages: %s' % languages
+            print('Invalid languages: %s' % languages)
             return
 
     for module in ir_modules:
@@ -260,8 +260,8 @@ def export_translations(database, modules, langs=None,
             with open(file_path, 'w') as f:
                 f.write(str(translation_export.form.file))
             translation_export.execute('end')
-            print ('Translation of "%s" in "%s" exported successfully.'
-                % (module.name, language.code))
+            print(('Translation of "%s" in "%s" exported successfully.'
+                % (module.name, language.code)))
 
 
 @task()
@@ -277,7 +277,7 @@ def account_reconcile(database, lines=2, months=6,
                 ('name', '=', 'account_reconcile'),
                 ])
     if not modules:
-        print t.bold('Module account_reconcile not found')
+        print(t.bold('Module account_reconcile not found'))
         return
     reconcile, = modules
     if reconcile.state != 'installed':
@@ -285,8 +285,8 @@ def account_reconcile(database, lines=2, months=6,
         Wizard('ir.module.module.install_upgrade').execute('upgrade')
 
     for company in Company.find([]):
-        print t.bold('Start reconcile for company %s (Lines %s, Months %s)'
-            % (company.rec_name, lines, months))
+        print(t.bold('Start reconcile for company %s (Lines %s, Months %s)'
+            % (company.rec_name, lines, months)))
         with pref.set_context({'company': company.id}):
             reconcile = Wizard('account.move_reconcile')
             reconcile.form.max_lines = str(lines)
@@ -309,9 +309,9 @@ def _check_database(database, host=None, port=None, dbuser=None,
         connection_params['password'] = dbpassword
     try:
         db = psycopg2.connect(**connection_params)
-    except Exception, e:
-        print t.bold('Invalid database connection params:')
-        print str(e)
+    except Exception as e:
+        print(t.bold('Invalid database connection params:'))
+        print(str(e))
         return False
     return db
 
@@ -326,13 +326,13 @@ def execBashCommand(command, success_msg="", fail_msg="", quiet=True):
     output, err = process.communicate()
 
     if err and fail_msg:
-        print fail_msg
-        print err
+        print(fail_msg)
+        print(err)
         return False
     if not err and success_msg:
-        print success_msg
+        print(success_msg)
         if not quiet:
-            print output
+            print(output)
     return True
 
 

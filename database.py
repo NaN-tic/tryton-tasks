@@ -11,7 +11,7 @@ def execute(command, **kwargs):
         kwargs['warn'] = True
     if not 'hide' in kwargs:
         kwargs['hide'] = True
-    print 'Running: %s' % command
+    print('Running: %s' % command)
     return run(command, **kwargs)
 
 @task()
@@ -103,8 +103,8 @@ def owner(database, to_owner):
                 to_owner))
     connection.commit()
     connection.close()
-    print 'Changed %d tables, sequences and views to %s' % (len(tables),
-        to_owner)
+    print('Changed %d tables, sequences and views to %s' % (len(tables),
+        to_owner))
 
 def local_copy_with_template(from_database, to_database, to_owner):
     # If we're on the same host, just try to use CREATE DATABASE with
@@ -210,7 +210,7 @@ def cluster(database):
             cursor.execute(query)
             connection.commit()
         except psycopg2.ProgrammingError:
-            print('Error executing: %s' % query)
+            print(('Error executing: %s' % query))
             connection.rollback()
     connection.close()
 

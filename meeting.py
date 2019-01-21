@@ -45,7 +45,7 @@ def create():
     f.write(TEMPLATE)
     f.close()
 
-    print t.green('Created meeting file %s' % filename)
+    print(t.green('Created meeting file %s' % filename))
 
 
 MeetingCollection = Collection()

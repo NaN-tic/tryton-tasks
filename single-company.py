@@ -5,7 +5,7 @@ import psycopg2
 company = 1
 
 if len(sys.argv) != 3:
-    print 'Usage: %s database company_id' % sys.argv[0]
+    print('Usage: %s database company_id' % sys.argv[0])
     sys.exit()
 
 db = sys.argv[1]
@@ -39,7 +39,7 @@ def delete_table(table, join=None, field='company'):
             'using': using,
             'where': where,
             })
-    print 'Query:', query
+    print('Query:', query)
     cursor.execute(query)
 
 delete_table('account_financial_statement_report')

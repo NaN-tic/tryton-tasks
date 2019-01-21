@@ -26,9 +26,9 @@ def create(name, owner, private=False, description=''):
 
 def print_repo(repo, detail=True):
 
-    print "Repo:", repo['full_name'].ljust(75, ' '), "created:", \
+    print("Repo:", repo['full_name'].ljust(75, ' '), "created:", \
      repo['created_on'], "updated:", repo['updated_on'], \
-     "Private:", repo['is_private']
+     "Private:", repo['is_private'])
 
 
 @task()
@@ -41,7 +41,7 @@ def show(team='nantic'):
         res = get(next_query, data)
         if url == next_query:
             num_repos = res.get('size')
-            print "Repositories:", num_repos
+            print("Repositories:", num_repos)
 
         next_query = res.get('next')
         for repo in res['values']:

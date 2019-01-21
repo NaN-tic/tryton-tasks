@@ -17,8 +17,8 @@ import choice
 
 try:
     from proteus import config as pconfig, Model
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
@@ -108,8 +108,8 @@ def get_request_info(url):
 
 
 def show_review(review):
-    print "{id} - {name} - {url}".format(
-            id=review.id, name=review.name, url=review.url)
+    print("{id} - {name} - {url}".format(
+            id=review.id, name=review.name, url=review.url))
 
 
 @task()
@@ -122,7 +122,7 @@ def components(database):
             ('state', '=', 'accepted')])
 
     for component in components:
-        print component.component.name
+        print(component.component.name)
 
 
 @task()
@@ -147,7 +147,7 @@ def decline_review(work, review_id=None, message=None):
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
 
     w = tasks[0]
@@ -155,7 +155,7 @@ def decline_review(work, review_id=None, message=None):
 
     for review in reviews:
         if review_id and str(review.id) != review_id:
-            print review_id, review.id
+            print(review_id, review.id)
             continue
 
         show_review(review)
@@ -181,7 +181,7 @@ def merge_review(work, review_id=None, message=None):
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
 
     w = tasks[0]
@@ -189,7 +189,7 @@ def merge_review(work, review_id=None, message=None):
 
     for review in reviews:
         if review_id and str(review.id) != review_id:
-            print review_id, review.id
+            print(review_id, review.id)
             continue
 
         show_review(review)
@@ -215,7 +215,7 @@ def upload_review(work, path, branch='default'):
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
     work = tasks[0]
 
