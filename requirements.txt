@@ -13,7 +13,6 @@ tabulate
 configobj
 PyHamcrest
 choice
-#faulthandler
 pyyaml
 requests[security]
 pick
@@ -25,7 +24,6 @@ mock
 # gal
 dateutils
 xmltodict
-#functools32
 
 # trytond
 lxml>=2.0
