@@ -6,19 +6,20 @@ import sys
 import socket
 import getpass
 from invoke import task, run, Collection
-import ConfigParser
+import configparser
 
 from .iban import create_iban, IBANError
 from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
     BASE_MODULES)
+from functools import reduce
 
 try:
     from trytond.pool import Pool
     from trytond.transaction import Transaction
     from trytond.modules import *
     #from trytond.modules import Graph, Node, get_module_info
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 try:
     from proteus import config as pconfig, Wizard, Model,  __version__ as proteus_version
@@ -30,8 +31,8 @@ except ImportError:
         sys.path.insert(0, proteus_path)
     try:
         from proteus import config as pconfig, Wizard, Model
-    except ImportError, e:
-        print >> sys.stderr, "proteus importation error: ", e
+    except ImportError as e:
+        print("proteus importation error: ", e, file=sys.stderr)
 
 try:
     from sql import Table
@@ -47,11 +48,11 @@ except ImportError:
 try:
     # TODO: Remove compatibility with versions < 3.4
     from trytond.config import CONFIG
-except ImportError, e:
+except ImportError as e:
     try:
         from trytond.config import config as CONFIG
-    except ImportError, e:
-        print >> sys.stderr, "trytond importation error: ", e
+    except ImportError as e:
+        print("trytond importation error: ", e, file=sys.stderr)
 
 trytond_path = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
             'trytond')))
@@ -69,9 +70,9 @@ def check_database(database, connection_params):
     connection_params['dbname'] = database
     try:
         psycopg2.connect(**connection_params)
-    except Exception, e:
-        print t.bold('Invalid database connection params:')
-        print str(e)
+    except Exception as e:
+        print(t.bold('Invalid database connection params:'))
+        print(str(e))
         return False
     return True
 
@@ -172,8 +173,8 @@ def missing(database, config_file=os.environ.get('TRYTOND_CONFIG'),
 
     miss = " ".join(miss)
     if show:
-        print "Missing dependencies: %s " % miss
-        print "Press Key to continue..."
+        print("Missing dependencies: %s " % miss)
+        print("Press Key to continue...")
         sys.stdin.read(1)
 
     if install:
@@ -230,22 +231,22 @@ def forgotten(database, config_file=os.environ.get('TRYTOND_CONFIG'),
 
     if show:
         if forgotten_uninstalled:
-            print t.bold("Forgotten modules (in DB but not in config files):")
-            print "  - " + "\n  - ".join(forgotten_uninstalled)
-            print ""
+            print(t.bold("Forgotten modules (in DB but not in config files):"))
+            print("  - " + "\n  - ".join(forgotten_uninstalled))
+            print("")
         if forgotten_installed:
-            print t.red("Forgotten installed modules (in DB but not in config "
-                "files):")
-            print "  - " + "\n  - ".join(forgotten_installed)
-            print ""
+            print(t.red("Forgotten installed modules (in DB but not in config "
+                "files):"))
+            print("  - " + "\n  - ".join(forgotten_installed))
+            print("")
         if lost_uninstalled:
-            print t.bold("Lost modules (in DB but no in filesystem):")
-            print "  - " + "\n  - ".join(lost_uninstalled)
-            print ""
+            print(t.bold("Lost modules (in DB but no in filesystem):"))
+            print("  - " + "\n  - ".join(lost_uninstalled))
+            print("")
         if lost_installed:
-            print t.red("Lost installed modules (in DB but no in filesystem):")
-            print "  - " + "\n  - ".join(lost_installed)
-            print ""
+            print(t.red("Lost installed modules (in DB but no in filesystem):"))
+            print("  - " + "\n  - ".join(lost_installed))
+            print("")
 
     to_uninstall = forgotten_installed + lost_installed
     to_delete = forgotten_uninstalled + lost_uninstalled
@@ -278,7 +279,7 @@ def create_fake_modules(modules):
     if not modules:
         return
 
-    if isinstance(modules, basestring):
+    if isinstance(modules, str):
         modules = modules.split(',')
 
     trytoncfg_content = [
@@ -290,19 +291,19 @@ def create_fake_modules(modules):
         "xml:",
         ]
 
-    print t.bold("Creating fake modules: ") + ", ".join(modules)
+    print(t.bold("Creating fake modules: ") + ", ".join(modules))
     created = []
     for module in modules:
         module_path = os.path.join('./modules', module)
         if os.path.exists(module_path):
-            print ("  - Module '%s' not created because already exists in "
-                "filesystem" % module_path)
+            print(("  - Module '%s' not created because already exists in "
+                "filesystem" % module_path))
             continue
         run('mkdir %s' % module_path)
         run('echo "%s" > %s/tryton.cfg'
             % ("\n".join(trytoncfg_content), module_path))
         run('touch %s/__init__.py' % module_path)
-        print "  - Module '%s' created" % module_path
+        print("  - Module '%s' created" % module_path)
         created.append(module)
     return created
 
@@ -316,12 +317,12 @@ def uninstall_task(database, modules,
     if not database or not modules:
         return
 
-    if isinstance(modules, basestring):
+    if isinstance(modules, str):
         modules = modules.replace(" ", "").split(',')
     if not modules:
         return
 
-    print t.bold("uninstall: ") + ", ".join(modules)
+    print(t.bold("uninstall: ") + ", ".join(modules))
     if not check_database(database, {}):
         return
 
@@ -345,7 +346,7 @@ def uninstall_task(database, modules,
         module_install_upgrade = Wizard('ir.module.install_upgrade')
     module_install_upgrade.execute('upgrade')
     module_install_upgrade.execute('config')
-    print ""
+    print("")
 
 
 @task()
@@ -358,10 +359,10 @@ def delete_modules(database, modules,
     if not database or not modules:
         return
 
-    if isinstance(modules, basestring):
+    if isinstance(modules, str):
         modules = modules.split(',')
 
-    print t.bold("delete: ") + ", ".join(modules)
+    print(t.bold("delete: ") + ", ".join(modules))
     set_context(database, config_file)
     cursor = Transaction().connection.cursor()
     cursor.execute(*ir_module.select(ir_module.name,
@@ -371,12 +372,12 @@ def delete_modules(database, modules,
     installed_modules = [name for (name,) in cursor.fetchall()]
     if installed_modules:
         if not force:
-            print (t.red("Some supplied modules are installed: ") +
-                ", ".join(installed_modules))
+            print((t.red("Some supplied modules are installed: ") +
+                ", ".join(installed_modules)))
             return
         if force:
-            print (t.red("Deleting installed supplied modules: ") +
-                ", ".join(installed_modules))
+            print((t.red("Deleting installed supplied modules: ") +
+                ", ".join(installed_modules)))
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     Transaction().commit()
@@ -391,7 +392,7 @@ def convert_bank_accounts_to_iban(database,
     if not database:
         return
 
-    print t.bold("Convert bank account number to IBAN")
+    print(t.bold("Convert bank account number to IBAN"))
     if not check_database(database, {}):
         return
 
@@ -417,7 +418,7 @@ def convert_bank_accounts_to_iban(database,
             iban = create_iban(
                 bank_country_code,
                 number[:8], number[8:])
-        except IBANError, err:
+        except IBANError as err:
             t.red("Error generating iban from number %s: %s" % (number, err))
             continue
         account_number.sequence = 10
@@ -426,7 +427,7 @@ def convert_bank_accounts_to_iban(database,
         iban_account_number.sequence = 1
         iban_account_number.number = iban
         bank_account.save()
-    print ""
+    print("")
 
 
 @task(help={
@@ -441,7 +442,7 @@ def automatic_reconciliation(database, max_lines=4,
     if not database:
         return
 
-    print t.bold("Automatic Reconciliation for %s" % database)
+    print(t.bold("Automatic Reconciliation for %s" % database))
     if not check_database(database, {}):
         return
 
@@ -453,8 +454,8 @@ def automatic_reconciliation(database, max_lines=4,
     companies = Company.find([])
     fiscal_years = FiscalYear.find([('state', '=', 'open')])
 
-    print ("It will reconcile %d companies and %d years. Do you want to "
-        "continue? [yN]" % (len(companies), len(fiscal_years)))
+    print(("It will reconcile %d companies and %d years. Do you want to "
+        "continue? [yN]" % (len(companies), len(fiscal_years))))
     confirmation = sys.stdin.read(1)
     if confirmation != "y":
         return
@@ -462,7 +463,7 @@ def automatic_reconciliation(database, max_lines=4,
     user = User(config.user)
     original_company = user.main_company
     for company in companies:
-        print "  - Reconcile company %s" % (company.rec_name)
+        print("  - Reconcile company %s" % (company.rec_name))
         user.main_company = company
         user.save()
         config._context = User.get_preferences(True, config.context)
@@ -472,8 +473,8 @@ def automatic_reconciliation(database, max_lines=4,
                     ('state', '=', 'open'),
                     ]):
             for max_lines in (2, 3, 4):
-                print "    - Reconcile year %s using %s lines" % (
-                    fiscal_year.name, max_lines)
+                print("    - Reconcile year %s using %s lines" % (
+                    fiscal_year.name, max_lines))
                 automatic_reconcile = Wizard('account.move_reconcile')
                 assert automatic_reconcile.form.company == company, \
                     'Unexpected company "%s" (%s)' % (
@@ -498,7 +499,7 @@ def adduser(dbname, user, conf_file=None):
     if not conf_file:
         conf_file = 'server-%s.cfg' % (socket.gethostname())
     if not os.path.isfile(conf_file):
-        print t.red("File '%s' not found" % (conf_file))
+        print(t.red("File '%s' not found" % (conf_file)))
         return
     CONFIG.update_etc(conf_file)
 
@@ -526,7 +527,7 @@ def adduser(dbname, user, conf_file=None):
         u.save()
 
         Transaction().commit()
-        print t.green("You could login with '%s' at '%s'" % (u.login, dbname))
+        print(t.green("You could login with '%s' at '%s'" % (u.login, dbname)))
 
 
 
@@ -547,20 +548,20 @@ def installed_module_version(database, config_file=os.environ.get('TRYTOND_CONFI
 
     for module in module_list:
         if not config.has_section(module):
-            print >> sys.stderr, t.red("Missing Module on filesystem:") + t.bold(
-                module)
+            print(t.red("Missing Module on filesystem:") + t.bold(
+                module), file=sys.stderr)
             continue
 
         path = config.get(module, 'path')
         cfg_file = os.path.join(path, module,  'tryton.cfg')
         if not os.path.exists(cfg_file):
-            print >> sys.stderr, t.red("Missing tryton.cfg file:") + t.bold(
-                cfg_file)
+            print(t.red("Missing tryton.cfg file:") + t.bold(
+                cfg_file), file=sys.stderr)
             continue
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         Config.readfp(open(cfg_file))
         version = Config.get('tryton', 'version')
-        print module, version
+        print(module, version)
 
 
 TrytonCollection = Collection()

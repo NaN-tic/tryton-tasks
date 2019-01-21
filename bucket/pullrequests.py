@@ -39,7 +39,7 @@ def create(owner, repo, src, title, dest='default', description='',
                 updated_on=res['updated_on'],
                 state=res['state'],
             )
-    print msg
+    print(msg)
     return res
 
 

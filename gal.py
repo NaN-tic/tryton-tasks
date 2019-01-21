@@ -9,7 +9,7 @@ import random
 import json
 import datetime
 import codecs
-import iban
+from . import iban
 import traceback
 try:
     from functools32 import lru_cache
@@ -59,7 +59,7 @@ def random_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 def check_output(*args):
-    print t.bold(' '.join(args))
+    print(t.bold(' '.join(args)))
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
@@ -70,13 +70,13 @@ def check_output(*args):
         if isinstance(stderr, str):
             stderr = stderr.decode('utf-8')
         if stdout and stderr:
-            print stdout, t.red(stderr)
+            print(stdout, t.red(stderr))
         elif stdout:
-            print stdout
+            print(stdout)
         elif stderr:
-            print t.red(stderr)
+            print(t.red(stderr))
     else:
-        print t.green('Ok')
+        print(t.green('Ok'))
     return data
 
 # Execute method that shows the exception and line number of the 'exec' call.
@@ -187,10 +187,10 @@ def gal_path(path=None):
 def gal_repo():
     path = gal_path()
     if os.path.exists(path) and not os.path.isdir(path):
-        print >>sys.stderr, t.red('Error: gal file exists')
+        print(t.red('Error: gal file exists'), file=sys.stderr)
         sys.exit(1)
     if os.path.isdir(path) and not os.path.isdir(os.path.join(path, '.hg')):
-        print >>sys.stderr, t.red('Invalid gal repository')
+        print(t.red('Invalid gal repository'), file=sys.stderr)
         sys.exit(1)
     repo = hgapi.Repo(path)
     if not os.path.exists(path):
@@ -235,31 +235,31 @@ def replay(name):
     repository.
     """
     repo = gal_repo()
-    print 'Actions to replay:'
+    print('Actions to replay:')
     has_set = False
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
         if action == 'set':
             has_set = True
-        print t.bold('%s(%s)' % (action, parameters))
+        print(t.bold('%s(%s)' % (action, parameters)))
 
-    print
+    print()
     if has_set:
-        print >>sys.stderr, t.red('It is not possible to replay tip '
+        print(t.red('It is not possible to replay tip '
             'version because there is a set() operation in the list of '
-            'commands to execute')
+            'commands to execute'), file=sys.stderr)
         sys.exit(1)
 
     # Disable commits before replaying
     commits_enabled = False
     # Just add this line to avoid pyflakes warnings
     commits_enabled
-    print 'Replaying actions:'
+    print('Replaying actions:')
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
-        print t.bold('%s(%s)' % (action, parameters))
+        print(t.bold('%s(%s)' % (action, parameters)))
         # TODO: This is not safe. Run with care.
         eval('%s(%s)' % (action, parameters))
 
@@ -288,7 +288,7 @@ def build(filename=None, no_restore=False):
     """
     if filename is None:
         filename = 'Galfile'
-    print "Building %s..." % filename
+    print("Building %s..." % filename)
 
     global restore_step
     restore_step = True
@@ -299,7 +299,7 @@ def build(filename=None, no_restore=False):
         for line in f:
             line = line.strip()
             if line and not line.startswith('#'):
-                print t.bold(unicode(line))
+                print(t.bold(str(line)))
                 eval(line)
 
 
@@ -319,14 +319,14 @@ def galfile():
             has_set = True
 
     if has_set:
-        print >>sys.stderr, t.red('It will not be possible to build the '
-            'generated Galfile because it contains at least one set command.')
+        print(t.red('It will not be possible to build the '
+            'generated Galfile because it contains at least one set command.'), file=sys.stderr)
 
     # Disable commits before replaying
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
-        print '%s(**%s)' % (action, parameters)
+        print('%s(**%s)' % (action, parameters))
 
 
 @task()
@@ -347,18 +347,18 @@ def execute_script(script):
         suite.run(result)
         if result.errors or result.failures:
             if result.errors:
-                print "Errors:"
+                print("Errors:")
                 for error in result.errors:
-                    print error[0]
-                    print error[1]
-                    print
-                print
+                    print(error[0])
+                    print(error[1])
+                    print()
+                print()
             if result.failures:
-                print "Failures:"
+                print("Failures:")
                 for failure in result.failures:
-                    print failure[0]
-                    print failure[1]
-                    print
+                    print(failure[0])
+                    print(failure[1])
+                    print()
             # Ensure we do not commit
             return
     elif script.endswith('.py'):
@@ -366,7 +366,7 @@ def execute_script(script):
             code = f.read()
         execute(code)
     else:
-        print >>sys.stderr, t.red("Don't know how to execute %s" % script)
+        print(t.red("Don't know how to execute %s" % script), file=sys.stderr)
         sys.exit(1)
 
     gal_commit()
@@ -462,7 +462,7 @@ def set_active_languages(lang_codes=None):
 
     if not all(l.translatable for l in langs):
         # langs is fetched before wet all translatable
-        print "Upgrading all because new translatable languages has been added"
+        print("Upgrading all because new translatable languages has been added")
         upgrade_modules(config, all=True)
     gal_commit()
 
@@ -681,7 +681,7 @@ def create_random_parties(count=4000):
         surnames = f.read().split('\n')
     surnames = [x.strip() for x in surnames if x.strip()]
     phones = ['93', '972', '973', '977', '6', '900']
-    for x in xrange(count):
+    for x in range(count):
         company = random.choice(companies)
         name = random.choice(names)
         surname1 = random.choice(surnames)
@@ -751,8 +751,8 @@ def create_bank_accounts():
     Invoice = Model.get('account.invoice')
     banks = get_banks()
     if not module_activated('account_bank'):
-        print t.red('account_bank module must be activated before creating '
-            'bank accounts.')
+        print(t.red('account_bank module must be activated before creating '
+            'bank accounts.'))
     good_number = None
     for party in Party.find([]):
         BankAccount = Model.get('bank.account')
@@ -769,21 +769,21 @@ def create_bank_accounts():
         if not good_number:
             while True:
                 account_code = bank.bank_code
-                account_code += ''.join([str(x) for x in random.sample(range(10) *
+                account_code += ''.join([str(x) for x in random.sample(list(range(10)) *
                             4, 4)])
-                account_number = ''.join([str(x) for x in random.sample(range(10) *
+                account_number = ''.join([str(x) for x in random.sample(list(range(10)) *
                             12, 12)])
                 number.number = iban.create_iban(country, account_code,
                     account_number)
-                print 'Looping...', number.number
+                print('Looping...', number.number)
                 #x = iban.check_iban(number.number)
                 try:
                     good_number = number.number
                     account.save()
-                    print 'Ok!'
+                    print('Ok!')
                     break
-                except Exception, e:
-                    print 'Exception: ', str(e)
+                except Exception as e:
+                    print('Exception: ', str(e))
                     pass
         else:
             number.number = good_number
@@ -1385,7 +1385,7 @@ def create_opportunities(count=100, linecount=10):
     products = Product.find([('salable', '=', True)])
     terms = Term.find([])
 
-    for x in xrange(count):
+    for x in range(count):
         opp = Opportunity()
         party = random.choice(parties)
         product = random.choice(products)
@@ -1400,7 +1400,7 @@ def create_opportunities(count=100, linecount=10):
         opp.probability = random.randrange(1, 9) * 10
         opp.amount = Decimal(random.randrange(1, 10) * 1000)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = OpportunityLine()
             opp.lines.append(line)
             line.product = random.choice(products)
@@ -1467,12 +1467,12 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
 
     categories = Category.find()
     products = Product.find([('salable', '=', True)])
-    for c in xrange(count):
+    for c in range(count):
         price_list = PriceList()
         price_list.name = str(c)
 
         sequence = 1
-        for lc in xrange(random.randrange(1, productcount)):
+        for lc in range(random.randrange(1, productcount)):
             line = PriceListLine()
             price_list.lines.append(line)
             line.sequence = sequence
@@ -1481,7 +1481,7 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
             sequence += 1
 
         if category_module:
-            for lc in xrange(random.randrange(1, categorycount)):
+            for lc in range(random.randrange(1, categorycount)):
                 line = PriceListLine()
                 price_list.lines.append(line)
                 line.sequence = sequence
@@ -1523,8 +1523,8 @@ def create_sales(count=100, linecount=10):
     terms = Term.find([])
 
     sales = []
-    for c in xrange(count):
-        print "Iteration:", c
+    for c in range(count):
+        print("Iteration:", c)
         sale = Sale()
         sales.append(sale)
         sale.sale_date = random_datetime(TODAY + relativedelta(months=-12),
@@ -1533,7 +1533,7 @@ def create_sales(count=100, linecount=10):
         if not sale.payment_term:
             sale.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = SaleLine()
             sale.lines.append(line)
             line.product = random.choice(products)
@@ -1603,13 +1603,13 @@ def create_purchases(count=100, linecount=10):
     products = Product.find([('purchasable', '=', True)])
     terms = Term.find([])
 
-    for c in xrange(count):
+    for c in range(count):
         purchase = Purchase()
         purchase.party = random.choice(parties)
         if not purchase.payment_term:
             purchase.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = PurchaseLine()
             purchase.lines.append(line)
             line.product = random.choice(products)
@@ -1797,7 +1797,7 @@ def create_invoices(type_, count=100, linecount=10):
         journal_code = 'EXP'
     journal, = Journal.find(['code', '=', journal_code], limit=1)
 
-    for c in xrange(count):
+    for c in range(count):
         invoice = Invoice()
         invoice.type = type_
         invoice.invoice_date = random_datetime(TODAY + relativedelta(months=-12),
@@ -1808,7 +1808,7 @@ def create_invoices(type_, count=100, linecount=10):
         if not invoice.payment_term:
             invoice.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = InvoiceLine()
             invoice.lines.append(line)
             line.type = 'line'
@@ -2048,7 +2048,7 @@ def create_marketing_invoices():
     i = 0
     campaign = Campaign(32)
     for party in campaign.parties:
-        print "Doing", i + 1, party.rec_name
+        print("Doing", i + 1, party.rec_name)
         invoice = Invoice()
         invoice.party = party
         invoice.payment_term = term
@@ -2057,7 +2057,7 @@ def create_marketing_invoices():
         invoice.lines.append(line)
         line.product = product
         line.quantity = 50
-        line.description = u'Llicència ERP anual'
+        line.description = 'Llicència ERP anual'
         line.unit_price = Decimal('0')
         line.gross_unit_price = Decimal('0')
         line.discount = Decimal('0')

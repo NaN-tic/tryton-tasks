@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ConfigParser
+import configparser
 import os
 import tempfile
 import choice
@@ -20,7 +20,7 @@ def review_file(module):
     if not os.path.exists(cfg):
         return None
 
-    Config = ConfigParser.ConfigParser()
+    Config = configparser.ConfigParser()
     cfg_file = open(cfg)
     Config.readfp(cfg_file)
     cfg_file.close()
@@ -30,7 +30,7 @@ def review_file(module):
 def create_review_file(module, review_id):
     cfg = os.path.join(module, ".review.cfg")
     cfg_file = open(cfg, 'w+')
-    Config = ConfigParser.ConfigParser()
+    Config = configparser.ConfigParser()
     Config.readfp(cfg_file)
     Config.add_section('Review')
     Config.set('Review', 'id', review_id)
@@ -112,10 +112,10 @@ def reviews():
     root = get_root()
     requests = root.get_review_requests()
     for request in requests:
-        print "%(id)s - %(summary)s Updated:%(last_updated)s" % request
+        print("%(id)s - %(summary)s Updated:%(last_updated)s" % request)
         for bug in request['bugs_closed']:
-            print "Bug: %s" % bug
-        print "%(description)s\n" % request
+            print("Bug: %s" % bug)
+        print("%(description)s\n" % request)
 
 
 def request_by_id(review_id):
