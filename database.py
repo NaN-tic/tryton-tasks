@@ -74,6 +74,32 @@ def drop(database):
     execute('dropdb %s' % database)
 
 @task()
+def logged(database, logged=True):
+    '''
+    Changes the owner of the given database to the given owner username.
+    '''
+
+    command = 'SET LOGGED'
+    if not logged:
+        command = "SET UNLOGGED"
+
+    connection = psycopg2.connect('dbname=%s' % database)
+    cursor = connection.cursor()
+    cursor.execute("SELECT tablename FROM pg_tables WHERE "
+        "schemaname = 'public'")
+    tables = set([x[0] for x in cursor.fetchall()])
+    query ="SET CONSTRAINTS DEFFERRED;\n"
+    for table in tables:
+        query = ('ALTER TABLE public."%s" %s;\n' % (table,
+                command))
+
+    cursor.execute(query)
+    connection.commit()
+    connection.close()
+    print 'Changed %d tables, to %s' % (len(tables), command)
+
+
+@task()
 def owner(database, to_owner):
     '''
     Changes the owner of the given database to the given owner username.
@@ -221,3 +247,4 @@ DatabaseCollection.add_task(dump)
 DatabaseCollection.add_task(owner)
 DatabaseCollection.add_task(copy)
 DatabaseCollection.add_task(cluster)
+DatabaseCollection.add_task(logged)
