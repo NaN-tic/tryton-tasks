@@ -121,13 +121,17 @@ def owner(database, to_owner):
         cursor.execute('ALTER TABLE public."%s" OWNER TO "%s"' % (table,
                 to_owner))
 
+    connection.commit()
     cursor.execute("SELECT routine_name FROM information_schema.routines "
         "WHERE routine_schema = 'public'")
     routines = set([x[0] for x in cursor.fetchall()])
-    for routine in routines:
-        cursor.execute('ALTER FUNCTION public."%s" OWNER TO "%s"' % (routine,
-                to_owner))
-    connection.commit()
+    try:
+        for routine in routines:
+            cursor.execute('ALTER FUNCTION public."%s" OWNER TO "%s"' % (routine,
+                    to_owner))
+        connection.commit()
+    except psycopg2.ProgrammingError as e:
+        print 'ERROR changing functions: {}'.format(e)
     connection.close()
     print 'Changed %d tables, sequences and views to %s' % (len(tables),
         to_owner)
