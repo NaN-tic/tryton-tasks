@@ -7,7 +7,7 @@ invoke==0.12.2
 path.py>=10.0
 pyactiveresource
 psutil
-RBTools==0.7.11
+RBTools>=1.0.2
 python-quilt
 tabulate
 configobj

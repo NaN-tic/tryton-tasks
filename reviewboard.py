@@ -33,7 +33,7 @@ def create_review_file(module, review_id):
     Config = configparser.ConfigParser()
     Config.readfp(cfg_file)
     Config.add_section('Review')
-    Config.set('Review', 'id', review_id)
+    Config.set('Review', 'id', str(review_id))
     Config.write(cfg_file)
     cfg_file.close()
 
