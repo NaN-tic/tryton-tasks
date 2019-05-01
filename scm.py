@@ -64,24 +64,8 @@ def get_virtualenv():
         return ''
     return os.path.join(os.path.dirname(__file__), 'virtual-env.sh')
 
-
 @task()
-def add2virtualenv():
-    virtualenv = get_virtualenv()
-    aux = run(virtualenv + ' lssitepackages')
-    Config = read_config_file()
-    for section in Config.sections():
-        if not Config.has_option(section, 'add2virtualenv'):
-            continue
-        repo_path = Config.get(section, 'path')
-        project_path = os.path.dirname(__file__).split('tasks')[-1]
-        abspath = os.path.join(project_path, repo_path, section)
-        if not abspath in str(aux):
-            run(virtualenv + ' add2virtualenv ' + abspath, warn=True)
-
-
-@task()
-def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
+def repo_list(ctx, config=None, gitOnly=False, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
 
     repos = {
@@ -198,7 +182,7 @@ def _clone(repo):
 
 
 @task()
-def clone(config=None, unstable=True, development=False):
+def clone(ctx, config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     hg_pull('config', 'config', True)
 
@@ -284,7 +268,7 @@ def _status(repo):
 
 
 @task()
-def status(config=None, unstable=True, no_quilt=False, verbose=False):
+def status(ctx, config=None, unstable=True, no_quilt=False, verbose=False):
     if not no_quilt:
         patches._pop()
     p = Pool(MAX_PROCESSES)
@@ -351,7 +335,7 @@ def hg_resolve(module, path, verbose, action, tool, nostatus, include,
 
 
 @task()
-def resolve(config=None, unstable=True, verbose=False, action='merge',
+def resolve(ctx, config=None, unstable=True, verbose=False, action='merge',
         tool=None, nostatus=False, include=None, exclude=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
@@ -386,7 +370,7 @@ def git_stat(path):
 
 
 @task()
-def stat(module):
+def stat(ctx, module):
     Config = read_config_file()
     for section in Config.sections():
         if section != module:
@@ -483,7 +467,7 @@ def hg_diff(module, path, verbose, rev1, rev2):
 
 
 @task()
-def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
+def diff(ctx, config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -618,45 +602,6 @@ def hg_compare_branches(module, path, first_branch, second_branch='default'):
     return res
 
 
-@task()
-def compare_branches(first_branch, second_branch, module=None,
-        config=None, unstable=True, module_file_list=None):
-    '''
-    Finds commits that exist on first branch but doesn't exist on
-    second_branch. In order to identify a commit, its description is used as
-    the revision_id may change when grafting commits from branches
-    '''
-
-    module_list = []
-    if module_file_list:
-        file_ = open(module_file_list)
-        module_list = [x.replace(' ','').replace('\n','') for x in file_.readlines()]
-
-    Config = read_config_file(config, type='repos', unstable=unstable,
-        avoid_core=True)
-    for section in Config.sections():
-        if module and section != module:
-            continue
-
-        if module_file_list and section not in module_list:
-            continue
-
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'git':
-            continue
-        if repo != 'hg':
-            print("Not developed yet", file=sys.stderr)
-            continue
-
-        output = hg_compare_branches(section, path, first_branch, second_branch)
-        if output:
-            print()
-            print("Module:" , section)
-            print('-' * (len(section) + 8))
-            print(output)
-
-
 def hg_summary(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
@@ -670,7 +615,7 @@ def hg_summary(module, path, verbose):
 
 
 @task()
-def summary(config=None, unstable=True, verbose=False):
+def summary(ctx, config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -711,7 +656,7 @@ def hg_outgoing(module, path, verbose):
 
 
 @task()
-def outgoing(config=None, unstable=True, verbose=False):
+def outgoing(ctx, config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -806,7 +751,7 @@ def _clean(repo):
 
 
 @task()
-def clean(force=False, config=None, unstable=True):
+def clean(ctx, force=False, config=None, unstable=True):
     patches._pop()
     p = Pool(MAX_PROCESSES)
     Config = read_config_file(config, unstable=unstable)
@@ -1231,7 +1176,7 @@ def hg_update(module, path, clean, branch=None, revision=None,
 
 
 @task()
-def update(config=None, unstable=True, clean=False, development=True,
+def update(ctx, config=None, unstable=True, clean=False, development=True,
         no_quilt=False):
     if not no_quilt:
         patches._pop()
@@ -1292,9 +1237,8 @@ def hg_is_last_revision(path, revision):
     return True
 
 
-
 @task()
-def revision(config=None, unstable=True, verbose=True):
+def revision(ctx, config=None, unstable=True, verbose=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -1308,35 +1252,7 @@ def revision(config=None, unstable=True, verbose=True):
 
 
 @task()
-def prefetch(force=False):
-    """ Ensures clean enviroment """
-
-    # TODO: We cannot call unknown because it's in config.py and
-    # trying to import it causes a cyclic import
-    #unknown(unstable=True, status=False, show=False, remove=True)
-
-    clean(force=force)
-    Config = read_config_file()
-    patches._pop()
-    for section in Config.sections():
-        repo = get_repo(section, Config, 'status')
-        files = repo['function'](section, repo['path'],
-            verbose=False, url=repo['url'])
-        if files == {}:
-            continue
-        remove_files = [os.path.join(repo['path'], x) for x in
-            files.get('?', [])]
-        if force or _ask_ok(
-            'Answer "yes" to remove untracked files "%s" of "%s" repository '
-                'in "%s" directory. [y/N] ' % (" ".join(remove_files),
-                    section, repo['path']), 'n'):
-            for f in remove_files:
-                os.remove(f)
-    patches._push()
-
-
-@task()
-def fetch():
+def fetch(ctx):
     print(t.bold('Pulling and updating local repository...'))
     # Replace by a "hg_pull" call
     bashCommand = ['hg', 'pull', '-u']
@@ -1498,13 +1414,10 @@ ScmCollection.add_task(stat)
 ScmCollection.add_task(branch)
 ScmCollection.add_task(missing_branch)
 ScmCollection.add_task(create_branch)
-ScmCollection.add_task(compare_branches)
 ScmCollection.add_task(module_diff)
-ScmCollection.add_task(add2virtualenv)
 ScmCollection.add_task(increase_version)
 ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
-ScmCollection.add_task(prefetch)
 ScmCollection.add_task(branches)
 ScmCollection.add_task(close_branch)
 ScmCollection.add_task(module_version)

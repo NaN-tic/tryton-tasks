@@ -3,7 +3,7 @@ blessings
 coverage
 GitPython>=0.3.2.RC1
 hgapi
-invoke==0.12.2
+invoke
 path.py>=10.0
 pyactiveresource
 psutil
