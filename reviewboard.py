@@ -67,7 +67,7 @@ def get_repository():
 
 
 @task()
-def create(module, summary, description, bug, group='NaN'):
+def create(ctx, module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
@@ -105,7 +105,7 @@ def create(module, summary, description, bug, group='NaN'):
 
 
 @task()
-def reviews():
+def reviews(ctx):
     """
     List your reviews in Review Board
     """
@@ -125,7 +125,7 @@ def request_by_id(review_id):
 
 
 @task()
-def fetch(module, review):
+def fetch(ctx, module, review):
     """
         Download and apply patch.
     """
@@ -142,7 +142,7 @@ def fetch(module, review):
 
 
 @task()
-def close_all():
+def close_all(ctx):
     root = get_root()
     requests = root.get_review_requests()
     for request in requests:
@@ -150,7 +150,7 @@ def close_all():
 
 
 @task()
-def close(review=None, close_type='submitted'):
+def close(ctx, review=None, close_type='submitted'):
     """ @type submitted | discarded """
 
     request, = request_by_id(review)

@@ -6,7 +6,7 @@ from blessings import Terminal
 t = Terminal()
 
 @task
-def install():
+def install(ctx):
     'Install SAO'
     os.chdir('public_data/sao')
     os.system('npm install')
@@ -15,7 +15,7 @@ def install():
     print(t.bold('Done'))
 
 @task
-def grunt():
+def grunt(ctx):
     'Grunt SAO'
     os.chdir('public_data/sao')
     os.system('grunt')

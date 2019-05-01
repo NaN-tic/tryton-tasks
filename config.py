@@ -26,7 +26,7 @@ def get_config():
 
 
 @task()
-def set_revision(config=None):
+def set_revision(ctx, config=None):
     """ Set branch on repository config files """
 
     if config is None:
@@ -49,7 +49,7 @@ def set_revision(config=None):
 
 
 @task()
-def set_branch(branch, config=None):
+def set_branch(ctx, branch, config=None):
     """ Set branch on repository config files """
 
     if config is None:
@@ -69,7 +69,7 @@ def set_branch(branch, config=None):
         f_d.close()
 
 @task()
-def add_modules(config, version, owner, modules="./modules"):
+def add_modules(ctx, config, version, owner, modules="./modules"):
     Config = read_config_file(config, type='all', unstable=True)
 
     for d in [x for x in os.listdir(modules) if os.path.isdir(
@@ -96,7 +96,7 @@ def add_modules(config, version, owner, modules="./modules"):
 
 
 @task()
-def add_module(config, path, url=None):
+def add_module(ctx, config, path, url=None):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
     module = os.path.basename(path)
@@ -116,7 +116,7 @@ def add_module(config, path, url=None):
     cfile.close()
 
 @task()
-def unknown(unstable=True, status=False, show=True, remove=False, quiet=False,
+def unknown(ctx, unstable=True, status=False, show=True, remove=False, quiet=False,
         add=False):
     """
     Return a list of modules/repositories that exists in filesystem but not in
