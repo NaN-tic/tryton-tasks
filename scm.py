@@ -89,7 +89,7 @@ def repo_list(ctx, config=None, gitOnly=False, unstable=True, verbose=False):
                 print(name, repo_path, url, file=sys.stderr)
 
 @task()
-def close_branch(directory, branch):
+def close_branch(ctx, directory, branch):
     """ Close branch for all modules """
 
     for module_path in Path(directory).dirs():
@@ -400,7 +400,7 @@ def hg_base_diff(path):
 
 
 @task()
-def module_diff(path, base=True, show=True, fun=hg_base_diff,
+def module_diff(ctx, path, base=True, show=True, fun=hg_base_diff,
         addremove=False):
     if addremove:
         try:
@@ -797,7 +797,7 @@ def _hg_branches(module, path, config_branch=None):
 
 
 @task()
-def branches(config=None, modules=None):
+def branches(ctx, config=None, modules=None):
 
     patches._pop()
     Config = read_config_file(config, unstable=True)
@@ -811,7 +811,7 @@ def branches(config=None, modules=None):
     patches._push()
 
 @task()
-def branch(branch, clean=False, config=None, unstable=True):
+def branch(ctx, branch, clean=False, config=None, unstable=True):
     if not branch:
         print(t.red("Missing required branch parameter"), file=sys.stderr)
         return
@@ -857,7 +857,7 @@ def hg_missing_branch(module, path, branch_name, closed=True):
 
 
 @task()
-def missing_branch(branch_name, config=None, unstable=True):
+def missing_branch(ctx, branch_name, config=None, unstable=True):
     '''
     List all modules doesn't containt a branch named branc_name
     '''
@@ -904,7 +904,7 @@ def hg_create_branch(module, path, branch_name):
 
 
 @task()
-def create_branch(branch_name, config=None, unstable=True):
+def create_branch(ctx, branch_name, config=None, unstable=True):
     '''
     Create a branch with name branch_name to all the repositories that don't
     contain a branch with the same name.
@@ -979,7 +979,7 @@ def _pull(repo):
 
 
 @task()
-def pull(config=None, unstable=True, update=True, development=False,
+def pull(ctx, config=None, unstable=True, update=True, development=False,
          ignore_missing=False, no_quilt=False):
     if not no_quilt:
         patches._pop()
@@ -1017,7 +1017,7 @@ def hg_commit(module, path, msg):
     os.chdir(cwd)
 
 @task()
-def commit(msg, config=None, unstable=True):
+def commit(ctx, msg, config=None, unstable=True):
     '''
     Pushes all pending commits to the repo url.
 
@@ -1067,7 +1067,7 @@ def hg_push(module, path, url, new_branches=False):
 
 
 @task()
-def push(config=None, unstable=True, new_branches=False):
+def push(ctx, config=None, unstable=True, new_branches=False):
     '''
     Pushes all pending commits to the repo url.
 
@@ -1310,7 +1310,7 @@ def _module_version(modules):
         print(section,';',"'"+version)
 
 @task()
-def module_version(config=None):
+def module_version(ctx, config=None):
     '''
     Check version of module
     '''
@@ -1378,7 +1378,7 @@ def increase_module_version(module, path, version):
 
 
 @task()
-def increase_version(version, config=None, unstable=True, clean=False):
+def increase_version(ctx, version, config=None, unstable=True, clean=False):
     '''
     Modifies all tryton.cfg files in order to set version to <version>
     '''

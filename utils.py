@@ -103,7 +103,7 @@ def read_config_file(config_file=None, type='repos', unstable=True,
 
 
 @task()
-def update_parent_left_right(database, table, field=None, host='localhost',
+def update_parent_left_right(ctx, database, table, field=None, host='localhost',
         port='5432', user=None, password=None):
     ''' Compute left/right fields for a parent field in a tryton table '''
     if field is None:
@@ -145,7 +145,7 @@ def update_parent_left_right(database, table, field=None, host='localhost',
 
 
 @task()
-def prepare_translations(database, langs=None, host=None, port=None,
+def prepare_translations(ctx, database, langs=None, host=None, port=None,
         dbuser=None, dbpassword=None,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
@@ -188,7 +188,7 @@ def prepare_translations(database, langs=None, host=None, port=None,
 
 
 @task()
-def export_translations(database, modules, langs=None,
+def export_translations(ctx,database, modules, langs=None,
         host=None, port=None, dbuser=None, dbpassword=None,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
@@ -265,7 +265,7 @@ def export_translations(database, modules, langs=None,
 
 
 @task()
-def account_reconcile(database, lines=2, months=6,
+def account_reconcile(ctx, database, lines=2, months=6,
         config_file=os.environ.get('TRYTOND_CONFIG')):
 
     pref = config.set_trytond(database=database, config_file=config_file)
