@@ -132,7 +132,7 @@ def create_graph(module_list):
 
 
 @task()
-def update_post_move_sequence(database, fiscalyear, sequence,
+def update_post_move_sequence(ctx, database, fiscalyear, sequence,
         host='localhost', port='5432', user='angel', password='password'):
     ''' Force update of post_move_sequence on fiscalyears '''
     db = psycopg2.connect(dbname=database, host=host, port=port, user=user,
@@ -150,7 +150,7 @@ def update_post_move_sequence(database, fiscalyear, sequence,
 
 
 @task()
-def missing(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+def missing(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
         install=False, show=True):
     """
     Checks which modules are missing according to the dependencies of the
@@ -193,7 +193,7 @@ def missing(database, config_file=os.environ.get('TRYTOND_CONFIG'),
         'remove': 'Remove directory of forgotten modules (except installed '
             'modules if "uninstall" param is not set).'
         })
-def forgotten(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+def forgotten(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
         uninstall=False, delete=False, remove=False, show=True, unstable=True):
     """
     Return a list of modules that exists in the DB but not in *.cfg files.
@@ -272,7 +272,7 @@ def forgotten(database, config_file=os.environ.get('TRYTOND_CONFIG'),
 
 
 @task(help={'modules': 'module names separated by coma.'})
-def create_fake_modules(modules):
+def create_fake_modules(ctx, modules):
     """
     Create fake (empty) modules to allow to uninstall them.
     """
@@ -309,7 +309,7 @@ def create_fake_modules(modules):
 
 
 @task(help={'modules': 'module names separated by coma'})
-def uninstall_task(database, modules,
+def uninstall_task(ctx, database, modules,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Uninstall the supplied modules (separated by coma) from database.
@@ -350,7 +350,7 @@ def uninstall_task(database, modules,
 
 
 @task()
-def delete_modules(database, modules,
+def delete_modules(ctx, database, modules,
         config_file=os.environ.get('TRYTOND_CONFIG'), force=False):
     """
     Delete the supplied modules (separated by coma) from ir_module_module
@@ -384,7 +384,7 @@ def delete_modules(database, modules,
 
 
 @task()
-def convert_bank_accounts_to_iban(database,
+def convert_bank_accounts_to_iban(ctx, database,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Convert all Bank Account Numbers of type 'other' to 'iban'.
@@ -434,7 +434,7 @@ def convert_bank_accounts_to_iban(database,
         'max-lines': 'reconcile moves using 2 to "max_lines" moves '
         'iteratively (2, 3, ...). By default: 4',
         })
-def automatic_reconciliation(database, max_lines=4,
+def automatic_reconciliation(ctx, database, max_lines=4,
         config_file=os.environ.get('TRYTOND_CONFIG')):
     """
     Launch Automatic Reconciliation wizard for all databases and years
@@ -494,7 +494,7 @@ def automatic_reconciliation(database, max_lines=4,
 
 
 @task()
-def adduser(dbname, user, conf_file=None):
+def adduser(ctx, dbname, user, conf_file=None):
     '''Create new user or reset the password if the user exist'''
     if not conf_file:
         conf_file = 'server-%s.cfg' % (socket.gethostname())
@@ -532,7 +532,7 @@ def adduser(dbname, user, conf_file=None):
 
 
 @task()
-def installed_module_version(database, config_file=os.environ.get('TRYTOND_CONFIG'),
+def installed_module_version(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
         config=None):
     '''
     Check version of installed module

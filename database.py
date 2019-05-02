@@ -6,6 +6,7 @@ import time
 JOBS = 3
 FORMAT = 'directory'
 
+
 def execute(command, **kwargs):
     if not 'warn' in kwargs:
         kwargs['warn'] = True
@@ -14,8 +15,9 @@ def execute(command, **kwargs):
     print('Running: %s' % command)
     return run(command, **kwargs)
 
+
 @task()
-def dump(database, ssh=None):
+def dump(ctx, database, ssh=None):
     '''
     Dumps the content of the given database to
     ~/backups/<database name>-<timestamp> in PostgreSQL directory format using
@@ -44,7 +46,7 @@ def dump(database, ssh=None):
     return path, relative_path
 
 @task()
-def restore(path, database, ssh=None):
+def restore(ctx, path, database, ssh=None):
     '''
     Restores the content of the given path into the given database name.
     The content of the path should be in PostgreSQL directory format and it
@@ -65,7 +67,7 @@ def restore(path, database, ssh=None):
     return execute(command)
 
 @task()
-def drop(database):
+def drop(ctx, database):
     '''
     Drops the given database but makes a backup using the database.dump command
     first.
@@ -74,7 +76,7 @@ def drop(database):
     execute('dropdb %s' % database)
 
 @task()
-def owner(database, to_owner):
+def owner(ctx, database, to_owner):
     '''
     Changes the owner of the given database to the given owner username.
     '''
@@ -145,7 +147,7 @@ def remote_restore(local_path, relative_path, host, database):
     restore(remote_path, database, 'ssh %s' % host)
 
 @task()
-def copy(from_, to, to_owner=None):
+def copy(ctx, from_, to, to_owner=None):
     '''
     Copies the content a database into a new one. Databases may be in different
     hosts. Optionally it also allows you to specify the target owner which
@@ -188,7 +190,7 @@ def copy(from_, to, to_owner=None):
 
 
 @task()
-def cluster(database):
+def cluster(ctx, database):
     '''
     Runs CLUSTER to all tables in the database using its primary key (which
     should be the "id" field in Tryton tables).
