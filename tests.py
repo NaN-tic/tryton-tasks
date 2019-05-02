@@ -118,7 +118,7 @@ def test(dbtype, name, modules, failfast, upload=True):
 
 
 @task()
-def module(module, work=None,  dbtype='sqlite', fail_fast=False, upload=True,
+def module(ctx, module, work=None,  dbtype='sqlite', fail_fast=False, upload=True,
         force=False):
     _module(module, dbtype, fail_fast, upload, force)
 
@@ -154,7 +154,7 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
 
 
 @task()
-def modules(dbtype='sqlite', force=False, processes=MAX_PROCESSES):
+def modules(ctx, dbtype='sqlite', force=False, processes=MAX_PROCESSES):
     Config = read_config_file()
     p = Pool(processes)
     repos = [x for x in Config.sections() if x not in NO_MODULE_REPOS]
