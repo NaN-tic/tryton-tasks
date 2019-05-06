@@ -919,7 +919,7 @@ def create_branch(ctx, branch_name, config=None, unstable=True):
     patches._pop()
     print(t.bold('Cleaning all changes...'))
     Config = read_config_file(config, unstable=unstable)
-    update(config, unstable=True, clean=True, no_quilt=True)
+    update(ctx, config, unstable=True, clean=True, no_quilt=True)
     Config = read_config_file(config, unstable=unstable)
     processes = []
     p = None
