@@ -71,7 +71,7 @@ def create(ctx, module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
-    diff, base_diff = module_diff(module, show=False, addremove=True)
+    diff, base_diff = module_diff(ctx, module, show=False, addremove=True)
     root = get_root()
     review_id = review_file(module)
 
