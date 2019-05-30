@@ -176,7 +176,7 @@ def copy(ctx, from_, to, to_owner=None):
     if from_host:
         local_path, relative_path = remote_dump(from_host, from_database)
     else:
-        local_path, relative_path = dump(from_database)
+        local_path, relative_path = dump(ctx, from_database)
 
     # Restore
     if to_host:
@@ -184,9 +184,9 @@ def copy(ctx, from_, to, to_owner=None):
         remote_restore(local_path, relative_path, to_host, to_database)
     else:
         execute('createdb %s' % to_database)
-        restore(local_path, to_database)
+        restore(ctx, local_path, to_database)
         if to_owner:
-            owner(to_database, to_owner)
+            owner(ctx, to_database, to_owner)
 
 
 @task()
