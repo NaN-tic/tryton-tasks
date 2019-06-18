@@ -8,6 +8,7 @@ from path import Path
 
 from .utils import _ask_ok, _check_required_file, _exit
 from .scm import hg_clone, hg_pull, clone, fetch
+from .sao import install as sao_install, grunt as sao_grunt
 
 
 t = Terminal()
@@ -194,6 +195,8 @@ def bootstrap(ctx, branch, projectpath='', projectname='',
         virtualenv=True,
         upgradereqs=False):
 
+    cwd = Path.getcwd()
+
     if projectpath:
         projectpath = Path(projectpath)
         os.chdir(projectpath)
@@ -223,6 +226,11 @@ def bootstrap(ctx, branch, projectpath='', projectname='',
 
     clone(ctx, 'config/base.cfg')
     fetch(ctx)
+
+    # SAO
+    sao_install(ctx)
+    os.chdir(cwd)
+    sao_grunt(ctx)
 
     create_symlinks(ctx)
 

@@ -8,7 +8,7 @@ t = Terminal()
 @task
 def install(ctx):
     'Install SAO'
-    os.chdir('public_data/sao')
+    os.chdir('./public_data/sao')
     os.system('npm install')
     os.system('bower install')
 
@@ -22,7 +22,7 @@ def install(ctx):
 @task
 def grunt(ctx):
     'Grunt SAO'
-    os.chdir('public_data/sao')
+    os.chdir('./public_data/sao')
     os.system('grunt')
 
     print(t.bold('Done'))
