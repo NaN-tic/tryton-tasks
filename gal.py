@@ -8,7 +8,6 @@ import hgapi
 import random
 import json
 import datetime
-import codecs
 from . import iban
 import traceback
 try:
@@ -63,12 +62,10 @@ def check_output(*args):
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
     data = stdout + stderr
     if process.returncode:
-        if isinstance(stdout, str):
-            stdout = stdout.decode('utf-8')
-        if isinstance(stderr, str):
-            stderr = stderr.decode('utf-8')
         if stdout and stderr:
             print(stdout, t.red(stderr))
         elif stdout:
@@ -295,11 +292,13 @@ def build(ctx, filename=None, no_restore=False):
     if no_restore:
         restore_step = False
 
-    with codecs.open(filename, 'r', 'utf-8') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#'):
                 print(t.bold(str(line)))
+                splitted = line.split('(')
+                line = splitted[0] + '(ctx, ' + splitted[1]
                 eval(line)
 
 
@@ -898,7 +897,7 @@ def create_product(name, code="", template=None, cost_price=None,
         if hasattr(template, 'account_expense'):
             Account = Model.get('account.account')
             expense = Account.find([
-                ('kind', '=', 'expense'),
+                ('type.expense', '=', True),
                 ('company', '=', company.id),
                 ])
             if expense:
@@ -906,7 +905,7 @@ def create_product(name, code="", template=None, cost_price=None,
         if hasattr(template, 'account_revenue'):
             Account = Model.get('account.account')
             revenue = Account.find([
-                ('kind', '=', 'revenue'),
+                ('type.revenue', '=', True),
                 ('company', '=', company.id),
                 ])
             if revenue:
@@ -1094,12 +1093,12 @@ def create_account_chart(ctx, company, module=None, fs_id=None, digits=None):
     create_chart.execute('create_account')
 
     receivable = Account.find([
-            ('kind', '=', 'receivable'),
+            ('type.receivable', '=', True),
             ('company', '=', company.id),
             ])
     receivable = receivable[0]
     payable = Account.find([
-            ('kind', '=', 'payable'),
+            ('type.payable', '=', True),
             ('company', '=', company.id),
             ])[0]
     #revenue, = Account.find([
