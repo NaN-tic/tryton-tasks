@@ -449,9 +449,14 @@ def hg_diff(module, path, verbose, rev1, rev2):
             if diff:
                 d = diff['diff'].split('\n')
                 for line in d:
+
                     if line and line[0] == '-':
+                        if module not in ['patches', 'features']:
+                            line = line.replace('--- a','--- a/'+path[2:] )
                         line = t.red + line + t.normal
                     elif line and line[0] == '+':
+                        if module not in ['patches', 'features']:
+                            line = line.replace('+++ b','+++ b/'+path[2:] )
                         line = t.green + line + t.normal
 
                     if line:
@@ -470,6 +475,7 @@ def hg_diff(module, path, verbose, rev1, rev2):
 def diff(ctx, config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
+    patches._pop()
     for section in Config.sections():
         repo = get_repo(section, Config, 'diff')
         p = Process(target=repo['function'], args=(section, repo['path'],
@@ -478,7 +484,7 @@ def diff(ctx, config=None, unstable=True, verbose=True, rev1=None, rev2=None):
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
-
+    patches._push()
 
 def hg_compare_branches(module, path, first_branch, second_branch='default'):
 
