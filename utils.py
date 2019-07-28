@@ -258,7 +258,7 @@ def export_translations(ctx,database, modules, langs=None,
             file_path = os.path.join(module_locale_path,
                 '%s.po' % language.code)
             with open(file_path, 'w') as f:
-                f.write(str(translation_export.form.file))
+                f.write(translation_export.form.file.decode('utf-8'))
             translation_export.execute('end')
             print(('Translation of "%s" in "%s" exported successfully.'
                 % (module.name, language.code)))
