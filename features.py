@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-from invoke import task, Collection, run
-from .utils import t
+from invoke import task, Collection
 import os
 import yaml
 
@@ -46,7 +45,7 @@ class Patch(object):
         return True if not err else False
 
 @task()
-def applied():
+def applied(ctx):
     series = read_series()
     applied = []
     for patch_yml in series:
@@ -62,7 +61,7 @@ def applied():
 
 
 @task()
-def unnapplied():
+def unnapplied(ctx):
     series = read_series()
     unnapplied = []
     for patch_yml in series:
@@ -87,7 +86,7 @@ def _pop():
 
 
 @task()
-def pop():
+def pop(ctx):
     _pop()
 
 
@@ -101,7 +100,7 @@ def _push():
 
 
 @task()
-def push():
+def push(ctx):
     _push()
 
 FeatureCollection = Collection()
