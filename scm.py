@@ -476,7 +476,7 @@ def hg_diff(module, path, verbose, rev1, rev2):
                         line = t.green + line + t.normal
 
                     if line:
-                        msg.append(line)
+                        msg.append(line.encode('utf-8'))
         if msg == []:
             return
         msg.insert(0, t.bold('\n[' + module + "]\n"))
