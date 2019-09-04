@@ -16,6 +16,7 @@ from .startup import StartupCollection
 from .sao import SaoCollection
 from .database import DatabaseCollection
 from .features import FeatureCollection
+from .bugs import BugCollection
 
 ns.add_collection(BootstrapCollection, 'bs')
 ns.add_collection(BitbucketCollection, 'bucket')
@@ -33,3 +34,4 @@ ns.add_collection(StartupCollection, 'startup')
 ns.add_collection(SaoCollection, 'sao')
 ns.add_collection(DatabaseCollection, 'database')
 ns.add_collection(FeatureCollection, 'features')
+ns.add_collection(BugCollection, 'bugs')
