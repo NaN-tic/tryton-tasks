@@ -28,7 +28,8 @@ class Patch(object):
         command = ["patch", "-N", "-p1", "--silent",  "--dry-run", "-i", self.patchfile ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
-        if not output:
+        self.conflict = 'FAILED' in output
+        if not output or self.conflict:
             return False
         return True
 
@@ -95,7 +96,8 @@ def _push():
     for patch_yml in series:
         patch = Patch(patch_yml)
         if not patch.applied():
-            patch.push()
+            if not patch.conflict:
+                patch.push()
             print(patch)
 
 
