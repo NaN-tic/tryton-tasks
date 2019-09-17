@@ -28,7 +28,7 @@ class Patch(object):
         command = ["patch", "-N", "-p1", "--silent",  "--dry-run", "-i", self.patchfile ]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
-        self.conflict = 'FAILED' in output
+        self.conflict = 'FAILED' in str(output)
         if not output or self.conflict:
             return False
         return True
