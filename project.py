@@ -207,7 +207,7 @@ def merge_review(ctx, work, review_id=None, message=None):
 
 
 @task()
-def upload_review(ctx, work, path, branch='default'):
+def upload_review(ctx, work, path, branch='default', module=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -219,13 +219,14 @@ def upload_review(ctx, work, path, branch='default'):
         sys.exit(1)
     work = tasks[0]
 
-    module = os.path.realpath(path).split('/')[-1]
-    components = Component.find([('name', '=', module)])
+    if not module:
+        module = os.path.realpath(path).split('/')[-1]
+    components = Component.find([('name', '=', module)], limit=1)
     if not components:
         component = Component(name=module)
         component.save()
     else:
-        component = components[0]
+        component, = components
 
     repo = hgapi.Repo(path)
     url = repo.config('paths', 'default')
