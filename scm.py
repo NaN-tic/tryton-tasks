@@ -467,20 +467,20 @@ def hg_diff(module, path, verbose, rev1, rev2):
                 for line in d:
 
                     if line and line[0] == '-':
-                        if module not in ['patches', 'features']:
+                        if module not in ['patches', 'features', 'bugs']:
                             line = line.replace('--- a','--- a/'+path[2:] )
                         line = t.red + line + t.normal
                     elif line and line[0] == '+':
-                        if module not in ['patches', 'features']:
+                        if module not in ['patches', 'features', 'bugs']:
                             line = line.replace('+++ b','+++ b/'+path[2:] )
                         line = t.green + line + t.normal
 
                     if line:
-                        msg.append(line.encode('utf-8'))
+                        msg.append(line)
         if msg == []:
             return
         msg.insert(0, t.bold('\n[' + module + "]\n"))
-        print "\n".join(msg)
+        print "\n".join(msg).encode('utf-8')
     except:
         msg.insert(0, t.bold('\n[' + module + "]\n"))
         msg.append(str(sys.exc_info()[1]))
