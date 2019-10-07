@@ -23,7 +23,7 @@ def install(ctx):
 def grunt(ctx):
     'Grunt SAO'
     os.chdir('./public_data/sao')
-    os.system('grunt')
+    os.system('grunt dev')
 
     print(t.bold('Done'))
 
