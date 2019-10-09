@@ -50,6 +50,9 @@ class Patch(object):
 @task()
 def applied():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     applied = []
     for patch_yml in series:
         patch = Patch(patch_yml)
@@ -66,6 +69,9 @@ def applied():
 @task()
 def unnapplied():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     unnapplied = []
     for patch_yml in series:
         patch = Patch(patch_yml)
@@ -81,6 +87,9 @@ def unnapplied():
 
 def _pop():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     for patch_yml in series:
         patch = Patch(patch_yml)
         if patch.applied():
@@ -95,6 +104,9 @@ def pop():
 
 def _push():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     for patch_yml in series:
         patch = Patch(patch_yml)
         if not patch.applied():
