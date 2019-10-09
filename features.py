@@ -3,13 +3,15 @@ from invoke import task, Collection, run
 from .utils import t
 import os
 import yaml
+import subprocess
 
 patches_dir = "./features"
 series_file = 'series'
-import subprocess
+
 
 def read_series():
     return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+
 
 class Patch(object):
     def __init__(self, yaml_obj, conflict=False):
@@ -26,7 +28,7 @@ class Patch(object):
             applied, conflict)
 
     def applied(self):
-        command = ["patch", "-N", "-p1", "--silent",  "--dry-run", "-i", self.patchfile ]
+        command = ["patch", "-N", "-p1", "--silent", "--dry-run", "-i", self.patchfile]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
         self.conflict = 'FAILED' in output
@@ -35,20 +37,24 @@ class Patch(object):
         return True
 
     def push(self):
-        command = ["patch", "-N", "-p1", "-i", self.patchfile ]
+        command = ["patch", "-N", "-p1", "-i", self.patchfile]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
         return True if not err else False
 
     def pop(self):
-        command = ["patch", "-R", "-p1", "-i", self.patchfile ]
+        command = ["patch", "-R", "-p1", "-i", self.patchfile]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
         return True if not err else False
 
+
 @task()
 def applied():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     applied = []
     for patch_yml in series:
         patch = Patch(patch_yml)
@@ -65,6 +71,9 @@ def applied():
 @task()
 def unnapplied():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     unnapplied = []
     for patch_yml in series:
         patch = Patch(patch_yml)
@@ -80,6 +89,9 @@ def unnapplied():
 
 def _pop():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     for patch_yml in series:
         patch = Patch(patch_yml)
         if patch.applied():
@@ -94,6 +106,9 @@ def pop():
 
 def _push():
     series = read_series()
+    if not series:
+        print("Series is empty")
+        return
     for patch_yml in series:
         patch = Patch(patch_yml)
         if not patch.applied():
@@ -105,6 +120,7 @@ def _push():
 @task()
 def push():
     _push()
+
 
 FeatureCollection = Collection()
 FeatureCollection.add_task(pop)
