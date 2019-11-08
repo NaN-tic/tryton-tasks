@@ -3,6 +3,7 @@ from invoke import task, Collection
 import os
 import yaml
 import subprocess
+from string import Template
 
 patches_dir = "./bugs"
 series_file = 'series'
@@ -10,6 +11,11 @@ series_file = 'series'
 
 def read_series():
     return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+
+
+def write_series(data):
+    with open(os.path.join(patches_dir, series_file), 'a') as fp:
+        fp.write(data)
 
 
 class Patch(object):
@@ -45,6 +51,24 @@ class Patch(object):
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
         return True if not err else False
+
+
+@task
+def add():
+    template = Template(
+        '- ${ticket_num}:\n'
+        '   file: ${patch_file}\n'
+        '   task: ${urltask}\n'
+        )
+    ticket_num = raw_input('Num. tiquet: ')
+    patch_file = raw_input('Fixter diff: ')
+    urltask = raw_input('Url del tiquet: ')
+    data = {
+        'ticket_num': ticket_num,
+        'patch_file': patch_file,
+        'urltask': urltask
+        }
+    write_series(template.substitute(data))
 
 
 @task()
@@ -125,3 +149,4 @@ BugCollection.add_task(pop)
 BugCollection.add_task(applied)
 BugCollection.add_task(unnapplied)
 BugCollection.add_task(push)
+BugCollection.add_task(add)

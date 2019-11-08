@@ -4,6 +4,7 @@ from .utils import t
 import os
 import yaml
 import subprocess
+from string import Template
 
 patches_dir = "./features"
 series_file = 'series'
@@ -11,6 +12,11 @@ series_file = 'series'
 
 def read_series():
     return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+
+
+def write_series(data):
+    with open(os.path.join(patches_dir, series_file), 'a') as fp:
+        fp.write(data)
 
 
 class Patch(object):
@@ -47,6 +53,27 @@ class Patch(object):
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
         return True if not err else False
+
+
+@task
+def add():
+    template = Template(
+        '- ${task_num}:\n'
+        '   file: ${patch_file}\n'
+        '   milestone: ${urlmilestone}\n'
+        '   task: ${urltask}\n'
+        )
+    task_num = raw_input('Num. tasca: ')
+    patch_file = raw_input('Fixter diff: ')
+    urlmilestone = raw_input('Url del milestone: ')
+    urltask = raw_input('Url de la tasca: ')
+    data = {
+        'task_num': task_num,
+        'patch_file': patch_file,
+        'urlmilestone': urlmilestone,
+        'urltask': urltask
+        }
+    write_series(template.substitute(data))
 
 
 @task()
@@ -127,3 +154,4 @@ FeatureCollection.add_task(pop)
 FeatureCollection.add_task(applied)
 FeatureCollection.add_task(unnapplied)
 FeatureCollection.add_task(push)
+FeatureCollection.add_task(add)
