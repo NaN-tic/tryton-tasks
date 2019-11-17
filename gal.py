@@ -36,8 +36,7 @@ if os.path.isdir(proteus_directory):
     sys.path.insert(0, proteus_directory)
 
 try:
-    from proteus import config as pconfig, Model, Wizard, \
-        __version__ as proteus_version
+    from proteus import config as pconfig, Model, Wizard
 except:
     pass
 
@@ -105,35 +104,29 @@ def connect_database(database=None, password='admin',
 
     global config
     global version
-    if proteus_version.startswith('3.2'):
-        if language is None:
-            language = 'en_US'
-        config = pconfig.set_trytond(database, database_type=database_type,
-            password=password, language=language, config_file='trytond.conf')
-    else:
-        os.environ['TRYTOND_DATABASE_URI'] = '%s:///' % database_type
-        os.environ['DB_NAME'] = database
+    os.environ['TRYTOND_DATABASE_URI'] = '%s:///' % database_type
+    os.environ['DB_NAME'] = database
 
-        # Tries to use sqlite without these two lines:
-        from trytond.config import config
-        config.set('database', 'uri', '%s://' % database_type)
+    # Tries to use sqlite without these two lines:
+    from trytond.config import config
+    config.set('database', 'uri', '%s://' % database_type)
 
-        from trytond.tests.test_tryton import db_exist
+    from trytond.tests.test_tryton import db_exist
 
-        if not db_exist():
-            try:
-                from trytond.protocols.dispatcher import create as tcreate
-                if language is None:
-                    language = 'en_US'
-                tcreate(None, database, None, language, password)
-            except:
-                from trytond.tests.test_tryton import create_db as tcreate
-                if language is None:
-                    language = 'en'
-                tcreate(database, language)
+    if not db_exist():
+        try:
+            from trytond.protocols.dispatcher import create as tcreate
+            if language is None:
+                language = 'en_US'
+            tcreate(None, database, None, language, password)
+        except:
+            from trytond.tests.test_tryton import create_db as tcreate
+            if language is None:
+                language = 'en'
+            tcreate(database, language)
 
-        config = pconfig.set_trytond(database, config_file='trytond.conf')
-        config.pool.test = False
+    config = pconfig.set_trytond(database, config_file='trytond.conf')
+    config.pool.test = False
 
 
 def database_name():
@@ -505,6 +498,32 @@ def activate_modules(ctx, modules):
     gal_commit()
     return modules, activated_modules
 
+@task()
+def load_countries(ctx):
+    gal_action('load_countries')
+    restore()
+    check_output(
+        './trytond/trytond/modules/country/scripts/import_countries.py',
+        '-d', 'gal')
+    gal_commit()
+
+@task()
+def load_zips(ctx, country):
+    gal_action('load_zips')
+    restore()
+    check_output(
+        './trytond/trytond/modules/country/scripts/import_zip.py',
+        '-d', 'gal', country)
+    gal_commit()
+
+@task()
+def load_currencies(ctx):
+    gal_action('load_currencies')
+    restore()
+    check_output(
+        './trytond/trytond/modules/currency/scripts/trytond_import_currencies',
+        '-d', 'gal')
+    gal_commit()
 
 @task()
 def load_spanish_banks(ctx):
@@ -515,18 +534,6 @@ def load_spanish_banks(ctx):
     restore()
     connect_database()
     Wizard('load.banks').execute('accept')
-    gal_commit()
-
-
-@task()
-def load_spanish_zips(ctx):
-    '''
-    Execute Load Spanish Zips wizard. Requires country_zip_es module
-    '''
-    gal_action('load_spanish_zips')
-    restore()
-    connect_database()
-    Wizard('load.country.zips').execute('accept')
     gal_commit()
 
 @lru_cache()
@@ -2076,8 +2083,9 @@ GalCollection.add_task(execute_script)
 GalCollection.add_task(update_all)
 GalCollection.add_task(set_active_languages)
 GalCollection.add_task(activate_modules)
+GalCollection.add_task(load_countries)
+GalCollection.add_task(load_zips)
 GalCollection.add_task(load_spanish_banks)
-GalCollection.add_task(load_spanish_zips)
 GalCollection.add_task(create_parties)
 GalCollection.add_task(create_bank_accounts)
 GalCollection.add_task(create_product_categories)
