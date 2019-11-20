@@ -10,7 +10,8 @@ series_file = 'series'
 
 
 def read_series():
-    return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+    return yaml.load(open(os.path.join(patches_dir, series_file)).read(),
+        Loader=yaml.FullLoader)
 
 
 def write_series(data):
