@@ -7,7 +7,7 @@ from invoke import Collection, task, run
 from path import Path
 
 from .utils import _ask_ok, _check_required_file, _exit
-from .scm import hg_clone, hg_pull, clone, fetch
+from .scm import git_clone, git_pull, clone, fetch
 
 
 t = Terminal()
@@ -25,7 +25,7 @@ def get_tasks(taskpath='tasks'):
     Config.tasks_path = taskpath
     if Path(taskpath).exists():
         print 'Updating tasks repo'
-        hg_pull(taskpath, '.', True)
+        git_pull(taskpath, '.', True)
         return
 
     if not getattr(Config, 'get_tasks', False):
@@ -34,9 +34,9 @@ def get_tasks(taskpath='tasks'):
                 'in "%s" directory. [Y/n] ' % taskpath, 'y'):
             return
 
-    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-tasks '
+    print ('Cloning  git@github.com:NaN-tic/tryton-tasks '
         'repository in "tasks" directory.')
-    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-tasks', taskpath)
+    git_clone('git@github.com:NaN-tic/tryton-tasks', taskpath)
     print ""
 
 
@@ -46,7 +46,7 @@ def get_config(configpath='config', branch='default'):
     Config.config_path = Path(configpath).abspath()
     if Path(configpath).exists():
         print ('Updating config repo')
-        hg_pull(configpath, '.', True, branch=branch)
+        git_pull(configpath, '.', True, branch=branch)
         return
 
     if not getattr(Config, 'get_config', False):
@@ -55,9 +55,9 @@ def get_config(configpath='config', branch='default'):
                 'in "%s" directory. [Y/n] ' % configpath, 'y'):
             return
 
-    print ('Cloning ssh://hg@bitbucket.org/nantic/tryton-config '
+    print ('Cloning  git@github.com:NaN-tic/tryton-config '
         'repository in "config" directory.')
-    hg_clone('ssh://hg@bitbucket.org/nantic/tryton-config', configpath, branch)
+    git_clone('git@github.com:NaN-tic/tryton-config', configpath, branch)
     print ""
 
 
@@ -67,7 +67,7 @@ def get_utils(utilspath='utils'):
     Config.utils_path = utilspath
     if Path(utilspath).exists():
         print 'Updating utils repo'
-        hg_pull(utilspath, '.', True)
+        git_pull(utilspath, '.', True)
         return
 
     if not getattr(Config, 'get_utils'):
@@ -76,9 +76,9 @@ def get_utils(utilspath='utils'):
                 'in "%s" directory. [Y/n] ' % utilspath, 'y'):
             return
 
-    print ('Cloning ssh://hg@bitbucket.org/nantic/nan_tryton_utils '
+    print ('Cloning git@github.com:NaN-tic/nan_tryton_utils '
         'repository in "utils" directory.')
-    hg_clone('ssh://hg@bitbucket.org/nantic/nan_tryton_utils', utilspath)
+    git_clone('git@github.com:NaN-tic/nan_tryton_utils', utilspath)
     print ""
 
 

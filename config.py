@@ -69,15 +69,15 @@ def add_module(config, path, url=None):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
     module = os.path.basename(path)
-    url = run('cd %s; hg paths default' % (path)).stdout.split('\n')[0]
+    url = run('cd %s; git paths default' % (path)).stdout.split('\n')[0]
     if 'http' in url:
-        url = 'ssh://hg@bitbucket.org/nantic/trytond-%s' % module
-    branch = run('cd %s;hg branch' % (path)).stdout.split('\n')[0]
+        url = 'git@github.com:NaN-tic/trytond-%s' % module
+    branch = run('cd %s;git branch' % (path)).stdout.split('\n')[0]
     cfile = open(config, 'w+')
     if not Config.has_section(module):
         Config.add_section(module)
         Config.set(module, 'branch', branch)
-        Config.set(module, 'repo', 'hg')
+        Config.set(module, 'repo', 'git')
         Config.set(module, 'url', url)
         Config.set(module, 'path', './trytond/trytond/modules')
 
