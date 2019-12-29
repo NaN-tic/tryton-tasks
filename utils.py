@@ -74,7 +74,7 @@ def read_config_file(config_file=None, type='repos', unstable=True,
     if config_file is not None:
         Config.readfp(open(config_file))
     else:
-        for r, d, f in os.walk("./config"):
+        for r, d, f in os.walk("./config", followlinks=True):
             for files in f:
                 if avoid_core and files in CORE_FILES:
                     continue
