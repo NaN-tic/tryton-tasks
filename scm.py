@@ -120,7 +120,7 @@ def hg_clone(url, path, branch="default", revision=None):
             client = hgapi.hg_clone(url, path, *extended_args)
             res = check_revision(client, path, revision, branch)
             print("Repo " + t.bold(path) + t.green(" Updated") + \
-                " to Revision:" + revision)
+                " to Revision: " + revision)
             return res
         except hgapi.HgException as e:
             if retries:
@@ -317,7 +317,7 @@ def hg_diff(module, path, rev1=None, rev2=None):
         msg = []
         path_repo = path
         if not os.path.exists(path_repo):
-            print((t.red("Missing repositori:")
+            print((t.red("Missing repositori: ")
                 + t.bold(path_repo)), file=sys.stderr)
             return
         repo = hgapi.Repo(path_repo)
@@ -370,7 +370,8 @@ def diff(ctx, config=None):
 def hg_outgoing(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
     repo = hgapi.Repo(path_repo)
     cmd = ['outgoing']
@@ -392,7 +393,8 @@ def hg_outgoing(module, path, verbose):
 def git_outgoing(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
     repo = git.Repo(path)
     cmd = ['--pretty=oneline','--abbrev-commit','--graph','@{u}..']
@@ -620,7 +622,8 @@ def branch(ctx, branch, clean=False, config=None, unstable=True):
 def hg_missing_branch(module, path, branch_name, closed=True):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
 
     cwd = os.getcwd()
@@ -664,7 +667,8 @@ def missing_branch(ctx, branch_name, config=None, unstable=True):
 def hg_create_branch(module, path, branch_name):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
 
     cwd = os.getcwd()
@@ -723,7 +727,7 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
     if not os.path.exists(path):
         if ignore_missing:
             return 0
-        print(t.red("Missing repositori:") + t.bold(path), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path), file=sys.stderr)
         return -1
 
     repo = hgapi.Repo(path)
@@ -781,7 +785,8 @@ def pull(ctx, config=None, unstable=True, update=True, development=False,
 def hg_commit(module, path, msg):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
 
     cwd = os.getcwd()
@@ -828,7 +833,8 @@ def commit(ctx, msg, config=None, unstable=True):
 def hg_push(module, path, url, new_branches=False):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return
 
     cwd = os.getcwd()
@@ -880,7 +886,7 @@ def hg_update_ng(module, path, clean, branch=None, revision=None,
     if not os.path.exists(path):
         if ignore_missing:
             return 0
-        print(t.red("Missing repositori:") + t.bold(path), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path), file=sys.stderr)
         return
 
     repo = hgapi.Repo(path)
@@ -911,7 +917,7 @@ def hg_update(module, path, clean, branch=None, revision=None,
     if not os.path.exists(path):
         if ignore_missing:
             return 0
-        print(t.red("Missing repositori:") + t.bold(path), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path), file=sys.stderr)
         return
 
     cwd = os.getcwd()
@@ -987,7 +993,7 @@ def hg_revision(module, path, verbose=False):
     t = Terminal()
     path_repo = path
     if not os.path.exists(path_repo):
-        print((t.red("Missing repositori:")
+        print((t.red("Missing repositori: ")
             + t.bold(path_repo)), file=sys.stderr)
         return False
 
@@ -1079,7 +1085,7 @@ def _module_version(modules):
         path = config.get(section, 'path')
         cfg_file = os.path.join(path, section,  'tryton.cfg')
         if not os.path.exists(cfg_file):
-            print(t.red("Missing tryton.cfg file:") + t.bold(
+            print(t.red("Missing tryton.cfg file: ") + t.bold(
                 cfg_file), file=sys.stderr)
             continue
         Config = configparser.ConfigParser()
@@ -1097,7 +1103,7 @@ def module_version(ctx, config=None):
         path = config.get(section, 'path')
         cfg_file = os.path.join(path, section,  'tryton.cfg')
         if not os.path.exists(cfg_file):
-            print(t.red("Missing tryton.cfg file:") + t.bold(
+            print(t.red("Missing tryton.cfg file: ") + t.bold(
                 cfg_file), file=sys.stderr)
             continue
         Config = configparser.ConfigParser()
@@ -1113,12 +1119,12 @@ def increase_module_version(module, path, version):
     '''
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo), file=sys.stderr)
         return
 
     cfg_file = os.path.join(path_repo, 'tryton.cfg')
     if not os.path.exists(path_repo):
-        print(t.red("Missing tryton.cfg file:") + t.bold(
+        print(t.red("Missing tryton.cfg file: ") + t.bold(
             cfg_file), file=sys.stderr)
         return
 
