@@ -5,7 +5,6 @@ import os
 
 from quilt.push import Push
 from quilt.pop import Pop
-from quilt.db import PatchSeries
 from quilt.error import AllPatchesApplied, QuiltError, UnknownPatch
 
 patches_dir = "patches"

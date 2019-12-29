@@ -15,8 +15,7 @@ from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
 try:
     from trytond.pool import Pool
     from trytond.transaction import Transaction
-    from trytond.modules import *
-    #from trytond.modules import Graph, Node, get_module_info
+    from trytond.modules import Graph, Node, get_module_info
 except ImportError, e:
     print >> sys.stderr, "trytond importation error: ", e
 
@@ -47,7 +46,7 @@ except ImportError:
 try:
     # TODO: Remove compatibility with versions < 3.4
     from trytond.config import CONFIG
-except ImportError, e:
+except ImportError:
     try:
         from trytond.config import config as CONFIG
     except ImportError, e:
@@ -395,7 +394,7 @@ def convert_bank_accounts_to_iban(database,
     if not check_database(database, {}):
         return
 
-    config = pconfig.set_trytond(database=database, config_file=config_file)
+    pconfig.set_trytond(database=database, config_file=config_file)
 
     BankAccount = Model.get('bank.account')
     bank_accounts = BankAccount.find([

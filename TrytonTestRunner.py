@@ -460,11 +460,9 @@ class TrytonTestRunner(object):
         ]
 
     def generateReport(self, test, result):
-        report = self._generate_report(result)
-
+        return self._generate_report(result)
 
     def _generate_report(self, result):
-
         report = {}
         sortedResult = self.sortResult(result.result)
         for cid, (cls, cls_results) in enumerate(sortedResult):
@@ -522,11 +520,11 @@ class TrytonTestRunner(object):
 
     def _generate_report_test(self, rows, cid, tid, n, t, o, e):
         # e.g. 'pt1.1', 'ft1.1', etc
-        has_output = bool(o or e)
         tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
         name = t.id().split('.')[-1]
         doc = t.shortDescription() or ""
         desc = doc and ('%s: %s' % (name, doc)) or name
+        # has_output = bool(o or e)
         # tmpl = has_output and self.REPORT_TEST_WITH_OUTPUT_TMPL or self.REPORT_TEST_NO_OUTPUT_TMPL
 
         # o and e should be byte string because they are collected from stdout and stderr?

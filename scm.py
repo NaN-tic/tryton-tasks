@@ -148,18 +148,8 @@ def check_revision(client, module, revision, branch):
 
 
 def git_clone(url, path, branch="master", revision="master"):
-    command = 'git clone -b %s -q %s %s' % (branch, url, path)
-    if not path.endswith(os.path.sep):
-        path += os.path.sep
-    try:
-        run(command)
-        # Create .hg directory so hg diff on trytond does not
-        # show git repositories.
-        run('mkdir %s.hg' % path)
-    except:
-        print >> sys.stderr, "Error running " + t.bold(command)
-        return -1
-    print "Repo " + t.bold(path) + t.green(" Cloned")
+    git.Repo.clone_from(url, path, branch=branch)
+    print("Repo " + t.bold(path) + t.green(" Cloned"))
     return 0
 
 

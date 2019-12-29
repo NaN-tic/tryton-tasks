@@ -1,14 +1,13 @@
 import os
 import ConfigParser
 from invoke import Collection, task, run
-from .utils import read_config_file, get_config_files
-from .scm import get_repo
+from .scm import get_repo, hg_status, git_status
 from collections import OrderedDict
 import hgapi
 from pick import pick
 from path import Path
-from .utils import t, _ask_ok, get_config_files, read_config_file, \
-    execBashCommand, remove_dir, NO_MODULE_REPOS
+from .utils import (t, get_config_files, read_config_file, remove_dir,
+    NO_MODULE_REPOS)
 
 
 def get_config():
