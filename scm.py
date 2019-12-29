@@ -143,7 +143,7 @@ def _clone(repo):
 @task()
 def clone(ctx, config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
-    hg_pull('config', 'config', True)
+    git_pull('config', 'config', True)
 
     Config = read_config_file(config, unstable=unstable)
     p = Pool(MAX_PROCESSES)
@@ -257,7 +257,7 @@ def get_branch(path):
 
 
 def hg_base_diff(path):
-    files = " ".join(hg_stat(path))
+    files = " ".join(hg_status(path))
     branch = get_branch(path)
     diff = run('cd %s; hg diff --git %s ' % (path, files), hide=True,
         encoding='utf-8')
@@ -422,11 +422,12 @@ def git_pull(module, path, update=False, clean=False, branch=None,
     """
     Params update, clean, branch and revision are not used.
     """
-    path_repo = os.path.join(path, module)
+    path_repo = os.path.join(path)
     if not os.path.exists(path_repo):
         if ignore_missing:
             return 0
-        print(t.red("Missing repositori:") + t.bold(path_repo), file=sys.stderr)
+        print(t.red("Missing repositori: ") + t.bold(path_repo),
+            file=sys.stderr)
         return -1
 
     cwd = os.getcwd()
@@ -442,7 +443,7 @@ def git_pull(module, path, update=False, clean=False, branch=None,
         return -1
 
     # If git outputs 'Already up-to-date' do not print anything.
-    if 'Already up-to-date' in result.stdout:
+    if 'Already up to date' in result.stdout:
         os.chdir(cwd)
         return 0
 
