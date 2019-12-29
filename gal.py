@@ -521,7 +521,7 @@ def load_currencies(ctx):
     gal_action('load_currencies')
     restore()
     check_output(
-        './trytond/trytond/modules/currency/scripts/trytond_import_currencies',
+        './trytond/trytond/modules/currency/scripts/import_currencies.py',
         '-d', 'gal')
     gal_commit()
 
