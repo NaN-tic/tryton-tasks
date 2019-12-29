@@ -13,10 +13,7 @@ import hgapi
 from .tryton_component import get_tryton_connection
 
 MAX_PROCESSES = 4
-
-
 TEST_FILE = 'tests.log'
-open(TEST_FILE, 'w').close()
 
 logging.basicConfig(filename=TEST_FILE, level=logging.INFO,
     format='[%(asctime)s] %(name)s: %(message)s',
@@ -120,6 +117,7 @@ def test(dbtype, name, modules, failfast, upload=True):
 @task()
 def module(ctx, module, work=None,  dbtype='sqlite', fail_fast=False, upload=True,
         force=False):
+    open(TEST_FILE, 'w').close()
     _module(module, dbtype, fail_fast, upload, force)
 
 
@@ -155,6 +153,8 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
 
 @task()
 def modules(ctx, dbtype='sqlite', force=False, processes=MAX_PROCESSES):
+    open(TEST_FILE, 'w').close()
+
     Config = read_config_file()
     p = Pool(processes)
     repos = [x for x in Config.sections() if x not in NO_MODULE_REPOS]
