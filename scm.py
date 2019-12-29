@@ -59,51 +59,6 @@ def get_repo(section, config, function=None, development=False):
     return repository
 
 
-def get_virtualenv():
-    if os.environ.get('VIRTUAL_ENV'):
-        return ''
-    return os.path.join(os.path.dirname(__file__), 'virtual-env.sh')
-
-
-@task()
-def add2virtualenv():
-    virtualenv = get_virtualenv()
-    aux = run(virtualenv + ' lssitepackages')
-    Config = read_config_file()
-    for section in Config.sections():
-        if not Config.has_option(section, 'add2virtualenv'):
-            continue
-        repo_path = Config.get(section, 'path')
-        project_path = os.path.dirname(__file__).split('tasks')[-1]
-        abspath = os.path.join(project_path, repo_path, section)
-        if not abspath in str(aux):
-            run(virtualenv + ' add2virtualenv ' + abspath, warn=True)
-
-
-@task()
-def repo_list(config=None, gitOnly=False, unstable=True, verbose=False):
-    Config = read_config_file(config, unstable=unstable)
-
-    repos = {
-        'git': [],
-        'hg': []
-    }
-    for section in Config.sections():
-        repo = get_repo(section, Config, 'revision')
-        repos[repo] += [(section, repo['url'], repo['path'])]
-
-    if gitOnly:
-        del repos['hg']
-
-    for key, values in repos.iteritems():
-        print >> sys.stderr, "Repositories in  " + t.bold(key)
-        for val in values:
-            name, url, repo_path = val
-            if not verbose:
-                print >> sys.stderr, name
-            else:
-                print >> sys.stderr, name, repo_path, url
-
 @task()
 def close_branch(directory, branch):
     """ Close branch for all modules """
@@ -186,26 +141,22 @@ def _clone(repo):
     return repo['function'](repo['url'], repo['path'],
         branch=repo['branch'], revision=repo['revision'])
 
-
 @task()
 def clone(config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     git_pull('config', 'config', True)
 
     Config = read_config_file(config, unstable=unstable)
-    p = Pool(MAX_PROCESSES)
-    repos = []
+    processes = []
     for section in Config.sections():
-        repo = get_repo(section, Config, 'clone', development)
+        repo = get_repo(section, Config, 'clone')
         if not os.path.exists(repo['path']):
-            repo = get_repo(section, Config, 'clone', development)
-            repos.append(repo)
-    exit_codes = p.map(_clone, repos)
-    exit_code = sum(exit_codes, 0)
-    if exit_code < 0:
-        print t.bold_red('Clone Task finished with errors!')
-    return exit_code
-
+            p = Process(target=repo['function'], args=(repo['url'],
+                repo['path'], repo['branch'], repo['revision']))
+            p.start()
+            processes.append(p)
+        wait_processes(processes)
+    wait_processes(processes, 0)
 
 def print_status(module, files):
     status_key_map = {
@@ -293,75 +244,6 @@ def status(config=None, unstable=True, no_quilt=False, verbose=False):
         patches._push()
 
 
-def hg_resolve(module, path, verbose, action, tool, nostatus, include,
-        exclude):
-    repo_path = os.path.join(path, module)
-    if not os.path.exists(repo_path):
-        print >> sys.stderr, t.red("Missing repositori: ") + t.bold(repo_path)
-        return
-
-    assert action and action in ('merge', 'mark', 'unmark', 'list'), (
-        "Invalid 'action' parameter for 'resolve': %s\nIt must to be 'merge', "
-        "'list', 'mark', or 'unmark'." % action)
-
-    repo = hgapi.Repo(repo_path)
-
-    cmd = ['resolve']
-    if action != 'merge':
-        cmd.append('--%s' % action)
-        if action == 'list':
-            if nostatus:
-                cmd.append('--no-status')
-    else:
-        if tool:
-            assert tool in ('internal:dump', 'internal:fail', 'internal:local',
-                'internal:merge', 'internal:other', 'internal:prompt'), (
-                    "Invalid 'tool' parameter for 'resolve'. Look at "
-                    "'hg help merge-tools' to know which tools are available.")
-            cmd += ['-t', tool]
-    if not include and not exclude:
-        cmd.append('--all')
-    else:
-        if include:
-            for pattern in include.split(','):
-                cmd += ['-I', pattern]
-        if exclude:
-            for pattern in exclude.split(','):
-                cmd += ['-X', pattern]
-
-    try:
-        out = repo.hg_command(*cmd)
-    except hgapi.HgException, e:
-        print t.bold_red('[' + module + ']')
-        print "Error running %s (%s): %s" % (t.bold(*cmd), e.exit_code, str(e))
-        return
-    if out:
-        print t.bold("= " + module + " =")
-        print out
-
-
-@task()
-def resolve(config=None, unstable=True, verbose=False, action='merge',
-        tool=None, nostatus=False, include=None, exclude=None):
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'hg':
-            func = hg_resolve
-        else:
-            print >> sys.stderr, "Not developed yet"
-            continue
-        p = Process(target=func, args=(section, path, verbose, action, tool,
-                nostatus, include, exclude))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
-
-
 def hg_stat(path):
     result = run('cd %s; hg diff --stat' % path, hide=True)
     lines = result.stdout.split('\n')[:-2]
@@ -426,11 +308,31 @@ def module_diff(path, base=True, show=True, fun=hg_base_diff,
     return diff, base_diff
 
 
-def git_diff(module, path, verbose, rev1, rev2):
-    print "Git diff not implented"
+def git_diff(module, path, rev1=None, rev2=None):
+    repo = git.Repo(path)
+    diff = repo.git.diff(None)
+    msg = []
+    if diff:
+        d = diff.split('\n')
+        for line in d:
+            if line and line[0] == '-':
+                if module not in ['patches', 'features']:
+                    line = line.replace('--- a','--- a/'+path[2:] )
+                line = t.red + line + t.normal
+            elif line and line[0] == '+':
+                if module not in ['patches', 'features']:
+                    line = line.replace('+++ b','+++ b/'+path[2:] )
+                line = t.green + line + t.normal
+
+            if line:
+                msg.append(line)
+    if msg == []:
+        return
+    msg.insert(0, t.bold('\n[' + module + "]\n"))
+    print("\n".join(msg))
 
 
-def hg_diff(module, path, verbose, rev1, rev2):
+def hg_diff(module, path, rev1=None, rev2=None):
     t = Terminal()
     try:
         msg = []
@@ -440,13 +342,6 @@ def hg_diff(module, path, verbose, rev1, rev2):
                 + t.bold(path_repo))
             return
 
-        if not verbose:
-            result = run('cd %s;hg diff --stat' % path_repo, hide='stdout')
-            if result.stdout:
-                msg.append(t.bold(module + "\n"))
-                msg.append(result.stdout)
-                print "\n".join(msg)
-            return
         repo = hgapi.Repo(path_repo)
         if rev2 is None:
             rev2 = get_branch(path_repo)
@@ -476,7 +371,6 @@ def hg_diff(module, path, verbose, rev1, rev2):
         msg.append(str(sys.exc_info()[1]))
         print >> sys.stderr, "\n".join(msg)
 
-
 @task()
 def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
@@ -485,173 +379,12 @@ def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     for section in Config.sections():
         repo = get_repo(section, Config, 'diff')
         p = Process(target=repo['function'], args=(section, repo['path'],
-                verbose, rev1, rev2))
+            rev1, rev2))
         p.start()
         processes.append(p)
         wait_processes(processes)
     wait_processes(processes, 0)
     patches._push()
-
-def hg_compare_branches(module, path, first_branch, second_branch='default'):
-
-    revisions = {}
-
-    config = yaml.load(open('upgrades/commits.yml', 'r').read())
-    skip = config.get(module, [])
-
-    def changesets(revs):
-        revs = revs.split('***')
-        change = OrderedDict()
-
-        revs.reverse()
-        for rev in revs:
-
-            if not rev:
-                continue
-
-            r = rev.split('##')
-            rid = r[0]
-            if not rid:
-                continue
-            rid = rid.zfill(5)
-            node = r[1]
-            description = r[2]
-            tags = r[3] if len(r) >= 4 else ''
-            date = r[4] if len(r) >= 5 else None
-            files = r[5] if len(r) >=6 else None
-            extras = r[6] if len(r) >= 7 else ''
-            data = {}
-            for extra in extras.split(';'):
-                key, _, value = extra.partition('=')
-                data[key] = value
-
-            key = data.get('source') or node
-
-            if not change.get(key):
-                branches = []
-                if 'branch' in data:
-                    branches.append(data['branch'])
-                change[key] = {
-                    'rev': [rid],
-                    'nodes': [node],
-                    'desc': description,
-                    'tags': tags,
-                    'date': date,
-                    'extras': extras,
-                    'branch': branches,
-                    'files': files,
-                    }
-            else:
-                change[key]['branch'].append(data['branch'])
-                change[key]['nodes'].append(node)
-                change[key]['rev'].append(rid)
-
-            revisions[r[1]] = rid
-
-        return change
-
-    def print_changeset(key, rev):
-        res = ''
-        res += ('\n- ' + bcolors.HEADER + rev['rev'][0] +":"+key + ' (Branch:' +
-            ','.join(rev['branch']) + ')\t[' + rev['date'] + ']' + bcolors.ENDC
-            + '\n')
-        for line in rev['desc'].encode('ascii', 'ignore').splitlines():
-            res += '  %s\n' % line
-        res += '\n'
-        for id, branch in zip(rev.get('nodes', []), rev.get('branch', [])):
-            res += '  %s:%s\n' % (branch, id)
-        return res
-
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
-        return
-
-    template = ('{rev}##{node}##{desc}##{tags}##{date|isodate}##{files}##'
-        '{join(extras,";")}***')
-    repo = hgapi.Repo(path_repo)
-
-    revs = repo.hg_log(template=template)
-    changes= changesets(revs)
-
-    res = ''
-    existing_branches = set()
-    start = None
-    for r, val in changes.iteritems():
-        existing_branches |= set(val['branch'])
-        if not val['files']:
-            continue
-
-        if first_branch not in val['branch'] and start is None:
-            continue
-
-        if first_branch not in val['branch']:
-            start = val['rid']
-            continue
-
-        if 'Create branch' in val['desc']:
-            continue
-
-        command = ['contains', '-t', '--revno', str(int(val['rev'][0]))]
-        contained = False
-        try:
-            contained = repo.hg_command(*command)
-        except:
-            pass
-
-        if contained:
-            continue
-
-        if val['nodes'] and str(val['nodes'][0]) in skip:
-            continue
-
-        if second_branch not in val['branch']:
-            res += print_changeset(r, val)
-
-    if second_branch not in existing_branches:
-        res += ('Branch %s does not exist. Available branches: %s' %
-            (second_branch, ', '.join(existing_branches)))
-    return res
-
-
-@task()
-def compare_branches(first_branch, second_branch, module=None,
-        config=None, unstable=True, module_file_list=None):
-    '''
-    Finds commits that exist on first branch but doesn't exist on
-    second_branch. In order to identify a commit, its description is used as
-    the revision_id may change when grafting commits from branches
-    '''
-
-    module_list = []
-    if module_file_list:
-        file_ = open(module_file_list)
-        module_list = [x.replace(' ','').replace('\n','') for x in file_.readlines()]
-
-    Config = read_config_file(config, type='repos', unstable=unstable,
-        avoid_core=True)
-    for section in Config.sections():
-        if module and section != module:
-            continue
-
-        if module_file_list and section not in module_list:
-            continue
-
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'git':
-            continue
-        if repo != 'hg':
-            print >> sys.stderr, "Not developed yet"
-            continue
-
-        output = hg_compare_branches(section, path, first_branch, second_branch)
-        if output:
-            print
-            print "Module:" , section
-            print '-' * (len(section) + 8)
-            print output
-
 
 def hg_summary(module, path, verbose):
     path_repo = os.path.join(path, module)
@@ -708,7 +441,7 @@ def hg_outgoing(module, path, verbose):
 def git_outgoing(module, path, verbose):
     path_repo = os.path.join(path, module)
     if not os.path.exists(path_repo):
-        print >>sys.stderr, t.red("Missing repositori: ") + t.bold(path_repo)
+        print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
     repo = git.Repo(path)
     cmd = ['--pretty=oneline','--abbrev-commit','--graph','@{u}..']
@@ -730,9 +463,6 @@ def outgoing(config=None, unstable=True, verbose=False):
         repo = Config.get(section, 'repo')
         path = Config.get(section, 'path')
         func = hg_outgoing
-        if repo != 'hg':
-            print >> sys.stderr, "Not developed yet"
-            continue
         p = Process(target=func, args=(section, path, verbose))
         p.start()
         processes.append(p)
@@ -831,7 +561,7 @@ def clean(force=False, config=None, unstable=True):
     p.map(_clean, repos)
 
 
-def _hg_branches(module, path, config_branch=None):
+def hg_branches(module, path, config_branch=None):
     client = hgapi.Repo(path)
     branches = client.get_branch_names()
     active = client.hg_branch()
@@ -860,6 +590,35 @@ def _hg_branches(module, path, config_branch=None):
 
     print msg
 
+def git_branches(module, path, config_branch=None):
+    repo = git.Repo(path)
+    branches = repo.git.branch('-a')
+    branches = [x.replace('remotes/origin/','').replace('*','').strip()
+        for x in branches.split('\n') if 'HEAD' not in x]
+    active = branches[0]
+    b = []
+    branches = list(set(branches))
+    branches.sort()
+    branches.reverse()
+    for branch in branches:
+        br = branch
+        if branch == active:
+            br = "*" + br
+        if branch == config_branch:
+            br = "[" + br + "]"
+        b.append(br)
+
+    msg = str.ljust(module, 40, ' ') + "\t".join(b)
+
+    if "[*" in msg:
+        msg = bcolors.OKGREEN + msg + bcolors.ENDC
+    elif "\t[" in msg or '\t*' in msg:
+        msg = bcolors.FAIL + msg + bcolors.ENDC
+    else:
+        msg = bcolors.WARN + msg + bcolors.ENDC
+
+    print(msg)
+
 
 
 
@@ -868,13 +627,16 @@ def branches(config=None, modules=None):
 
     patches._pop()
     Config = read_config_file(config, unstable=True)
+    p = Pool(MAX_PROCESSES)
+    repos = []
 
     for section in Config.sections():
         if modules and section not in modules:
             continue
-        repo = get_repo(section, Config)
-        _hg_branches(section, repo['path'], repo['branch'])
+        repo = get_repo(section, Config, 'branches')
+        repos.append(repo)
 
+    p.map(_branches, repos)
     patches._push()
 
 @task()
@@ -1351,7 +1113,7 @@ def prefetch(force=False):
 def fetch():
     print t.bold('Pulling and updating local repository...')
     # Replace by a "hg_pull" call
-    bashCommand = ['hg', 'pull', '-u']
+    bashCommand = ['git', 'pull']
     execBashCommand(bashCommand, '',
         "It's not possible to pull the local repostory. Err:")
 
@@ -1497,22 +1259,17 @@ def increase_version(version, config=None, unstable=True, clean=False):
 ScmCollection = Collection()
 ScmCollection.add_task(clone)
 ScmCollection.add_task(status)
-ScmCollection.add_task(resolve)
 ScmCollection.add_task(diff)
-ScmCollection.add_task(summary)
 ScmCollection.add_task(outgoing)
 ScmCollection.add_task(push)
 ScmCollection.add_task(pull)
 ScmCollection.add_task(update)
-ScmCollection.add_task(repo_list)
 ScmCollection.add_task(fetch)
 ScmCollection.add_task(stat)
 ScmCollection.add_task(branch)
 ScmCollection.add_task(missing_branch)
 ScmCollection.add_task(create_branch)
-ScmCollection.add_task(compare_branches)
 ScmCollection.add_task(module_diff)
-ScmCollection.add_task(add2virtualenv)
 ScmCollection.add_task(increase_version)
 ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
