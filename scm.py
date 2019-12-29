@@ -10,11 +10,9 @@ from multiprocessing import Process
 from multiprocessing import Pool
 from path import Path
 import shutil
-from collections import OrderedDict
-import yaml
 import configparser
 from . import patches
-from .utils import t, _ask_ok, read_config_file, execBashCommand
+from .utils import t, read_config_file, execBashCommand
 
 MAX_PROCESSES = 25
 
@@ -103,8 +101,7 @@ def check_revision(client, module, revision, branch):
 
 
 def git_clone(url, path, branch="master", revision="master"):
-    command = 'git clone -b %s -q %s %s' % (branch, url, path)
-    repo = git.Repo.clone_from(url, path, branch=branch)
+    git.Repo.clone_from(url, path, branch=branch)
     print("Repo " + t.bold(path) + t.green(" Cloned"))
     return 0
 

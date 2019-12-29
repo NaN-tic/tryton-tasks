@@ -16,7 +16,6 @@ def _load(database, scenario, lang_codes=None, config_file=None):
     _create_db(database, lang_codes=lang_codes, config_file=config_file)
 
     import trytond.tests.test_tryton
-    from trytond.tests.test_tryton import doctest_setup
     suite = trytond.tests.test_tryton.suite()
     suite.addTests(doctest.DocFileSuite(scenario, module_relative=False,
             encoding='utf-8'))
@@ -86,7 +85,7 @@ def _update_all(database):
     from trytond.transaction import Transaction
 
     pool = Pool(database)
-    with Transaction().start(database, 0) as transaction:
+    with Transaction().start(database, 0):
         Lang = pool.get('ir.lang')
 
         langs = Lang.search([
