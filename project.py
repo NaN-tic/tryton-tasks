@@ -224,7 +224,7 @@ def upload_review(work, path, branch='default'):
     else:
         component = components[0]
 
-    repo = hgapi.Repo(path)
+    repo = gitapi.Repo(path)
     url = repo.config('paths', 'default')
     url_list = url.split('/')
     owner, repo_name = (url_list[-2], url_list[-1])

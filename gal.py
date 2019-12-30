@@ -148,7 +148,7 @@ def gal_repo():
     if os.path.isdir(path) and not os.path.isdir(os.path.join(path, '.hg')):
         print >>sys.stderr, t.red('Invalid gal repository')
         sys.exit(1)
-    repo = hgapi.Repo(path)
+    repo = gitapi.Repo(path)
     if not os.path.exists(path):
         os.mkdir(path)
         repo.hg_init()

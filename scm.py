@@ -63,7 +63,7 @@ def close_branch(directory, branch):
     """ Close branch for all modules """
 
     for module_path in Path(directory).dirs():
-        repo = hgapi.Repo(module_path)
+        repo = git.Repo(module_path)
 
         branches = []
         try:
@@ -196,20 +196,6 @@ def clone(config=None, unstable=True, development=False):
         wait_processes(processes)
     wait_processes(processes, 0)
 
-
-
-    # Config = read_config_file(config, unstable=unstable)
-    # p = Pool(MAX_PROCESSES)
-    # repos = []
-    # for section in Config.sections():
-    #     repo = get_repo(section, Config, 'clone', development)
-    #     if not os.path.exists(repo['path']):
-    #         repo = get_repo(section, Config, 'clone', development)
-    #         repos.append(repo)
-    # exit_codes = p.map(_clone, repos)
-    # return
-
-
 def print_status(module, files):
     status_key_map = {
         'A': 'Added',
@@ -265,7 +251,7 @@ def git_status(module, path, url, verbose):
 
 
 def hg_status(module, path,  url, verbose):
-    repo = hgapi.Repo(path)
+    repo = git.Repo(path)
     hg_check_url(module, path, url)
     st = repo.hg_status(empty=True)
     print_status(module, st)
@@ -345,7 +331,7 @@ def module_diff(path, base=True, show=True, fun=hg_base_diff,
         addremove=False):
     if addremove:
         try:
-            repo = hgapi.Repo(path)
+            repo = git.Repo(path)
             repo.hg_addremove()
         except:
             pass
@@ -395,7 +381,7 @@ def hg_diff(module, path, rev1=None, rev2=None):
                 + t.bold(path_repo))
             return
 
-        repo = hgapi.Repo(path_repo)
+        repo = git.Repo(path_repo)
         if rev2 is None:
             rev2 = get_branch(path_repo)
         msg = []
@@ -444,7 +430,7 @@ def hg_summary(module, path, verbose):
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
-    repo = hgapi.Repo(path_repo)
+    repo = git.Repo(path_repo)
     cmd = ['summary', '--remote']
     summary = repo.hg_command(*cmd)
     print t.bold("= " + module + " =")
@@ -474,7 +460,7 @@ def hg_outgoing(module, path, verbose):
     if not os.path.exists(path_repo):
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path_repo)
         return
-    repo = hgapi.Repo(path_repo)
+    repo = git.Repo(path_repo)
     cmd = ['outgoing']
     if verbose:
         cmd.append('-v')
@@ -560,7 +546,7 @@ def git_pull(module, path, update=False, clean=False, branch=None,
 
 def hg_check_url(module, path, url, clean=False):
 
-    repo = hgapi.Repo(path)
+    repo = git.Repo(path)
     actual_url = str(repo.config('paths', 'default')).rstrip('/')
     url = str(url).rstrip('/')
     if actual_url != url:
@@ -828,7 +814,7 @@ def hg_pull(module, path, update=False, clean=False, branch=None,
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return -1
 
-    repo = hgapi.Repo(path)
+    repo = git.Repo(path)
     try:
         repo.hg_pull()
         if update:
@@ -929,7 +915,7 @@ def hg_update_ng(module, path, clean, branch=None, revision=None,
         print >> sys.stderr, t.red("Missing repositori:") + t.bold(path)
         return
 
-    repo = hgapi.Repo(path)
+    repo = git.Repo(path)
     if revision and branch:
         if repo.revision(revision).branch != branch:
             print t.bold_red('[' + module + ']')
@@ -1037,7 +1023,7 @@ def hg_revision(module, path, verbose=False):
             + t.bold(path_repo))
         return False
 
-    repo = hgapi.Repo(path_repo)
+    repo = git.Repo(path_repo)
     branches = repo.get_branches()
     revision = False
     for branch in branches:
@@ -1051,7 +1037,7 @@ def hg_is_last_revision(path, revision):
     if not revision:
         return False
     try:
-        repo = hgapi.Repo(path)
+        repo = git.Repo(path)
         rev = repo.revision(revision)
         rev2 = repo.revision(repo.hg_id())
         if rev.date == rev2.date:

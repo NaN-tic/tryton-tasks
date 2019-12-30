@@ -133,7 +133,7 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
         Config = read_config_file()
 
         repo = scm.get_repo(module, Config, 'revision')
-        repo = hgapi.Repo(repo['path'])
+        repo = gitapi.Repo(repo['path'])
         build = None
         try:
             rev = repo.hg_rev()

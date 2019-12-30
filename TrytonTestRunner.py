@@ -277,7 +277,7 @@ class TrytonTestRunner(object):
                 component = Component(name=module)
                 component.save()
             path = result['path']
-            repo = hgapi.Repo(path)
+            repo = gitapi.Repo(path)
             rev = repo.hg_rev()
             rev = repo.revisions(slice(rev, rev))[0]
             branch = rev.branch
