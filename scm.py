@@ -495,7 +495,8 @@ def git_pull(module, path, update=False, clean=False, branch=None,
         return -1
 
     # If git outputs 'Already up-to-date' do not print anything.
-    if 'Already up to date' in result.stdout:
+    if ('Already up to date' in result.stdout
+            or 'Already up-to-date' in result.stdout):
         os.chdir(cwd)
         return 0
 
