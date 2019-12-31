@@ -191,12 +191,12 @@ def print_status(module, files):
         print('\n'.join(msg))
 
 
-def git_status(module, path, url, verbose):
+def git_status(module, path, url=None, verbose=False):
     repo = git.Repo(path)
     config = repo.config_reader()
     config.read()
     actual_url = config.get_value('remote "origin"', 'url')
-    if actual_url != url:
+    if actual_url != url and verbose:
         print((t.bold('[%s]' % module) +
             t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url)), file=sys.stderr)
 
@@ -210,10 +210,13 @@ def git_status(module, path, url, verbose):
             for d in diff.iter_change_type(change):
                 files[change].append(d.a_blob.path)
     print_status(module, files)
-    return files
+    res = []
+    for x,k in files.items():
+        res += k
+    return res
 
 
-def hg_status(module, path,  url, verbose):
+def hg_status(module, path, url=None, verbose=False):
     repo = hgapi.Repo(path)
     hg_check_url(module, path, url)
     st = repo.hg_status(empty=True)
@@ -246,18 +249,31 @@ def status(ctx, config=None, unstable=True, no_quilt=False, verbose=False):
         patches._push()
 
 
-def git_base_diff(path):
-    print("git_base_diff not implemented yet")
+def git_base_diff(path, module):
+    files = " ".join(git_status(module, path))
+    branch = get_branch(path)
+    diff = run('cd %s; git diff %s ' % (path, files), hide=True,
+        encoding='utf-8')
+    rev = run('cd %s; git hash-object -t tree /dev/null' % (path),
+        hide=True, warn=True, encoding='utf-8')
+    base_diff = run('cd %s;git diff-tree -p %s %s %s' % (path,
+        rev.stdout.replace('\n', ''), 'HEAD',  files), hide=True, warn=True,
+        encoding='utf-8')
+    return diff.stdout, base_diff.stdout
 
 
-def get_branch(path):
-    branch = run('cd %s; hg branch' % path, hide=True)
-    branch = branch.stdout.split('\n')[0]
+def get_branch(path, repo_type='git'):
+    if repo_type == 'hg':
+        branch = run('cd %s; hg branch' % path, hide=True)
+        branch = branch.stdout.split('\n')[0]
+    else:
+        branch = run('cd %s; git branch' % path, hide=True)
+        branch = branch.stdout.split('\n')[0].replace('*','').replace('\r','')
     return branch
 
 
-def hg_base_diff(path):
-    files = " ".join(hg_status(path))
+def hg_base_diff(path, module):
+    files = " ".join(hg_status(module, path))
     branch = get_branch(path)
     diff = run('cd %s; hg diff --git %s ' % (path, files), hide=True,
         encoding='utf-8')
@@ -267,15 +283,8 @@ def hg_base_diff(path):
 
 
 @task()
-def module_diff(ctx, path, base=True, show=True, fun=hg_base_diff,
-        addremove=False):
-    if addremove:
-        try:
-            repo = hgapi.Repo(path)
-            repo.hg_addremove()
-        except:
-            pass
-    diff, base_diff = fun(path)
+def module_diff(ctx, path, module, base=True, show=True, fun=git_base_diff):
+    diff, base_diff = fun(path, module)
     if show:
         print(t.bold(path + " module diff:"))
         if diff:
