@@ -62,15 +62,16 @@ def get_root():
 def get_repository():
     root = get_root()
     repository = root.get_repositories()[-1].id
+    print("repo:", repository)
     return repository
 
 
 @task()
-def create(module, summary, description, bug, group='NaN'):
+def create(path, module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
-    diff, base_diff = module_diff(module, show=False, addremove=True)
+    diff, base_diff = module_diff(path, module, show=False)
     root = get_root()
     review_id = review_file(module)
     if review_id is None:
@@ -138,7 +139,8 @@ def close_all():
     root = get_root(root)
     requests = root.get_review_requests()
     for request in requests:
-        request = request.update(status='discarded')
+        break
+        #request = request.update(status='discarded')
 
 
 @task()
