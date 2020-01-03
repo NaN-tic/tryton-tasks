@@ -258,7 +258,7 @@ def git_status(module, path, url=None, verbose=False):
     if diff:
         for change in diff.change_type:
             for d in diff.iter_change_type(change):
-                files[change].append(d.a_blob.path)
+                files[change].append(d.a_path)
     print_status(module, files)
     res = []
     for x,k in files.items():
