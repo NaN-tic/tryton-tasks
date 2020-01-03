@@ -85,7 +85,7 @@ def create(path, module, summary, description, bug, group='NaN'):
     if review_id is None:
         review_request = root.get_review_requests().create(
             repository=get_repository())
-        create_review_file(module, review_request.id)
+        create_review_file(path, review_request.id)
     else:
         review_request = root.get_review_request(
             review_request_id=review_file(module))
