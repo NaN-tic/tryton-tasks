@@ -237,7 +237,7 @@ def upload_review(work, path, branch='default', module=None):
         owner = 'nantic'
         repo_name, = path.split('/')[-1:]
 
-    review = reviewboard.create(ctx, path, module, work.rec_name,
+    review = reviewboard.create(path, module, work.rec_name,
             (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
     review_id = review
