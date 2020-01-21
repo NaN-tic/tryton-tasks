@@ -74,7 +74,7 @@ def create(path, module, summary, description, bug, group='NaN'):
     """
     diff, base_diff = module_diff(path, module, show=False)
     root = get_root()
-    review_id = review_file(module)
+    review_id = review_file(path)
 
     if review_id:
         upgrade_review = choice.Binary('Do you like upgrade the review '
@@ -88,7 +88,7 @@ def create(path, module, summary, description, bug, group='NaN'):
         create_review_file(path, review_request.id)
     else:
         review_request = root.get_review_request(
-            review_request_id=review_file(module))
+            review_request_id=review_file(path))
 
     review_request.get_diffs().upload_diff(diff.encode('utf-8'),
         base_diff.encode('utf-8'))
