@@ -3,17 +3,16 @@ blessings
 coverage
 GitPython>=0.3.2.RC1
 hgapi
-invoke==0.12.2
+invoke>=1.0.0
 path.py>=10.0
 pyactiveresource
 psutil
-RBTools==0.7.11
+RBTools>=1.0.2
 python-quilt
 tabulate
 configobj
 PyHamcrest
 choice
-faulthandler
 pyyaml
 requests[security]
 pick
@@ -25,7 +24,6 @@ mock
 # gal
 dateutils
 xmltodict
-functools32
 
 # trytond
 lxml>=2.0
@@ -35,5 +33,5 @@ python-dateutil
 polib
 psycopg2-binary>=2.5.0
 python-sql>=0.8
-werkzeug
+werkzeug>=0.15.4
 wrapt

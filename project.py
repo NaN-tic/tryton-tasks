@@ -17,8 +17,8 @@ import choice
 
 try:
     from proteus import config as pconfig, Model
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
@@ -81,7 +81,7 @@ def create_test_task(log_file):
 
 
 @task()
-def fetch_review(work):
+def fetch_review(ctx, work):
 
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
@@ -108,12 +108,12 @@ def get_request_info(url):
 
 
 def show_review(review):
-    print "{id} - {name} - {url}".format(
-            id=review.id, name=review.name, url=review.url)
+    print("{id} - {name} - {url}".format(
+            id=review.id, name=review.name, url=review.url))
 
 
 @task()
-def components(database):
+def components(ctx, database):
     get_tryton_connection()
 
     DBComponent = Model.get('nantic.database.component')
@@ -122,11 +122,11 @@ def components(database):
             ('state', '=', 'accepted')])
 
     for component in components:
-        print component.component.name
+        print(component.component.name)
 
 
 @task()
-def check_migration(database, version=3.4):
+def check_migration(ctx, database, version=3.4):
 
     module_table = 'ir_module'
     if version == 3.4:
@@ -140,14 +140,14 @@ def check_migration(database, version=3.4):
 
 
 @task()
-def decline_review(work, review_id=None, message=None):
+def decline_review(ctx, work, review_id=None, message=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
 
     w = tasks[0]
@@ -155,7 +155,7 @@ def decline_review(work, review_id=None, message=None):
 
     for review in reviews:
         if review_id and str(review.id) != review_id:
-            print review_id, review.id
+            print(review_id, review.id)
             continue
 
         show_review(review)
@@ -174,14 +174,14 @@ def decline_review(work, review_id=None, message=None):
 
 
 @task()
-def merge_review(work, review_id=None, message=None):
+def merge_review(ctx, work, review_id=None, message=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
 
     w = tasks[0]
@@ -189,7 +189,7 @@ def merge_review(work, review_id=None, message=None):
 
     for review in reviews:
         if review_id and str(review.id) != review_id:
-            print review_id, review.id
+            print(review_id, review.id)
             continue
 
         show_review(review)
@@ -207,7 +207,7 @@ def merge_review(work, review_id=None, message=None):
 
 
 @task()
-def upload_review(work, path, branch='default', module=None):
+def upload_review(ctx, work, path, branch='default', module=None):
     get_tryton_connection()
     Review = Model.get('project.work.codereview')
     Task = Model.get('project.work')
@@ -215,7 +215,7 @@ def upload_review(work, path, branch='default', module=None):
 
     tasks = Task.find([('code', '=', work)])
     if not tasks:
-        print >>sys.stderr, t.red('Error: Task %s was not found.' % work)
+        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
         sys.exit(1)
     work = tasks[0]
 
@@ -237,7 +237,7 @@ def upload_review(work, path, branch='default', module=None):
         owner = 'nantic'
         repo_name, = path.split('/')[-1:]
 
-    review = reviewboard.create(path, module, work.rec_name,
+    review = reviewboard.create(ctx, path, module, work.rec_name,
             (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
     review_id = review

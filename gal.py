@@ -8,8 +8,7 @@ import hgapi
 import random
 import json
 import datetime
-import codecs
-import iban
+from . import iban
 import traceback
 try:
     from functools32 import lru_cache
@@ -37,8 +36,7 @@ if os.path.isdir(proteus_directory):
     sys.path.insert(0, proteus_directory)
 
 try:
-    from proteus import config as pconfig, Model, Wizard, \
-        __version__ as proteus_version
+    from proteus import config as pconfig, Model, Wizard
 except:
     pass
 
@@ -59,24 +57,22 @@ def random_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 def check_output(*args):
-    print t.bold(' '.join(args))
+    print(t.bold(' '.join(args)))
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
     data = stdout + stderr
     if process.returncode:
-        if isinstance(stdout, str):
-            stdout = stdout.decode('utf-8')
-        if isinstance(stderr, str):
-            stderr = stderr.decode('utf-8')
         if stdout and stderr:
-            print stdout, t.red(stderr)
+            print(stdout, t.red(stderr))
         elif stdout:
-            print stdout
+            print(stdout)
         elif stderr:
-            print t.red(stderr)
+            print(t.red(stderr))
     else:
-        print t.green('Ok')
+        print(t.green('Ok'))
     return data
 
 # Execute method that shows the exception and line number of the 'exec' call.
@@ -108,35 +104,29 @@ def connect_database(database=None, password='admin',
 
     global config
     global version
-    if proteus_version.startswith('3.2'):
-        if language is None:
-            language = 'en_US'
-        config = pconfig.set_trytond(database, database_type=database_type,
-            password=password, language=language, config_file='trytond.conf')
-    else:
-        os.environ['TRYTOND_DATABASE_URI'] = '%s:///' % database_type
-        os.environ['DB_NAME'] = database
+    os.environ['TRYTOND_DATABASE_URI'] = '%s:///' % database_type
+    os.environ['DB_NAME'] = database
 
-        # Tries to use sqlite without these two lines:
-        from trytond.config import config
-        config.set('database', 'uri', '%s://' % database_type)
+    # Tries to use sqlite without these two lines:
+    from trytond.config import config
+    config.set('database', 'uri', '%s://' % database_type)
 
-        from trytond.tests.test_tryton import db_exist
+    from trytond.tests.test_tryton import db_exist
 
-        if not db_exist():
-            try:
-                from trytond.protocols.dispatcher import create as tcreate
-                if language is None:
-                    language = 'en_US'
-                tcreate(None, database, None, language, password)
-            except:
-                from trytond.tests.test_tryton import create_db as tcreate
-                if language is None:
-                    language = 'en'
-                tcreate(database, language)
+    if not db_exist():
+        try:
+            from trytond.protocols.dispatcher import create as tcreate
+            if language is None:
+                language = 'en_US'
+            tcreate(None, database, None, language, password)
+        except:
+            from trytond.tests.test_tryton import create_db as tcreate
+            if language is None:
+                language = 'en'
+            tcreate(database, language)
 
-        config = pconfig.set_trytond(database, config_file='trytond.conf')
-        config.pool.test = False
+    config = pconfig.set_trytond(database, config_file='trytond.conf')
+    config.pool.test = False
 
 
 def database_name():
@@ -187,10 +177,10 @@ def gal_path(path=None):
 def gal_repo():
     path = gal_path()
     if os.path.exists(path) and not os.path.isdir(path):
-        print >>sys.stderr, t.red('Error: gal file exists')
+        print(t.red('Error: gal file exists'), file=sys.stderr)
         sys.exit(1)
     if os.path.isdir(path) and not os.path.isdir(os.path.join(path, '.hg')):
-        print >>sys.stderr, t.red('Invalid gal repository')
+        print(t.red('Invalid gal repository'), file=sys.stderr)
         sys.exit(1)
     repo = hgapi.Repo(path)
     if not os.path.exists(path):
@@ -218,7 +208,7 @@ def module_activated(module):
                 ]))
 
 @task()
-def create(language=None, password=None):
+def create(ctx, language=None, password=None):
     """
     Creates a new tryton database and stores it in the gal repository.
     """
@@ -229,49 +219,49 @@ def create(language=None, password=None):
     gal_commit()
 
 @task()
-def replay(name):
+def replay(ctx, name):
     """
     Executes all steps needed to create a database like the one in the gal
     repository.
     """
     repo = gal_repo()
-    print 'Actions to replay:'
+    print('Actions to replay:')
     has_set = False
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
         if action == 'set':
             has_set = True
-        print t.bold('%s(%s)' % (action, parameters))
+        print(t.bold('%s(%s)' % (action, parameters)))
 
-    print
+    print()
     if has_set:
-        print >>sys.stderr, t.red('It is not possible to replay tip '
+        print(t.red('It is not possible to replay tip '
             'version because there is a set() operation in the list of '
-            'commands to execute')
+            'commands to execute'), file=sys.stderr)
         sys.exit(1)
 
     # Disable commits before replaying
     commits_enabled = False
     # Just add this line to avoid pyflakes warnings
     commits_enabled
-    print 'Replaying actions:'
+    print('Replaying actions:')
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
-        print t.bold('%s(%s)' % (action, parameters))
+        print(t.bold('%s(%s)' % (action, parameters)))
         # TODO: This is not safe. Run with care.
         eval('%s(%s)' % (action, parameters))
 
 @task()
-def get(name):
+def get(ctx, name):
     """
     Restores current gal database with the given database name
     """
     restore(name)
 
 @task()
-def set(name):
+def set(ctx, name):
     """
     Saves the given database as current gal database
     """
@@ -280,7 +270,7 @@ def set(name):
     gal_commit(do_dump=False)
 
 @task()
-def build(filename=None, no_restore=False):
+def build(ctx, filename=None, no_restore=False):
     """
     Creates a database with the commands found in the specified filename.
 
@@ -288,23 +278,25 @@ def build(filename=None, no_restore=False):
     """
     if filename is None:
         filename = 'Galfile'
-    print "Building %s..." % filename
+    print("Building %s..." % filename)
 
     global restore_step
     restore_step = True
     if no_restore:
         restore_step = False
 
-    with codecs.open(filename, 'r', 'utf-8') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#'):
-                print t.bold(unicode(line))
+                print(t.bold(str(line)))
+                splitted = line.split('(')
+                line = splitted[0] + '(ctx, ' + splitted[1]
                 eval(line)
 
 
 @task()
-def galfile():
+def galfile(ctx):
     """
     Prints the Galfile to be used to reproduce current gal database.
 
@@ -319,18 +311,18 @@ def galfile():
             has_set = True
 
     if has_set:
-        print >>sys.stderr, t.red('It will not be possible to build the '
-            'generated Galfile because it contains at least one set command.')
+        print(t.red('It will not be possible to build the '
+            'generated Galfile because it contains at least one set command.'), file=sys.stderr)
 
     # Disable commits before replaying
     for revision in repo.revisions(slice(0, 'tip')):
         description = revision.desc
         action, parameters = json.loads(description)
-        print '%s(**%s)' % (action, parameters)
+        print('%s(**%s)' % (action, parameters))
 
 
 @task()
-def execute_script(script):
+def execute_script(ctx, script):
     gal_action('execute_script', script=script)
 
     restore()
@@ -347,18 +339,18 @@ def execute_script(script):
         suite.run(result)
         if result.errors or result.failures:
             if result.errors:
-                print "Errors:"
+                print("Errors:")
                 for error in result.errors:
-                    print error[0]
-                    print error[1]
-                    print
-                print
+                    print(error[0])
+                    print(error[1])
+                    print()
+                print()
             if result.failures:
-                print "Failures:"
+                print("Failures:")
                 for failure in result.failures:
-                    print failure[0]
-                    print failure[1]
-                    print
+                    print(failure[0])
+                    print(failure[1])
+                    print()
             # Ensure we do not commit
             return
     elif script.endswith('.py'):
@@ -366,7 +358,7 @@ def execute_script(script):
             code = f.read()
         execute(code)
     else:
-        print >>sys.stderr, t.red("Don't know how to execute %s" % script)
+        print(t.red("Don't know how to execute %s" % script), file=sys.stderr)
         sys.exit(1)
 
     gal_commit()
@@ -375,7 +367,7 @@ def execute_script(script):
 # Extension commands
 #
 @task()
-def update_all():
+def update_all(ctx):
     """
     Update all modules. Equivalent to execute trytond with "-u all" parameter
     """
@@ -420,7 +412,7 @@ def upgrade_modules(modules=None, all=False):
     return upgraded_modules
 
 @task()
-def set_active_languages(lang_codes=None):
+def set_active_languages(ctx, lang_codes=None):
     """
     Sets the given languages (for example 'ca_ES,es_ES') as active languages
     in the database.
@@ -462,13 +454,13 @@ def set_active_languages(lang_codes=None):
 
     if not all(l.translatable for l in langs):
         # langs is fetched before wet all translatable
-        print "Upgrading all because new translatable languages has been added"
+        print("Upgrading all because new translatable languages has been added")
         upgrade_modules(config, all=True)
     gal_commit()
 
 
 @task()
-def activate_modules(modules):
+def activate_modules(ctx, modules):
     '''
     Installs the given modules (for example, 'party,product') to current gal
     database.
@@ -506,9 +498,35 @@ def activate_modules(modules):
     gal_commit()
     return modules, activated_modules
 
+@task()
+def load_countries(ctx):
+    gal_action('load_countries')
+    restore()
+    check_output(
+        './trytond/trytond/modules/country/scripts/import_countries.py',
+        '-d', 'gal')
+    gal_commit()
 
 @task()
-def load_spanish_banks():
+def load_zips(ctx, country):
+    gal_action('load_zips')
+    restore()
+    check_output(
+        './trytond/trytond/modules/country/scripts/import_zip.py',
+        '-d', 'gal', country)
+    gal_commit()
+
+@task()
+def load_currencies(ctx):
+    gal_action('load_currencies')
+    restore()
+    check_output(
+        './trytond/trytond/modules/currency/scripts/import_currencies.py',
+        '-d', 'gal')
+    gal_commit()
+
+@task()
+def load_spanish_banks(ctx):
     '''
     Execute Load Spanish Banks wizard. Requires bank_es module
     '''
@@ -516,18 +534,6 @@ def load_spanish_banks():
     restore()
     connect_database()
     Wizard('load.banks').execute('accept')
-    gal_commit()
-
-
-@task()
-def load_spanish_zips():
-    '''
-    Execute Load Spanish Zips wizard. Requires country_zip_es module
-    '''
-    gal_action('load_spanish_zips')
-    restore()
-    connect_database()
-    Wizard('load.country.zips').execute('accept')
     gal_commit()
 
 @lru_cache()
@@ -656,7 +662,7 @@ def create_party(name, street=None, zip=None, city=None,
     return party
 
 @task()
-def create_random_parties(count=4000):
+def create_random_parties(ctx, count=4000):
     """
     Create 'count' parties taking random information from the following files:
     - companies.txt
@@ -668,20 +674,20 @@ def create_random_parties(count=4000):
     restore()
     connect_database()
 
-    with open('tasks/companies.txt', 'r') as f:
+    with open('tasks/gal_files/companies.txt', 'r') as f:
         companies = f.read().split('\n')
     companies = [x.strip() for x in companies if x.strip()]
-    with open('tasks/streets.txt', 'r') as f:
+    with open('tasks/gal_files/streets.txt', 'r') as f:
         streets = f.read().split('\n')
     streets = [x.strip() for x in streets if x.strip()]
-    with open('tasks/names.txt', 'r') as f:
+    with open('tasks/gal_files/names.txt', 'r') as f:
         names = f.read().split('\n')
     names = [x.strip() for x in names if x.strip()]
-    with open('tasks/surnames.txt', 'r') as f:
+    with open('tasks/gal_files/surnames.txt', 'r') as f:
         surnames = f.read().split('\n')
     surnames = [x.strip() for x in surnames if x.strip()]
     phones = ['93', '972', '973', '977', '6', '900']
-    for x in xrange(count):
+    for x in range(count):
         company = random.choice(companies)
         name = random.choice(names)
         surname1 = random.choice(surnames)
@@ -699,7 +705,7 @@ def create_random_parties(count=4000):
 
 
 @task()
-def create_parties(count=1000):
+def create_parties(ctx, count=1000):
     """
     Create 'count' parties taking random information from the following files:
     - companies.txt
@@ -711,17 +717,17 @@ def create_parties(count=1000):
     restore()
     connect_database()
 
-    with open('tasks/companies.txt', 'r') as f:
+    with open('tasks/gal_files/companies.txt', 'r') as f:
         companies = f.read().split('\n')
     companies = [x.strip() for x in companies if x.strip()]
     companies = random.sample(companies, min(len(companies), count))
-    with open('tasks/streets.txt', 'r') as f:
+    with open('tasks/gal_files/streets.txt', 'r') as f:
         streets = f.read().split('\n')
     streets = [x.strip() for x in streets if x.strip()]
-    with open('tasks/names.txt', 'r') as f:
+    with open('tasks/gal_files/names.txt', 'r') as f:
         names = f.read().split('\n')
     names = [x.strip() for x in names if x.strip()]
-    with open('tasks/surnames.txt', 'r') as f:
+    with open('tasks/gal_files/surnames.txt', 'r') as f:
         surnames = f.read().split('\n')
     surnames = [x.strip() for x in surnames if x.strip()]
     phones = ['93', '972', '973', '977', '6', '900']
@@ -742,7 +748,7 @@ def create_parties(count=1000):
     gal_commit()
 
 @task()
-def create_bank_accounts():
+def create_bank_accounts(ctx):
     gal_action('create_bank_accounts')
     restore()
     connect_database()
@@ -751,8 +757,8 @@ def create_bank_accounts():
     Invoice = Model.get('account.invoice')
     banks = get_banks()
     if not module_activated('account_bank'):
-        print t.red('account_bank module must be activated before creating '
-            'bank accounts.')
+        print(t.red('account_bank module must be activated before creating '
+            'bank accounts.'))
     good_number = None
     for party in Party.find([]):
         BankAccount = Model.get('bank.account')
@@ -769,21 +775,21 @@ def create_bank_accounts():
         if not good_number:
             while True:
                 account_code = bank.bank_code
-                account_code += ''.join([str(x) for x in random.sample(range(10) *
+                account_code += ''.join([str(x) for x in random.sample(list(range(10)) *
                             4, 4)])
-                account_number = ''.join([str(x) for x in random.sample(range(10) *
+                account_number = ''.join([str(x) for x in random.sample(list(range(10)) *
                             12, 12)])
                 number.number = iban.create_iban(country, account_code,
                     account_number)
-                print 'Looping...', number.number
+                print('Looping...', number.number)
                 #x = iban.check_iban(number.number)
                 try:
                     good_number = number.number
                     account.save()
-                    print 'Ok!'
+                    print('Ok!')
                     break
-                except Exception, e:
-                    print 'Exception: ', str(e)
+                except Exception as e:
+                    print('Exception: ', str(e))
                     pass
         else:
             number.number = good_number
@@ -816,7 +822,7 @@ def create_bank_accounts():
     gal_commit()
 
 @task()
-def create_product_category(name):
+def create_product_category(ctx, name):
     """
     Creates product category with the supplied name.
     """
@@ -832,7 +838,7 @@ def create_product_category(name):
 
 
 @task()
-def create_product_categories(count=20):
+def create_product_categories(ctx, count=20):
     """
     Creates 'count' (20 by default) product categories.
     """
@@ -898,7 +904,7 @@ def create_product(name, code="", template=None, cost_price=None,
         if hasattr(template, 'account_expense'):
             Account = Model.get('account.account')
             expense = Account.find([
-                ('kind', '=', 'expense'),
+                ('type.expense', '=', True),
                 ('company', '=', company.id),
                 ])
             if expense:
@@ -906,7 +912,7 @@ def create_product(name, code="", template=None, cost_price=None,
         if hasattr(template, 'account_revenue'):
             Account = Model.get('account.account')
             revenue = Account.find([
-                ('kind', '=', 'revenue'),
+                ('type.revenue', '=', True),
                 ('company', '=', company.id),
                 ])
             if revenue:
@@ -936,7 +942,7 @@ def create_product(name, code="", template=None, cost_price=None,
     return product
 
 @task()
-def create_products(count=400):
+def create_products(ctx, count=400):
     """
     Creates the 'count' first products from the icecat database in catalog.xml.
     """
@@ -945,7 +951,7 @@ def create_products(count=400):
     connect_database()
 
     import xmltodict
-    with open('tasks/catalog.xml', 'r') as f:
+    with open('tasks/gal_files/catalog.xml', 'r') as f:
         xml = xmltodict.parse(f.read())
     i = 0
     for item in xml.get('ICECAT-interface').get('files.index').get('file'):
@@ -958,7 +964,7 @@ def create_products(count=400):
     gal_commit()
 
 @task()
-def create_company(name, street=None, zip=None, city=None,
+def create_company(ctx, name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', currency_code='EUR',
         phone=None, website=None, email=None):
     '''
@@ -1004,7 +1010,7 @@ def create_company(name, street=None, zip=None, city=None,
     return company
 
 @task()
-def create_employee(name, company=None, user=None):
+def create_employee(ctx, name, company=None, user=None):
     """
     Creates the employee with the given name in the given company and links
     it with the given user.
@@ -1045,7 +1051,7 @@ def create_employee(name, company=None, user=None):
     gal_commit()
 
 @task()
-def create_account_chart(company, module=None, fs_id=None, digits=None):
+def create_account_chart(ctx, company, module=None, fs_id=None, digits=None):
     """
     Creates the chart of accounts defined by module and fs_id for the given
     company.
@@ -1094,12 +1100,12 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
     create_chart.execute('create_account')
 
     receivable = Account.find([
-            ('kind', '=', 'receivable'),
+            ('type.receivable', '=', True),
             ('company', '=', company.id),
             ])
     receivable = receivable[0]
     payable = Account.find([
-            ('kind', '=', 'payable'),
+            ('type.payable', '=', True),
             ('company', '=', company.id),
             ])[0]
     #revenue, = Account.find([
@@ -1122,7 +1128,7 @@ def create_account_chart(company, module=None, fs_id=None, digits=None):
     gal_commit()
 
 @task()
-def create_fiscal_year(company, year=None):
+def create_fiscal_year(ctx, company, year=None):
     """
     It creates a new fiscal year with monthly periods and the appropriate
     invoice sequences for the given company.
@@ -1204,7 +1210,7 @@ def create_fiscal_year(company, year=None):
     return fiscalyear
 
 @task()
-def create_payment_term(name, type='remainder', percentage=None, divisor=None,
+def create_payment_term(ctx, name, type='remainder', percentage=None, divisor=None,
         amount=None, day=None, month=None, weekday=None, months=0, weeks=0,
         days=0):
     """
@@ -1245,7 +1251,7 @@ def create_payment_term(name, type='remainder', percentage=None, divisor=None,
 
 
 @task()
-def create_payment_terms():
+def create_payment_terms(ctx):
     """
     It creates 3 payment terms:
     - 30 days
@@ -1285,7 +1291,7 @@ def create_payment_terms():
 
 
 @task()
-def create_payment_types(language='ca'):
+def create_payment_types(ctx, language='ca'):
     """
     """
     gal_action('create_payment_types')
@@ -1362,7 +1368,7 @@ def create_payment_types(language='ca'):
 
 
 @task()
-def create_opportunities(count=100, linecount=10):
+def create_opportunities(ctx, count=100, linecount=10):
     """
     It randomly creates leads and opportunities
 
@@ -1385,7 +1391,7 @@ def create_opportunities(count=100, linecount=10):
     products = Product.find([('salable', '=', True)])
     terms = Term.find([])
 
-    for x in xrange(count):
+    for x in range(count):
         opp = Opportunity()
         party = random.choice(parties)
         product = random.choice(products)
@@ -1400,7 +1406,7 @@ def create_opportunities(count=100, linecount=10):
         opp.probability = random.randrange(1, 9) * 10
         opp.amount = Decimal(random.randrange(1, 10) * 1000)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = OpportunityLine()
             opp.lines.append(line)
             line.product = random.choice(products)
@@ -1410,7 +1416,7 @@ def create_opportunities(count=100, linecount=10):
     gal_commit()
 
 @task()
-def process_opportunities():
+def process_opportunities(ctx):
     """
     It randomly processes leads
 
@@ -1450,7 +1456,7 @@ def process_opportunities():
     gal_commit()
 
 @task()
-def create_price_lists(count=5, productcount=10, categorycount=2):
+def create_price_lists(ctx, count=5, productcount=10, categorycount=2):
     """
     It creates 'count' pricelists using random products and quantities
     """
@@ -1467,12 +1473,12 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
 
     categories = Category.find()
     products = Product.find([('salable', '=', True)])
-    for c in xrange(count):
+    for c in range(count):
         price_list = PriceList()
         price_list.name = str(c)
 
         sequence = 1
-        for lc in xrange(random.randrange(1, productcount)):
+        for lc in range(random.randrange(1, productcount)):
             line = PriceListLine()
             price_list.lines.append(line)
             line.sequence = sequence
@@ -1481,7 +1487,7 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
             sequence += 1
 
         if category_module:
-            for lc in xrange(random.randrange(1, categorycount)):
+            for lc in range(random.randrange(1, categorycount)):
                 line = PriceListLine()
                 price_list.lines.append(line)
                 line.sequence = sequence
@@ -1500,7 +1506,7 @@ def create_price_lists(count=5, productcount=10, categorycount=2):
 
 
 @task()
-def create_sales(count=100, linecount=10):
+def create_sales(ctx, count=100, linecount=10):
     """
     It creates 'count' sales using random products (linecount maximum)
     and parties.
@@ -1523,8 +1529,8 @@ def create_sales(count=100, linecount=10):
     terms = Term.find([])
 
     sales = []
-    for c in xrange(count):
-        print "Iteration:", c
+    for c in range(count):
+        print("Iteration:", c)
         sale = Sale()
         sales.append(sale)
         sale.sale_date = random_datetime(TODAY + relativedelta(months=-12),
@@ -1533,7 +1539,7 @@ def create_sales(count=100, linecount=10):
         if not sale.payment_term:
             sale.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = SaleLine()
             sale.lines.append(line)
             line.product = random.choice(products)
@@ -1545,7 +1551,7 @@ def create_sales(count=100, linecount=10):
 
 
 @task()
-def process_sales():
+def process_sales(ctx):
     """
     It randomly processes some sales:
 
@@ -1581,7 +1587,7 @@ def process_sales():
     gal_commit()
 
 @task()
-def create_purchases(count=100, linecount=10):
+def create_purchases(ctx, count=100, linecount=10):
     """
     It creates 'count' purchases using random products (linecount maximum)
     and parties.
@@ -1603,13 +1609,13 @@ def create_purchases(count=100, linecount=10):
     products = Product.find([('purchasable', '=', True)])
     terms = Term.find([])
 
-    for c in xrange(count):
+    for c in range(count):
         purchase = Purchase()
         purchase.party = random.choice(parties)
         if not purchase.payment_term:
             purchase.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = PurchaseLine()
             purchase.lines.append(line)
             line.product = random.choice(products)
@@ -1620,7 +1626,7 @@ def create_purchases(count=100, linecount=10):
 
 
 @task()
-def process_purchases():
+def process_purchases(ctx):
     """
     It randomly processes some purchases:
 
@@ -1647,7 +1653,7 @@ def process_purchases():
     gal_commit()
 
 @task()
-def create_inventory(maxquantity=1000):
+def create_inventory(ctx, maxquantity=1000):
     """
     It randomly makes an inventory of 80% of existing products.
 
@@ -1687,7 +1693,7 @@ def create_inventory(maxquantity=1000):
     gal_commit()
 
 @task()
-def process_customer_shipments():
+def process_customer_shipments(ctx):
     """
     It randomly processes waiting customer shipments.
 
@@ -1747,7 +1753,7 @@ def process_invoices(type_):
     Invoice.post([x.id for x in invoices], config.context)
 
 @task()
-def process_customer_invoices():
+def process_customer_invoices(ctx):
     """
     It randomly confirms customer invoices.
 
@@ -1760,7 +1766,7 @@ def process_customer_invoices():
     gal_commit()
 
 @task()
-def process_supplier_invoices():
+def process_supplier_invoices(ctx):
     """
     It randomly confirms supplier invoices.
 
@@ -1797,7 +1803,7 @@ def create_invoices(type_, count=100, linecount=10):
         journal_code = 'EXP'
     journal, = Journal.find(['code', '=', journal_code], limit=1)
 
-    for c in xrange(count):
+    for c in range(count):
         invoice = Invoice()
         invoice.type = type_
         invoice.invoice_date = random_datetime(TODAY + relativedelta(months=-12),
@@ -1808,7 +1814,7 @@ def create_invoices(type_, count=100, linecount=10):
         if not invoice.payment_term:
             invoice.payment_term = random.choice(terms)
 
-        for lc in xrange(random.randrange(1, linecount)):
+        for lc in range(random.randrange(1, linecount)):
             line = InvoiceLine()
             invoice.lines.append(line)
             line.type = 'line'
@@ -1817,7 +1823,7 @@ def create_invoices(type_, count=100, linecount=10):
         invoice.save()
 
 @task()
-def create_customer_invoices(count=100, linecount=10):
+def create_customer_invoices(ctx, count=100, linecount=10):
     """
     It creates 'count' custoemr invoices using random products (linecount
     maximum) and parties.
@@ -1832,7 +1838,7 @@ def create_customer_invoices(count=100, linecount=10):
     gal_commit()
 
 @task()
-def create_supplier_invoices(count=100, linecount=10):
+def create_supplier_invoices(ctx, count=100, linecount=10):
     """
     It creates 'count' supplier invoices using random products (linecount
     maximum) and parties.
@@ -1847,7 +1853,7 @@ def create_supplier_invoices(count=100, linecount=10):
     gal_commit()
 
 @task()
-def process_supplier_shipments():
+def process_supplier_shipments(ctx):
     """
     It randomly processes waiting supplier shipments.
 
@@ -1883,7 +1889,7 @@ def process_supplier_shipments():
     gal_commit()
 
 @task()
-def create_boms(name='pc', inputcount=10, inputquantity=10):
+def create_boms(ctx, name='pc', inputcount=10, inputquantity=10):
     """
     Creates boms for all products that contain the word 'name' in their name.
 
@@ -1941,7 +1947,7 @@ def create_boms(name='pc', inputcount=10, inputquantity=10):
     gal_commit()
 
 @task()
-def create_production_requests():
+def create_production_requests(ctx):
     gal_action('create_production_requests')
     restore()
     connect_database()
@@ -1951,7 +1957,7 @@ def create_production_requests():
 
 
 @task()
-def create_purchase_requests():
+def create_purchase_requests(ctx):
     gal_action('create_purchase_requests')
     restore()
     connect_database()
@@ -1960,7 +1966,7 @@ def create_purchase_requests():
     gal_commit()
 
 @task()
-def create_reservations():
+def create_reservations(ctx):
     gal_action('create_reservations')
     restore()
     connect_database()
@@ -1969,7 +1975,7 @@ def create_reservations():
     gal_commit()
 
 @task()
-def create_csb43():
+def create_csb43(ctx):
     gal_action('create_csb43')
     restore()
     connect_database()
@@ -2032,7 +2038,7 @@ def create_csb43():
     gal_commit()
 
 @task()
-def create_marketing_invoices():
+def create_marketing_invoices(ctx):
     gal_action('create_marketing_invoices')
     restore()
     connect_database()
@@ -2048,7 +2054,7 @@ def create_marketing_invoices():
     i = 0
     campaign = Campaign(32)
     for party in campaign.parties:
-        print "Doing", i + 1, party.rec_name
+        print("Doing", i + 1, party.rec_name)
         invoice = Invoice()
         invoice.party = party
         invoice.payment_term = term
@@ -2057,7 +2063,7 @@ def create_marketing_invoices():
         invoice.lines.append(line)
         line.product = product
         line.quantity = 50
-        line.description = u'Llicència ERP anual'
+        line.description = 'Llicència ERP anual'
         line.unit_price = Decimal('0')
         line.gross_unit_price = Decimal('0')
         line.discount = Decimal('0')
@@ -2077,8 +2083,9 @@ GalCollection.add_task(execute_script)
 GalCollection.add_task(update_all)
 GalCollection.add_task(set_active_languages)
 GalCollection.add_task(activate_modules)
+GalCollection.add_task(load_countries)
+GalCollection.add_task(load_zips)
 GalCollection.add_task(load_spanish_banks)
-GalCollection.add_task(load_spanish_zips)
 GalCollection.add_task(create_parties)
 GalCollection.add_task(create_bank_accounts)
 GalCollection.add_task(create_product_categories)
@@ -2107,4 +2114,3 @@ GalCollection.add_task(create_reservations)
 GalCollection.add_task(create_marketing_invoices)
 GalCollection.add_task(create_customer_invoices)
 GalCollection.add_task(create_supplier_invoices)
-

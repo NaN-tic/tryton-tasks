@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-from invoke import task, Collection, run
-from .utils import t
+from invoke import task, Collection
 import os
 import yaml
 import subprocess
@@ -11,7 +10,8 @@ series_file = 'series'
 
 
 def read_series():
-    return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+    return yaml.load(open(os.path.join(patches_dir, series_file)).read(),
+        Loader=yaml.FullLoader)
 
 
 def write_series(data):
@@ -37,7 +37,7 @@ class Patch(object):
         command = ["patch", "-N", "-p1", "--silent", "--dry-run", "-i", self.patchfile]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
-        self.conflict = 'FAILED' in output
+        self.conflict = 'FAILED' in str(output)
         if not output or self.conflict:
             return False
         return True
@@ -56,17 +56,17 @@ class Patch(object):
 
 
 @task
-def add():
+def add(ctx):
     template = Template(
         '- ${task_num}:\n'
         '   file: ${patch_file}\n'
         '   milestone: ${urlmilestone}\n'
         '   task: ${urltask}\n'
         )
-    task_num = raw_input('Num. tasca: ')
-    patch_file = raw_input('Fixter diff: ')
-    urlmilestone = raw_input('Url del milestone: ')
-    urltask = raw_input('Url de la tasca: ')
+    task_num = input('Num. tasca: ')
+    patch_file = input('Fixter diff: ')
+    urlmilestone = input('Url del milestone: ')
+    urltask = input('Url de la tasca: ')
     data = {
         'task_num': task_num,
         'patch_file': patch_file,
@@ -77,7 +77,7 @@ def add():
 
 
 @task()
-def applied():
+def applied(ctx):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -96,7 +96,7 @@ def applied():
 
 
 @task()
-def unnapplied():
+def unnapplied(ctx):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -127,7 +127,7 @@ def _pop():
 
 
 @task()
-def pop():
+def pop(ctx):
     _pop()
 
 
@@ -145,7 +145,7 @@ def _push():
 
 
 @task()
-def push():
+def push(ctx):
     _push()
 
 

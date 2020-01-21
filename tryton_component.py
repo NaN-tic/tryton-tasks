@@ -6,14 +6,14 @@ from invoke import task, Collection, run
 from .config import get_config
 from .utils import read_config_file, NO_MODULE_REPOS, BASE_MODULES
 
-import httplib
-from urlparse import urlparse
+import http.client
+from urllib.parse import urlparse
 from .scm import hg_clone
 import tempfile
 
 def check_url(url):
     p = urlparse(url)
-    conn = httplib.HTTPConnection(p.netloc)
+    conn = http.client.HTTPConnection(p.netloc)
     conn.request('HEAD', p.path)
     resp = conn.getresponse()
     return resp.status < 400
@@ -31,8 +31,8 @@ def check_module(module):
 
 try:
     from proteus import config as pconfig, Model
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
@@ -65,29 +65,29 @@ def _pull():
     return components
 
 @task()
-def push(config=None, filter=None):
+def push(ctx, config=None, filter=None):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
-    print "Fetching module list..."
+    print("Fetching module list...")
     Module = Model.get('ir.module')
     modules = {}
     for module in Module.find([]):
         modules[module.name] = module
 
-    print "Fetching component list..."
+    print("Fetching component list...")
     components = {}
     for component in Component.find([]):
         components[component.name] = component
 
-    print "Updating components..."
+    print("Updating components...")
     Config = read_config_file(config, unstable=True)
     for section in Config.sections():
         if section in NO_MODULE_REPOS + BASE_MODULES:
             pass
         if filter and filter not in section:
             continue
-        print "Updating %s..." % section,
+        print("Updating %s..." % section, end=' ')
         c = Component()
         if section in components:
             c = components[section]
@@ -105,17 +105,17 @@ def push(config=None, filter=None):
                 value = value.replace(',', '').replace('.', '')
                 c.sloc = int(value)
         if c.sloc is None:
-            print "No SLOC could be calculated."
+            print("No SLOC could be calculated.")
         else:
-            print "%d SLOC" % c.sloc
+            print("%d SLOC" % c.sloc)
         c.save()
 
 @task()
-def upload_file():
+def upload_file(ctx):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
-    print "Fetching component list..."
+    print("Fetching component list...")
     components = {}
     for component in Component.find([]):
         components[component.name] = component
@@ -125,9 +125,9 @@ def upload_file():
 
     tempdir = tempfile.mkdtemp()
 
-    print "Updating components:", modules
+    print("Updating components:", modules)
     for module in modules:
-        print "Updating %s..." % module
+        print("Updating %s..." % module)
         if module in components:
             c = components[module]
         else:
@@ -148,20 +148,20 @@ def upload_file():
                 value = value.replace(',', '').replace('.', '')
                 c.sloc = int(value)
         if c.sloc is None:
-            print "No SLOC could be calculated."
+            print("No SLOC could be calculated.")
         else:
-            print "%d SLOC" % c.sloc
+            print("%d SLOC" % c.sloc)
         c.save()
 
 @task()
-def sloccount():
+def sloccount(ctx):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
-    print "Fetching component list..."
+    print("Fetching component list...")
     tempdir = tempfile.mkdtemp()
     for component in Component.find([]):
-        print "Updating %s..." % component.name
+        print("Updating %s..." % component.name)
         path = os.path.join(tempdir, component.name)
         hg_clone(component.url, path)
         if os.path.isdir(path):
@@ -174,9 +174,9 @@ def sloccount():
                 value = value.replace(',', '').replace('.', '')
                 component.sloc = int(value)
                 component.save()
-                print '%d SLOC saved.' % component.sloc
+                print('%d SLOC saved.' % component.sloc)
             else:
-                print 'No SLOC could be calculated.'
+                print('No SLOC could be calculated.')
 
 
 

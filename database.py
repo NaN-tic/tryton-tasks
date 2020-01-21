@@ -6,16 +6,18 @@ import time
 JOBS = 3
 FORMAT = 'directory'
 
+
 def execute(command, **kwargs):
     if not 'warn' in kwargs:
         kwargs['warn'] = True
     if not 'hide' in kwargs:
         kwargs['hide'] = True
-    print 'Running: %s' % command
+    print('Running: %s' % command)
     return run(command, **kwargs)
 
+
 @task()
-def dump(database, ssh=None):
+def dump(ctx, database, ssh=None):
     '''
     Dumps the content of the given database to
     ~/backups/<database name>-<timestamp> in PostgreSQL directory format using
@@ -44,7 +46,7 @@ def dump(database, ssh=None):
     return path, relative_path
 
 @task()
-def restore(path, database, ssh=None):
+def restore(ctx, path, database, ssh=None):
     '''
     Restores the content of the given path into the given database name.
     The content of the path should be in PostgreSQL directory format and it
@@ -65,7 +67,7 @@ def restore(path, database, ssh=None):
     return execute(command)
 
 @task()
-def drop(database):
+def drop(ctx, database):
     '''
     Drops the given database but makes a backup using the database.dump command
     first.
@@ -74,33 +76,7 @@ def drop(database):
     execute('dropdb %s' % database)
 
 @task()
-def logged(database, logged=True):
-    '''
-    Changes the owner of the given database to the given owner username.
-    '''
-
-    command = 'SET LOGGED'
-    if not logged:
-        command = "SET UNLOGGED"
-
-    connection = psycopg2.connect('dbname=%s' % database)
-    cursor = connection.cursor()
-    cursor.execute("SELECT tablename FROM pg_tables WHERE "
-        "schemaname = 'public'")
-    tables = set([x[0] for x in cursor.fetchall()])
-    query ="SET CONSTRAINTS DEFFERRED;\n"
-    for table in tables:
-        query = ('ALTER TABLE public."%s" %s;\n' % (table,
-                command))
-
-    cursor.execute(query)
-    connection.commit()
-    connection.close()
-    print 'Changed %d tables, to %s' % (len(tables), command)
-
-
-@task()
-def owner(database, to_owner):
+def owner(ctx, database, to_owner):
     '''
     Changes the owner of the given database to the given owner username.
     '''
@@ -121,20 +97,16 @@ def owner(database, to_owner):
         cursor.execute('ALTER TABLE public."%s" OWNER TO "%s"' % (table,
                 to_owner))
 
-    connection.commit()
     cursor.execute("SELECT routine_name FROM information_schema.routines "
         "WHERE routine_schema = 'public'")
     routines = set([x[0] for x in cursor.fetchall()])
-    try:
-        for routine in routines:
-            cursor.execute('ALTER FUNCTION public."%s" OWNER TO "%s"' % (routine,
-                    to_owner))
-        connection.commit()
-    except psycopg2.ProgrammingError as e:
-        print 'ERROR changing functions: {}'.format(e)
+    for routine in routines:
+        cursor.execute('ALTER FUNCTION public."%s" OWNER TO "%s"' % (routine,
+                to_owner))
+    connection.commit()
     connection.close()
-    print 'Changed %d tables, sequences and views to %s' % (len(tables),
-        to_owner)
+    print('Changed %d tables, sequences and views to %s' % (len(tables),
+        to_owner))
 
 def local_copy_with_template(from_database, to_database, to_owner):
     # If we're on the same host, just try to use CREATE DATABASE with
@@ -175,7 +147,7 @@ def remote_restore(local_path, relative_path, host, database):
     restore(remote_path, database, 'ssh %s' % host)
 
 @task()
-def copy(from_, to, to_owner=None):
+def copy(ctx, from_, to, to_owner=None):
     '''
     Copies the content a database into a new one. Databases may be in different
     hosts. Optionally it also allows you to specify the target owner which
@@ -204,7 +176,7 @@ def copy(from_, to, to_owner=None):
     if from_host:
         local_path, relative_path = remote_dump(from_host, from_database)
     else:
-        local_path, relative_path = dump(from_database)
+        local_path, relative_path = dump(ctx, from_database)
 
     # Restore
     if to_host:
@@ -212,13 +184,13 @@ def copy(from_, to, to_owner=None):
         remote_restore(local_path, relative_path, to_host, to_database)
     else:
         execute('createdb %s' % to_database)
-        restore(local_path, to_database)
+        restore(ctx, local_path, to_database)
         if to_owner:
-            owner(to_database, to_owner)
+            owner(ctx, to_database, to_owner)
 
 
 @task()
-def cluster(database):
+def cluster(ctx, database):
     '''
     Runs CLUSTER to all tables in the database using its primary key (which
     should be the "id" field in Tryton tables).
@@ -240,7 +212,7 @@ def cluster(database):
             cursor.execute(query)
             connection.commit()
         except psycopg2.ProgrammingError:
-            print('Error executing: %s' % query)
+            print(('Error executing: %s' % query))
             connection.rollback()
     connection.close()
 
@@ -251,4 +223,3 @@ DatabaseCollection.add_task(dump)
 DatabaseCollection.add_task(owner)
 DatabaseCollection.add_task(copy)
 DatabaseCollection.add_task(cluster)
-DatabaseCollection.add_task(logged)

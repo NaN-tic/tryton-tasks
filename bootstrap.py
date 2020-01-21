@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ConfigParser
+import configparser
 import os
 from blessings import Terminal
 from invoke import Collection, task, run
@@ -8,9 +8,11 @@ from path import Path
 
 from .utils import _ask_ok, _check_required_file, _exit
 from .scm import git_clone, git_pull, clone, fetch
+from .sao import install as sao_install, grunt as sao_grunt
+
 
 t = Terminal()
-Config = ConfigParser.ConfigParser()
+Config = configparser.ConfigParser()
 
 # TODO: l'us que faig del config potser correspon a context
 # http://docs.pyinvoke.org/en/latest/getting_started.html#handling-configuration-state
@@ -19,11 +21,11 @@ INITIAL_PATH = Path.getcwd()
 
 
 @task()
-def get_tasks(taskpath='tasks'):
+def get_tasks(ctx, taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
     if Path(taskpath).exists():
-        print 'Updating tasks repo'
+        print('Updating tasks repo')
         git_pull(taskpath, taskpath, True)
         return
 
@@ -36,11 +38,11 @@ def get_tasks(taskpath='tasks'):
     print ('Cloning git@github.com:NaN-tic/tryton-tasks '
         'repository in "tasks" directory.')
     git_clone('git@github.com:NaN-tic/tryton-tasks', taskpath)
-    print ""
+    print("")
 
 
 @task()
-def get_config(configpath='config', branch='default'):
+def get_config(ctx, configpath='config', branch='default'):
     # TODO: add option to update repository
     Config.config_path = Path(configpath).abspath()
     if Path(configpath).exists():
@@ -57,15 +59,15 @@ def get_config(configpath='config', branch='default'):
     print ('Cloning git@github.com:NaN-tic/tryton-config '
         'repository in "config" directory.')
     git_clone('git@github.com:NaN-tic/tryton-config', configpath, branch)
-    print ""
+    print("")
 
 
 @task()
-def get_utils(utilspath='utils'):
+def get_utils(ctx, utilspath='utils'):
     # TODO: add option to update repository
     Config.utils_path = utilspath
     if Path(utilspath).exists():
-        print 'Updating utils repo'
+        print('Updating utils repo')
         git_pull(utilspath, utilspath, True)
         return
 
@@ -78,11 +80,11 @@ def get_utils(utilspath='utils'):
     print ('Cloning git@github.com:NaN-tic/nan_tryton_utils '
         'repository in "utils" directory.')
     git_clone('git@github.com:NaN-tic/nan_tryton_utils', utilspath)
-    print ""
+    print("")
 
 
 @task()
-def activate_virtualenv(projectname):
+def activate_virtualenv(ctx, projectname):
     '''
     Config.virtualenv indicates virtualenv must to be activated
     Config.virtualenv_active informs virtualenv is activated
@@ -116,16 +118,16 @@ def activate_virtualenv(projectname):
             projectname)
         if virtualenv_path.exists() and virtualenv_path.isdir():
             activate_this_path = virtualenv_path.joinpath('bin/activate_this.py')
-            print "Activating virtualenv %s" % projectname
+            print("Activating virtualenv %s" % projectname)
             run(activate_this_path)
 
 
 @task(['get_config', 'activate_virtualenv'])
-def install_requirements(upgrade=False):
+def install_requirements(ctx, upgrade=False):
     if not Config.requirements:
         return
     if not hasattr(Config, 'virtualenv_active') and os.geteuid() != 0:
-        resp = raw_input('It can\'t install requirements because you aren\'t '
+        resp = input('It can\'t install requirements because you aren\'t '
             'the Root user and you aren\'t in a Virtualenv. You will have to '
             'install requirements manually as root with command:\n'
             '  $ pip install [--upgrade] -r requirements.txt\n'
@@ -138,7 +140,7 @@ def install_requirements(upgrade=False):
         if resp.lower() in ('', 's', 'skip'):
             return
 
-    print 'Installing dependencies.'
+    print('Installing dependencies.')
     _check_required_file('requirements.txt', Config.config_path.basename(),
         Config.config_path)
     if upgrade:
@@ -148,7 +150,7 @@ def install_requirements(upgrade=False):
     else:
         run('pip install -r %s/requirements.txt' % Config.config_path)
         #    _out=options.output, _err=sys.stderr)
-    print ""
+    print("")
 
 
 # TODO: prepare_local() => set configuration options for future bootstrap based
@@ -156,8 +158,8 @@ def install_requirements(upgrade=False):
 
 
 @task()
-def install_proteus(proteuspath=None, upgrade=False):
-    print "Installing proteus."
+def install_proteus(ctx, proteuspath=None, upgrade=False):
+    print("Installing proteus.")
     if proteuspath is None:
         cmd = ['pip', 'install', 'proteus']
         if upgrade:
@@ -171,14 +173,14 @@ def install_proteus(proteuspath=None, upgrade=False):
         os.chdir(proteuspath)
         run('python setup.py install')
         os.chdir(cwd)
-    print ""
+    print("")
 
 
 @task()
-def create_symlinks():
+def create_symlinks(ctx):
     cwd = Path.getcwd()
     if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
-        print 'Symlinks script not found'
+        print('Symlinks script not found')
         return
     os.chdir(os.path.join(cwd, 'utils'))
     run('./script-symlinks.sh', warn=True)
@@ -186,12 +188,14 @@ def create_symlinks():
 
 
 @task(default=True)
-def bootstrap(branch, projectpath='', projectname='',
+def bootstrap(ctx, branch, projectpath='', projectname='',
         taskspath='tasks',
         configpath='config',
         utilspath='utils',
         virtualenv=True,
         upgradereqs=False):
+
+    cwd = Path.getcwd()
 
     if projectpath:
         projectpath = Path(projectpath)
@@ -214,16 +218,21 @@ def bootstrap(branch, projectpath='', projectname='',
     Config.get_utils = True
     Config.requirements = True  # Install?
 
-    get_tasks(taskspath)
-    get_config(configpath, branch=branch)
-    get_utils(utilspath)
-    activate_virtualenv(projectname)
-    install_requirements(upgrade=upgradereqs)
+    get_tasks(ctx, taskspath)
+    get_config(ctx, configpath, branch=branch)
+    get_utils(ctx, utilspath)
+    activate_virtualenv(ctx, projectname)
+    install_requirements(ctx, upgrade=upgradereqs)
 
-    clone('config/base.cfg')
-    fetch()
+    clone(ctx, 'config/base.cfg')
+    fetch(ctx)
 
-    create_symlinks()
+    # SAO
+    sao_install(ctx)
+    os.chdir(cwd)
+    sao_grunt(ctx)
+
+    create_symlinks(ctx)
 
     if Path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)

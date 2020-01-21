@@ -10,7 +10,8 @@ series_file = 'series'
 
 
 def read_series():
-    return yaml.load(open(os.path.join(patches_dir, series_file)).read())
+    return yaml.load(open(os.path.join(patches_dir, series_file)).read(),
+        Loader=yaml.FullLoader)
 
 
 def write_series(data):
@@ -35,7 +36,7 @@ class Patch(object):
         command = ["patch", "-N", "-p1", "--silent", "--dry-run", "-i", self.patchfile]
         process = subprocess.Popen(command, stdout=subprocess.PIPE)
         output, err = process.communicate()
-        self.conflict = 'FAILED' in output
+        self.conflict = 'FAILED' in str(output)
         if not output or self.conflict:
             return False
         return True
@@ -54,15 +55,15 @@ class Patch(object):
 
 
 @task
-def add():
+def add(ctx):
     template = Template(
         '- ${ticket_num}:\n'
         '   file: ${patch_file}\n'
         '   task: ${urltask}\n'
         )
-    ticket_num = raw_input('Num. tiquet: ')
-    patch_file = raw_input('Fixter diff: ')
-    urltask = raw_input('Url del tiquet: ')
+    ticket_num = input('Num. tiquet: ')
+    patch_file = input('Fixter diff: ')
+    urltask = input('Url del tiquet: ')
     data = {
         'ticket_num': ticket_num,
         'patch_file': patch_file,
@@ -72,7 +73,7 @@ def add():
 
 
 @task()
-def applied():
+def applied(ctx):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -91,7 +92,7 @@ def applied():
 
 
 @task()
-def unnapplied():
+def unnapplied(ctx):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -122,7 +123,7 @@ def _pop():
 
 
 @task()
-def pop():
+def pop(ctx):
     _pop()
 
 
@@ -140,7 +141,7 @@ def _push():
 
 
 @task()
-def push():
+def push(ctx):
     _push()
 
 

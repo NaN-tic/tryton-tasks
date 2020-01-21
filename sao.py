@@ -3,24 +3,31 @@ import os
 from invoke import task, Collection
 from blessings import Terminal
 
+SAO_DIR = './sao'
+
 t = Terminal()
 
 @task
-def install():
+def install(ctx):
     'Install SAO'
-    os.chdir('public_data/sao')
+    os.chdir(SAO_DIR)
     os.system('npm install')
     os.system('bower install')
 
-    print t.bold('Done')
+    # download TinyMCE
+    os.system('bower install tinymce#4.9.3')
+    os.system('bower install tinymce-i18n')
+    os.system('ln -s ../tinymce-i18n/langs bower_components/tinymce/langs')
+
+    print(t.bold('Done'))
 
 @task
-def grunt():
+def grunt(ctx):
     'Grunt SAO'
-    os.chdir('public_data/sao')
-    os.system('grunt')
+    os.chdir(SAO_DIR)
+    os.system('grunt dev')
 
-    print t.bold('Done')
+    print(t.bold('Done'))
 
 SaoCollection = Collection()
 SaoCollection.add_task(install)

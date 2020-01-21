@@ -3,7 +3,7 @@ from invoke import task, Collection
 import os
 import subprocess
 import sys
-import scm
+from . import scm
 import logging
 import time
 from coverage import coverage
@@ -30,7 +30,7 @@ for module_name in ('trytond', 'proteus'):
         sys.path.insert(0, DIR)
 
 # Now we should be able to import everything
-import TrytonTestRunner
+from . import TrytonTestRunner
 
 older_version = True
 try:
@@ -45,8 +45,8 @@ except ImportError:
 
 try:
     from proteus import Model
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 
 def check_output(*args):
@@ -107,9 +107,9 @@ def test(dbtype, name, modules, failfast, upload=True):
 
     logger.info('Upload results to tryton')
     if upload:
-        print("Uploading to Tryton '%s'" % name)
+        print(("Uploading to Tryton '%s'" % name))
         runner.upload_tryton(dbtype, failfast, name)
-        print("'%s' uploaded." % name)
+        print(("'%s' uploaded." % name))
     else:
         runner.print_report(dbtype, failfast, name)
 
@@ -140,8 +140,8 @@ def _module(module, dbtype='sqlite', fail_fast=False, upload=True, force=False):
                 order=[('execution', 'Desc')],
                 limit=1)
 
-        except hgapi.HgException, e:
-            print "Error running %s: %s" % (e.exit_code, str(e))
+        except hgapi.HgException as e:
+            print("Error running %s: %s" % (e.exit_code, str(e)))
 
         if build and not force:
             return

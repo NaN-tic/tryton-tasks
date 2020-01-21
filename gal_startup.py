@@ -95,7 +95,7 @@ def set_active_languages(config, lang_codes=None):
 
     if not all(l.translatable for l in langs):
         # langs is fetched before wet all translatable
-        print "Upgrading all because new translatable languages has been added"
+        print("Upgrading all because new translatable languages has been added")
         upgrade_modules(config, all=True)
 
 
@@ -727,7 +727,7 @@ if __name__ == "__main__":
         logger.info('Load start data in %s' % settings.database)
 
         if 'company' in installed_modules:
-            company = create_company(config, u'NaN·tic')
+            company = create_company(config, 'NaN·tic')
             logger.info('Company created: %s' % company)
 
         # TODO: create_nantic_user(config)

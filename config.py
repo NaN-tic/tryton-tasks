@@ -1,5 +1,5 @@
 import os
-import ConfigParser
+import configparser
 from invoke import Collection, task, run
 from .scm import get_repo, hg_status, git_status
 from collections import OrderedDict
@@ -12,12 +12,12 @@ from .utils import (t, get_config_files, read_config_file, remove_dir,
 
 def get_config():
     """ Get config file for tasks module """
-    parser = ConfigParser.ConfigParser()
+    parser = configparser.ConfigParser()
     config_path = '%s/.tryton-tasks.cfg' % os.getenv('HOME')
     parser.read(config_path)
     settings = {}
     for section in parser.sections():
-        usection = unicode(section, 'utf-8')
+        usection = str(section)
         settings[usection] = {}
         for name, value, in parser.items(section):
             settings[usection][name] = value
@@ -25,7 +25,7 @@ def get_config():
 
 
 @task()
-def set_revision(config=None):
+def set_revision(ctx, config=None):
     """ Set branch on repository config files """
 
     if config is None:
@@ -48,7 +48,7 @@ def set_revision(config=None):
 
 
 @task()
-def set_branch(branch, config=None):
+def set_branch(ctx, branch, config=None):
     """ Set branch on repository config files """
 
     if config is None:
@@ -68,7 +68,7 @@ def set_branch(branch, config=None):
         f_d.close()
 
 @task()
-def add_modules(config, version, owner, modules="./modules"):
+def add_modules(ctx, config, version, owner, modules="./modules"):
     Config = read_config_file(config, type='all', unstable=True)
 
     for d in [x for x in os.listdir(modules) if os.path.isdir(
@@ -77,25 +77,25 @@ def add_modules(config, version, owner, modules="./modules"):
         cfg_file = os.path.join(path, 'tryton.cfg')
         if not os.path.exists(cfg_file):
             continue
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         Config.readfp(open(cfg_file))
         v = Config.get('tryton', 'version')
-        if v != version:
-            continue
+        # if v != version:
+        #     continue
 
         repo = hgapi.Repo(path)
         url = repo.config('paths', 'default')
 
         if owner and "/%s/" % owner not in url:
             continue
-
+        print("module:", path)
         add_module(config, path, url)
 
 
 
 
 @task()
-def add_module(config, path, url=None):
+def add_module(ctx, config, path, url=None):
     """ Add module to specified config file """
     Config = read_config_file(config, type='all', unstable=True)
     module = os.path.basename(path)
@@ -109,13 +109,13 @@ def add_module(config, path, url=None):
         Config.set(module, 'url', url)
         Config.set(module, 'path', './trytond/trytond/modules')
 
-    Config._sections = OrderedDict(sorted(Config._sections.iteritems(),
+    Config._sections = OrderedDict(sorted(iter(Config._sections.items()),
         key=lambda x: x[0]))
     Config.write(cfile)
     cfile.close()
 
 @task()
-def unknown(unstable=True, status=False, show=True, remove=False, quiet=False,
+def unknown(ctx, unstable=True, status=False, show=True, remove=False, quiet=False,
         add=False):
     """
     Return a list of modules/repositories that exists in filesystem but not in
@@ -145,13 +145,13 @@ def unknown(unstable=True, status=False, show=True, remove=False, quiet=False,
 
     if show:
         if modules_wo_repo:
-            print t.bold("Unknown module (without repository):")
-            print "  - " + "\n  - ".join(modules_wo_repo)
-            print ""
+            print(t.bold("Unknown module (without repository):"))
+            print("  - " + "\n  - ".join(modules_wo_repo))
+            print("")
         if not status and repo_not_in_cfg:
-            print t.bold("Unknown repository:")
-            print "  - " + "\n  - ".join(repo_not_in_cfg)
-            print ""
+            print(t.bold("Unknown repository:"))
+            print("  - " + "\n  - ".join(repo_not_in_cfg))
+            print("")
 
     if add:
         config_files = get_config_files()

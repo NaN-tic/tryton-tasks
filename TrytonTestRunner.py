@@ -1,6 +1,6 @@
 import datetime
 import subprocess
-import StringIO
+import io
 import sys
 import unittest
 import os
@@ -15,8 +15,8 @@ import hgapi
 
 try:
     from proteus import config as pconfig, Model
-except ImportError, e:
-    print >> sys.stderr, "trytond importation error: ", e
+except ImportError as e:
+    print("trytond importation error: ", e, file=sys.stderr)
 
 os.environ['TZ'] = "Europe/Madrid"
 settings = get_config()
@@ -116,7 +116,7 @@ class _TestResult(TestResult):
         self.error_count = 0
         self.verbosity = verbosity
         self.failfast = failfast
-        self.outputBuffer = StringIO.StringIO()
+        self.outputBuffer = io.StringIO()
 
         # result is a list of result in 4 tuple
         # (
@@ -225,10 +225,10 @@ class TrytonTestRunner(object):
         logger.info("Report for execution %s" % name)
 
         for module in report:
-            print "************     ", module, "     ************"
+            print("************     ", module, "     ************")
             result = report[module]
             path = result['path']
-            print "path:", path
+            print("path:", path)
 
             try:
                 revision = hg_revision(module, path) or '0'
@@ -237,26 +237,26 @@ class TrytonTestRunner(object):
                 revision = 'unknown'
                 branch = 'default'
 
-            print "revision:", revision
-            print "branch:", branch
-            print "coverage:", round(self.coverage_result.get(module,
-                    (0, 0, 0))[2], 2)
+            print("revision:", revision)
+            print("branch:", branch)
+            print("coverage:", round(self.coverage_result.get(module,
+                    (0, 0, 0))[2], 2))
 
-            print "lines:", self.coverage_result.get(module, (0, 0, 0))[0]
-            print "covered lines", self.coverage_result.get(module,
-                (0, 0, 0))[1]
+            print("lines:", self.coverage_result.get(module, (0, 0, 0))[0])
+            print("covered lines", self.coverage_result.get(module,
+                (0, 0, 0))[1])
 
             for test_result in result['test']:
-                print "\nTest:", test_result['desc']
-                print "type:", test_result['type']
-                print "status:", test_result['status']
-                print test_result['output']
+                print("\nTest:", test_result['desc'])
+                print("type:", test_result['type'])
+                print("status:", test_result['status'])
+                print(test_result['output'])
 
-            for test_result in self.pyflakes_result.get(module, []).values():
-                print "\nTest:", test_result['name']
-                print "type:", test_result['type']
-                print "status:", test_result['status']
-                print test_result['output']
+            for test_result in list(self.pyflakes_result.get(module, []).values()):
+                print("\nTest:", test_result['name'])
+                print("type:", test_result['type'])
+                print("status:", test_result['status'])
+                print(test_result['output'])
 
     def upload_tryton(self, db_type, failfast, name):
         logger.info("Generating report for execution %s" % name)
@@ -303,7 +303,7 @@ class TrytonTestRunner(object):
                 tr.state = test_result['status']
                 test.test.append(tr)
 
-            for test_result in self.pyflakes_result.get(module, []).values():
+            for test_result in list(self.pyflakes_result.get(module, []).values()):
                 tr = TestResult()
                 tr.name = test_result['name']
                 tr.type = test_result['type']
@@ -313,7 +313,7 @@ class TrytonTestRunner(object):
             test.save()
 
     def coverage_report(self):
-        f = StringIO.StringIO()
+        f = io.StringIO()
         self._coverage.load()
         self._coverage.report(file=f, show_missing=False)
         output = f.getvalue()
@@ -414,8 +414,8 @@ class TrytonTestRunner(object):
         self.stopTime = datetime.datetime.now()
         self._coverage.stop()
         self._coverage.save()
-        print >> sys.stderr, '\nTime Elapsed: %s' % (self.stopTime -
-            self.startTime)
+        print('\nTime Elapsed: %s' % (self.stopTime -
+            self.startTime), file=sys.stderr)
 
         self.generateReport(test, result)
         self.coverage_report()
@@ -431,7 +431,7 @@ class TrytonTestRunner(object):
         classes = []
         for n, t, o, e in result_list:
             cls = t.__class__
-            if not rmap.has_key(cls):
+            if cls not in rmap:
                 rmap[cls] = []
                 classes.append(cls)
             rmap[cls].append((n, t, o, e))

@@ -97,12 +97,12 @@ def _update_all(database):
 
 
 @task()
-def create_db(database, lang_codes=None, config_file=None):
+def create_db(ctx, database, lang_codes=None, config_file=None):
     _create_db(database, lang_codes=lang_codes, config_file=config_file)
 
 
 @task()
-def load(database, scenario, lang_codes=None, config_file=None):
+def load(ctx, database, scenario, lang_codes=None, config_file=None):
     _load(database, scenario, lang_codes=lang_codes,
         config_file=config_file)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ConfigParser
+import configparser
 import os
 import tempfile
 import choice
@@ -20,7 +20,7 @@ def review_file(module):
     if not os.path.exists(cfg):
         return None
 
-    Config = ConfigParser.ConfigParser()
+    Config = configparser.ConfigParser()
     cfg_file = open(cfg)
     Config.readfp(cfg_file)
     cfg_file.close()
@@ -30,10 +30,10 @@ def review_file(module):
 def create_review_file(module, review_id):
     cfg = os.path.join(module, ".review.cfg")
     cfg_file = open(cfg, 'w+')
-    Config = ConfigParser.ConfigParser()
+    Config = configparser.ConfigParser()
     Config.readfp(cfg_file)
     Config.add_section('Review')
-    Config.set('Review', 'id', review_id)
+    Config.set('Review', 'id', str(review_id))
     Config.write(cfg_file)
     cfg_file.close()
 
@@ -68,13 +68,13 @@ def get_repository():
 
 
 @task()
-def create(path, module, summary, description, bug, group='NaN'):
+def create(ctx, path, module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
-    diff, base_diff = module_diff(path, module, show=False)
+    diff, base_diff = module_diff(ctx, path, module, show=False)
     root = get_root()
-    review_id = review_file(module)
+    review_id = review_file(path)
 
     if review_id:
         upgrade_review = choice.Binary('Do you like upgrade the review '
@@ -88,7 +88,7 @@ def create(path, module, summary, description, bug, group='NaN'):
         create_review_file(path, review_request.id)
     else:
         review_request = root.get_review_request(
-            review_request_id=review_file(module))
+            review_request_id=review_file(path))
 
     review_request.get_diffs().upload_diff(diff.encode('utf-8'),
         base_diff.encode('utf-8'))
@@ -106,17 +106,17 @@ def create(path, module, summary, description, bug, group='NaN'):
 
 
 @task()
-def reviews():
+def reviews(ctx):
     """
     List your reviews in Review Board
     """
     root = get_root()
     requests = root.get_review_requests()
     for request in requests:
-        print "%(id)s - %(summary)s Updated:%(last_updated)s" % request
+        print("%(id)s - %(summary)s Updated:%(last_updated)s" % request)
         for bug in request['bugs_closed']:
-            print "Bug: %s" % bug
-        print "%(description)s\n" % request
+            print("Bug: %s" % bug)
+        print("%(description)s\n" % request)
 
 
 def request_by_id(review_id):
@@ -126,7 +126,7 @@ def request_by_id(review_id):
 
 
 @task()
-def fetch(module, review):
+def fetch(ctx, module, review):
     """
         Download and apply patch.
     """
@@ -143,7 +143,7 @@ def fetch(module, review):
 
 
 @task()
-def close_all():
+def close_all(ctx, domain):
     root = get_root()
     requests = root.get_review_requests(domain)
     for request in requests:
@@ -152,7 +152,7 @@ def close_all():
 
 
 @task()
-def close(review=None, close_type='submitted'):
+def close(ctx, review=None, close_type='submitted'):
     """ @type submitted | discarded """
 
     request, = request_by_id(review)
