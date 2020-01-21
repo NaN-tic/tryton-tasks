@@ -227,10 +227,14 @@ def upload_review(work, path, branch='default', module=None):
 
     repo = hgapi.Repo(path)
     url = repo.config('paths', 'default')
-    url_list = url.split('/')
-    owner, repo_name = (url_list[-2], url_list[-1])
+    if url:
+        url_list = url.split('/')
+        owner, repo_name = (url_list[-2], url_list[-1])
+    else:
+        owner = 'nantic'
+        repo_name, = path.split('/')[-1:]
 
-    review = reviewboard.create(path, work.rec_name,
+    review = reviewboard.create(path, module, work.rec_name,
             (work.problem or '') + '\n' + (work.solution or ''), work.code)
 
     review_id = review

@@ -3,6 +3,7 @@
 import ConfigParser
 import os
 import tempfile
+import choice
 
 from invoke import task, run, Collection
 try:
@@ -71,16 +72,24 @@ def create(path, module, summary, description, bug, group='NaN'):
     """
         Create  or update review
     """
+    print(path, module)
     diff, base_diff = module_diff(path, module, show=False)
     root = get_root()
-    review_id = review_file(module)
+    review_id = review_file(path)
+
+    if review_id:
+        upgrade_review = choice.Binary('Do you like upgrade the review '
+            '%s (%s)?' % (review_id, module), True).ask()
+        if not upgrade_review:
+            review_id = None
+
     if review_id is None:
         review_request = root.get_review_requests().create(
             repository=get_repository())
-        create_review_file(module, review_request.id)
+        create_review_file(path, review_request.id)
     else:
         review_request = root.get_review_request(
-            review_request_id=review_file(module))
+            review_request_id=review_file(path))
 
     review_request.get_diffs().upload_diff(diff.encode('utf-8'),
         base_diff.encode('utf-8'))

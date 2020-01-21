@@ -247,9 +247,9 @@ def git_status(module, path, url=None, verbose=False):
     config = repo.config_reader()
     config.read()
     actual_url = config.get_value('remote "origin"', 'url')
-    if actual_url != url:
-        print >> sys.stderr, (t.bold('[%s]' % module) +
-            t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
+    # if actual_url != url:
+    #     print >> sys.stderr, (t.bold('[%s]' % module) +
+    #         t.red(' URL differs: ') + t.bold(actual_url + ' != ' + url))
     diff = repo.index.diff(None)
     files = {}
     for change in diff.change_type:
