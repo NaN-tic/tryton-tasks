@@ -155,17 +155,6 @@ def install_proteus(ctx, proteuspath=None, upgrade=False):
     print("")
 
 
-@task()
-def create_symlinks(ctx):
-    cwd = Path.getcwd()
-    if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
-        print('Symlinks script not found')
-        return
-    os.chdir(os.path.join(cwd, 'utils'))
-    run('./script-symlinks.sh', warn=True)
-    os.chdir(cwd)
-
-
 @task(default=True)
 def bootstrap(ctx, branch, projectpath='', projectname='',
         taskspath='tasks',
@@ -209,14 +198,12 @@ def bootstrap(ctx, branch, projectpath='', projectname='',
     os.chdir(cwd)
     sao_grunt(ctx)
 
-    create_symlinks(ctx)
-
     if Path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
 
 
 __all__ = ['get_tasks', 'get_config', 'activate_virtualenv',
-    'install_requirements', 'install_proteus', 'create_symlinks', 'bootstrap']
+    'install_requirements', 'install_proteus', 'bootstrap']
 
 BootstrapCollection = Collection()
 BootstrapCollection.add_task(bootstrap)
@@ -225,4 +212,3 @@ BootstrapCollection.add_task(get_tasks)
 BootstrapCollection.add_task(activate_virtualenv)
 BootstrapCollection.add_task(install_requirements)
 BootstrapCollection.add_task(install_proteus)
-BootstrapCollection.add_task(create_symlinks)
