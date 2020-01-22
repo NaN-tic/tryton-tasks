@@ -63,27 +63,6 @@ def get_config(ctx, configpath='config', branch='default'):
 
 
 @task()
-def get_utils(ctx, utilspath='utils'):
-    # TODO: add option to update repository
-    Config.utils_path = utilspath
-    if Path(utilspath).exists():
-        print('Updating utils repo')
-        git_pull(utilspath, utilspath, True)
-        return
-
-    if not getattr(Config, 'get_utils'):
-        if not _ask_ok('Are you in the customer project directory? '
-                'Answer "yes" to clone the "nan_tryton_utils" repository '
-                'in "%s" directory. [Y/n] ' % utilspath, 'y'):
-            return
-
-    print ('Cloning git@github.com:NaN-tic/nan_tryton_utils '
-        'repository in "utils" directory.')
-    git_clone('git@github.com:NaN-tic/nan_tryton_utils', utilspath)
-    print("")
-
-
-@task()
 def activate_virtualenv(ctx, projectname):
     '''
     Config.virtualenv indicates virtualenv must to be activated
@@ -215,12 +194,10 @@ def bootstrap(ctx, branch, projectpath='', projectname='',
     # TODO: parse local.cfg to Config if exists?
     Config.get_tasks = True
     Config.get_config = True
-    Config.get_utils = True
     Config.requirements = True  # Install?
 
     get_tasks(ctx, taskspath)
     get_config(ctx, configpath, branch=branch)
-    get_utils(ctx, utilspath)
     activate_virtualenv(ctx, projectname)
     install_requirements(ctx, upgrade=upgradereqs)
 
@@ -238,14 +215,13 @@ def bootstrap(ctx, branch, projectpath='', projectname='',
         os.chdir(INITIAL_PATH)
 
 
-__all__ = ['get_tasks', 'get_config', 'get_utils', 'activate_virtualenv',
+__all__ = ['get_tasks', 'get_config', 'activate_virtualenv',
     'install_requirements', 'install_proteus', 'create_symlinks', 'bootstrap']
 
 BootstrapCollection = Collection()
 BootstrapCollection.add_task(bootstrap)
 BootstrapCollection.add_task(get_config)
 BootstrapCollection.add_task(get_tasks)
-BootstrapCollection.add_task(get_utils)
 BootstrapCollection.add_task(activate_virtualenv)
 BootstrapCollection.add_task(install_requirements)
 BootstrapCollection.add_task(install_proteus)
