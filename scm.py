@@ -251,7 +251,6 @@ def status(ctx, config=None, unstable=True, no_quilt=False, verbose=False):
 
 def git_base_diff(path, module):
     files = " ".join(git_status(module, path))
-    branch = get_branch(path)
     diff = run('cd %s; git diff %s ' % (path, files), hide=True,
         encoding='utf-8')
     rev = run('cd %s; git hash-object -t tree /dev/null' % (path),
