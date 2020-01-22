@@ -1046,12 +1046,6 @@ def revision(ctx, config=None, unstable=True, verbose=True):
 
 @task()
 def fetch(ctx):
-    print(t.bold('Pulling and updating local repository...'))
-    # Replace by a "hg_pull" call
-    bashCommand = ['hg', 'pull', '-u']
-    execBashCommand(bashCommand, '',
-        "It's not possible to pull the local repostory. Err:")
-
     patches._pop()
 
     print(t.bold('Pulling...'))
