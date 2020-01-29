@@ -4,14 +4,14 @@ coverage
 GitPython>=0.3.2.RC1
 hgapi
 invoke==0.12.2
-path.py>=10.0
+git+https://github.com/jaraco/path.git@10.6
 pyactiveresource
 psutil
 RBTools==0.7.11
 python-quilt
 tabulate
 configobj
-PyHamcrest
+PyHamcrest==1.10.1
 choice
 faulthandler
 pyyaml
