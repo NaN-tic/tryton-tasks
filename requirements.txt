@@ -35,5 +35,5 @@ python-dateutil
 polib
 psycopg2-binary>=2.5.0
 python-sql>=0.8
-werkzeug
+werkzeug==0.16.1
 wrapt
