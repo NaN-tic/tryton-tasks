@@ -238,7 +238,7 @@ def upload_review(ctx, work, path, branch='default', module=None):
         repo_name, = path.split('/')[-1:]
 
     review = reviewboard.create(ctx, path, module, work.rec_name,
-            (work.problem or '') + '\n' + (work.solution or ''), work.code)
+            (work.problem or work.rec_name) + '\n' + (work.solution or ''), work.code)
 
     review_id = review
 
