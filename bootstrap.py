@@ -19,7 +19,7 @@ INITIAL_PATH = Path.getcwd()
 
 
 @task()
-def get_tasks(taskpath='tasks'):
+def get_tasks(context, taskpath='tasks'):
     # TODO: add option to update repository
     Config.tasks_path = taskpath
     if Path(taskpath).exists():
@@ -40,7 +40,7 @@ def get_tasks(taskpath='tasks'):
 
 
 @task()
-def get_config(configpath='config', branch='default'):
+def get_config(context, configpath='config', branch='default'):
     # TODO: add option to update repository
     Config.config_path = Path(configpath).abspath()
     if Path(configpath).exists():
@@ -61,7 +61,7 @@ def get_config(configpath='config', branch='default'):
 
 
 @task()
-def get_utils(utilspath='utils'):
+def get_utils(context, utilspath='utils'):
     # TODO: add option to update repository
     Config.utils_path = utilspath
     if Path(utilspath).exists():
@@ -82,7 +82,7 @@ def get_utils(utilspath='utils'):
 
 
 @task()
-def activate_virtualenv(projectname):
+def activate_virtualenv(context, projectname):
     '''
     Config.virtualenv indicates virtualenv must to be activated
     Config.virtualenv_active informs virtualenv is activated
@@ -121,7 +121,7 @@ def activate_virtualenv(projectname):
 
 
 @task(['get_config', 'activate_virtualenv'])
-def install_requirements(upgrade=False):
+def install_requirements(context, upgrade=False):
     if not Config.requirements:
         return
     if not hasattr(Config, 'virtualenv_active') and os.geteuid() != 0:
@@ -156,7 +156,7 @@ def install_requirements(upgrade=False):
 
 
 @task()
-def install_proteus(proteuspath=None, upgrade=False):
+def install_proteus(context, proteuspath=None, upgrade=False):
     print "Installing proteus."
     if proteuspath is None:
         cmd = ['pip', 'install', 'proteus']
@@ -175,7 +175,7 @@ def install_proteus(proteuspath=None, upgrade=False):
 
 
 @task()
-def create_symlinks():
+def create_symlinks(context):
     cwd = Path.getcwd()
     if not os.path.isfile(os.path.join(cwd, 'utils', 'script-symlinks.sh')):
         print 'Symlinks script not found'
@@ -186,7 +186,7 @@ def create_symlinks():
 
 
 @task(default=True)
-def bootstrap(branch, projectpath='', projectname='',
+def bootstrap(context, branch, projectpath='', projectname='',
         taskspath='tasks',
         configpath='config',
         utilspath='utils',

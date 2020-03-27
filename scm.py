@@ -60,7 +60,7 @@ def get_repo(section, config, function=None, development=False):
 
 
 @task()
-def close_branch(directory, branch):
+def close_branch(context, directory, branch):
     """ Close branch for all modules """
 
     for module_path in Path(directory).dirs():
@@ -142,7 +142,7 @@ def _clone(repo):
         branch=repo['branch'], revision=repo['revision'])
 
 @task()
-def clone(config=None, unstable=True, development=False):
+def clone(context, config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     git_pull('config', 'config', True)
 
@@ -227,7 +227,7 @@ def _status(repo):
 
 
 @task()
-def status(config=None, unstable=True, no_quilt=False, verbose=False):
+def status(context, config=None, unstable=True, no_quilt=False, verbose=False):
     if not no_quilt:
         patches._pop()
     p = Pool(MAX_PROCESSES)
@@ -280,7 +280,7 @@ def hg_base_diff(path, module):
 
 
 @task()
-def module_diff( path, module, base=True, show=True, fun=git_base_diff):
+def module_diff(context, path, module, base=True, show=True, fun=git_base_diff):
     diff, base_diff = fun(path, module)
     if show:
         print t.bold(path + " module diff:")
@@ -357,7 +357,7 @@ def hg_diff(module, path, rev1=None, rev2=None):
         print >> sys.stderr, "\n".join(msg)
 
 @task()
-def diff(config=None, unstable=True, verbose=True, rev1=None, rev2=None):
+def diff(context, config=None, unstable=True, verbose=True, rev1=None, rev2=None):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     patches._pop()
@@ -384,7 +384,7 @@ def hg_summary(module, path, verbose):
 
 
 @task()
-def summary(config=None, unstable=True, verbose=False):
+def summary(context, config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -441,7 +441,7 @@ def _outgoing(repo):
     return repo['function'](repo['name'], repo['path'], repo['verbose'])
 
 @task()
-def outgoing(config=None, unstable=True, verbose=False):
+def outgoing(context, config=None, unstable=True, verbose=False):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -534,7 +534,7 @@ def _clean(repo):
 
 
 @task()
-def clean(force=False, config=None, unstable=True):
+def clean(context, force=False, config=None, unstable=True):
     patches._pop()
     p = Pool(MAX_PROCESSES)
     Config = read_config_file(config, unstable=unstable)
@@ -609,7 +609,7 @@ def git_branches(module, path, config_branch=None):
 
 
 @task()
-def branches(config=None, modules=None):
+def branches(context, config=None, modules=None):
 
     patches._pop()
     Config = read_config_file(config, unstable=True)
@@ -626,7 +626,7 @@ def branches(config=None, modules=None):
     patches._push()
 
 @task()
-def branch(branch, clean=False, config=None, unstable=True):
+def branch(context, branch, clean=False, config=None, unstable=True):
     if not branch:
         print >> sys.stderr, t.red("Missing required branch parameter")
         return
@@ -672,7 +672,7 @@ def hg_missing_branch(module, path, branch_name, closed=True):
 
 
 @task()
-def missing_branch(branch_name, config=None, unstable=True):
+def missing_branch(context, branch_name, config=None, unstable=True):
     '''
     List all modules doesn't containt a branch named branc_name
     '''
@@ -719,7 +719,7 @@ def hg_create_branch(module, path, branch_name):
 
 
 @task()
-def create_branch(branch_name, config=None, unstable=True):
+def create_branch(context, branch_name, config=None, unstable=True):
     '''
     Create a branch with name branch_name to all the repositories that don't
     contain a branch with the same name.
@@ -794,7 +794,7 @@ def _pull(repo):
 
 
 @task()
-def pull(config=None, unstable=True, update=True, development=False,
+def pull(context, config=None, unstable=True, update=True, development=False,
          ignore_missing=False, no_quilt=False):
     if not no_quilt:
         patches._pop()
@@ -832,7 +832,7 @@ def hg_commit(module, path, msg):
     os.chdir(cwd)
 
 @task()
-def commit(msg, config=None, unstable=True):
+def commit(context, msg, config=None, unstable=True):
     '''
     Pushes all pending commits to the repo url.
 
@@ -882,7 +882,7 @@ def hg_push(module, path, url, new_branches=False):
 
 
 @task()
-def push(config=None, unstable=True, new_branches=False):
+def push(context, config=None, unstable=True, new_branches=False):
     '''
     Pushes all pending commits to the repo url.
 
@@ -991,7 +991,7 @@ def hg_update(module, path, clean, branch=None, revision=None,
 
 
 @task()
-def update(config=None, unstable=True, clean=False, development=True,
+def update(context, config=None, unstable=True, clean=False, development=True,
         no_quilt=False):
     if not no_quilt:
         patches._pop()
@@ -1054,7 +1054,7 @@ def hg_is_last_revision(path, revision):
 
 
 @task()
-def revision(config=None, unstable=True, verbose=True):
+def revision(context, config=None, unstable=True, verbose=True):
     Config = read_config_file(config, unstable=unstable)
     processes = []
     for section in Config.sections():
@@ -1068,7 +1068,7 @@ def revision(config=None, unstable=True, verbose=True):
 
 
 @task()
-def prefetch(force=False):
+def prefetch(context, force=False):
     """ Ensures clean enviroment """
 
     # TODO: We cannot call unknown because it's in config.py and
@@ -1096,7 +1096,7 @@ def prefetch(force=False):
 
 
 @task()
-def fetch():
+def fetch(context):
     print t.bold('Pulling and updating local repository...')
     # Replace by a "hg_pull" call
     bashCommand = ['git', 'pull']
@@ -1154,7 +1154,7 @@ def _module_version(modules):
         print section,';',"'"+version
 
 @task()
-def module_version(config=None):
+def module_version(context, config=None):
     '''
     Check version of module
     '''
@@ -1222,7 +1222,7 @@ def increase_module_version(module, path, version):
 
 
 @task()
-def increase_version(version, config=None, unstable=True, clean=False):
+def increase_version(context, version, config=None, unstable=True, clean=False):
     '''
     Modifies all tryton.cfg files in order to set version to <version>
     '''

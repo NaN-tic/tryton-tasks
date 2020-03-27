@@ -13,7 +13,7 @@ series_file = 'series'
 
 
 @task()
-def applied(expect_empty=False):
+def applied(context, expect_empty=False):
     print t.bold('Patches Applied')
     res = run('quilt applied',  warn=True)
     patches = res.stdout.split('\n')
@@ -25,7 +25,7 @@ def applied(expect_empty=False):
 
 
 @task()
-def unapplied():
+def unapplied(context):
     print t.bold('Patches Not Applied')
     res = run('quilt unapplied', hide='stdout', warn=True)
     patches = res.stdout.split('\n')
@@ -48,11 +48,11 @@ def _pop(force=False):
 
 
 @task()
-def pop(force=False):
+def pop(context, force=False):
     _pop(force)
 
 
-def _push(force=False, quiet=True):
+def _push(context, force=False, quiet=True):
     push = Push(os.getcwd(), pc_dir, patches_dir)
     try:
         push.apply_all(force, quiet)
@@ -70,7 +70,7 @@ def _push(force=False, quiet=True):
 
 
 @task()
-def push(force=False, quiet=True):
+def push(context, force=False, quiet=True):
     _push(force=False, quiet=True)
 
 QuiltCollection = Collection()

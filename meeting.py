@@ -32,7 +32,7 @@ Contingut
 """
 
 @task()
-def create():
+def create(context):
     today = datetime.date.today().strftime('%Y-%m-%d')
     filename = 'doc/meetings/%s.rst' % today
     if os.path.exists(filename):

@@ -65,7 +65,7 @@ def _pull():
     return components
 
 @task()
-def push(config=None, filter=None):
+def push(context, config=None, filter=None):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
@@ -111,7 +111,7 @@ def push(config=None, filter=None):
         c.save()
 
 @task()
-def upload_file():
+def upload_file(context):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 
@@ -154,7 +154,7 @@ def upload_file():
         c.save()
 
 @task()
-def sloccount():
+def sloccount(context):
     get_tryton_connection()
     Component = Model.get('project.work.component')
 

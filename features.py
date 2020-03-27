@@ -56,7 +56,7 @@ class Patch(object):
 
 
 @task
-def add():
+def add(context):
     template = Template(
         '- ${task_num}:\n'
         '   file: ${patch_file}\n'
@@ -77,7 +77,7 @@ def add():
 
 
 @task()
-def applied():
+def applied(context):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -96,7 +96,7 @@ def applied():
 
 
 @task()
-def unnapplied():
+def unnapplied(context):
     series = read_series()
     if not series:
         print("Series is empty")
@@ -127,7 +127,7 @@ def _pop():
 
 
 @task()
-def pop():
+def pop(context):
     _pop()
 
 
@@ -145,7 +145,7 @@ def _push():
 
 
 @task()
-def push():
+def push(context):
     _push()
 
 
