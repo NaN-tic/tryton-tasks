@@ -82,7 +82,7 @@ def read_config_file(config_file=None, type='repos', unstable=True,
                     continue
                 if not unstable and files.endswith("-unstable.cfg"):
                     continue
-                if 'templates' in r:
+                if 'templates' in r or '.review' in files:
                     continue
                 path = os.path.join(r, files)
                 if os.path.isfile(path):
