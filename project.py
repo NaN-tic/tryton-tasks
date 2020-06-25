@@ -228,8 +228,18 @@ def upload_review(ctx, work, path, branch='default', module=None):
     else:
         component, = components
 
+    description = []
+    description.append('**MODULE:** %s' % module)
+    if work.problem:
+        description.append('\n**PROLEM:**\n')
+        description.append(work.problem)
+    if work.solution:
+        description.append('\n**SOLUTION:**\n')
+        description.append(work.solution)
+    description = '\n'.join(description)
+
     review = reviewboard.create(ctx, path, module, work.rec_name,
-            (work.problem or work.rec_name) + '\n' + (work.solution or ''), work.code)
+            description, work.code)
 
     review_id = review
 

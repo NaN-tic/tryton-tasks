@@ -97,6 +97,7 @@ def create(ctx, path, module, summary, description, bug, group='NaN'):
     draft.update(
         summary=summary.encode('utf-8'),
         description=review_description.encode('utf-8'),
+        description_text_type='markdown',
         bugs_closed=bug,
         )
     user = root.get_session().get_user()
