@@ -228,15 +228,6 @@ def upload_review(ctx, work, path, branch='default', module=None):
     else:
         component, = components
 
-    repo = hgapi.Repo(path)
-    url = repo.config('paths', 'default')
-    if url:
-        url_list = url.split('/')
-        owner, repo_name = (url_list[-2], url_list[-1])
-    else:
-        owner = 'nantic'
-        repo_name, = path.split('/')[-1:]
-
     review = reviewboard.create(ctx, path, module, work.rec_name,
             (work.problem or work.rec_name) + '\n' + (work.solution or ''), work.code)
 
@@ -254,10 +245,7 @@ def upload_review(ctx, work, path, branch='default', module=None):
     review.name = "[{module}]-{task_name}".format(
             module=module, task_name=work.rec_name.encode('utf-8'))
     review.review_id = str(review_id)
-    review.url = ('http://reviews.nan-tic.com/r/{id}').format(
-            owner=owner,
-            repo=repo_name,
-            id=review_id)
+    review.url = ('http://reviews.nan-tic.com/r/{id}').format(id=review_id)
 
     review.work = work
     review.branch = branch
