@@ -3,7 +3,7 @@ blessings
 coverage
 GitPython>=0.3.2.RC1
 hgapi
-invoke==0.12.2
+invoke
 git+https://github.com/jaraco/path.git@10.6
 pyactiveresource
 psutil

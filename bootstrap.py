@@ -214,16 +214,16 @@ def bootstrap(context, branch, projectpath='', projectname='',
     Config.get_utils = True
     Config.requirements = True  # Install?
 
-    get_tasks(taskspath)
-    get_config(configpath, branch=branch)
-    get_utils(utilspath)
-    activate_virtualenv(projectname)
-    install_requirements(upgrade=upgradereqs)
+    get_tasks(context, taskspath)
+    get_config(context, configpath, branch=branch)
+    get_utils(context, utilspath)
+    activate_virtualenv(context, projectname)
+    install_requirements(context, upgrade=upgradereqs)
 
-    clone('config/base.cfg')
-    fetch()
+    clone(context, 'config/base.cfg')
+    fetch(context)
 
-    create_symlinks()
+    create_symlinks(context)
 
     if Path.getcwd() != INITIAL_PATH:
         os.chdir(INITIAL_PATH)
