@@ -52,7 +52,7 @@ def pop(context, force=False):
     _pop(force)
 
 
-def _push(context, force=False, quiet=True):
+def _push(force=False, quiet=True):
     push = Push(os.getcwd(), pc_dir, patches_dir)
     try:
         push.apply_all(force, quiet)

@@ -1106,10 +1106,10 @@ def fetch(context):
     patches._pop()
 
     print t.bold('Pulling...')
-    pull(update=True, ignore_missing=True, no_quilt=True)
+    pull(context, update=True, ignore_missing=True, no_quilt=True)
 
     print t.bold('Cloning...')
-    clone()
+    clone(context)
 
     patches._push()
 
