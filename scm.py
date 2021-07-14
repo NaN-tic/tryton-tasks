@@ -627,6 +627,12 @@ def branch(ctx, branch, clean=False, config=None, unstable=True):
     print(t.bold('Applying patches...'))
     patches._push()
 
+@task()
+def switch_branch(ctx, branch):
+    repo = git.Repo('x')
+    repo.git.checkout(branch)
+
+
 
 def hg_missing_branch(module, path, branch_name, closed=True):
     path_repo = os.path.join(path, module)
