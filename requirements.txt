@@ -33,5 +33,7 @@ python-dateutil
 polib
 psycopg2-binary>=2.5.0
 python-sql>=0.8
+# TODO: use standard cachelib releases once the bug in 0.2.0 is fixed.
+git+https://github.com/pallets/cachelib#egg=cachelib
 werkzeug==1.0.1
 wrapt
