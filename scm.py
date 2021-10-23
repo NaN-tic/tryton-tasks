@@ -17,7 +17,7 @@ from .utils import t, read_config_file, execBashCommand
 MAX_PROCESSES = 25
 
 DEFAULT_BRANCH = {
-    'git': 'master',
+    'git': 'main',
     'hg': 'default'
     }
 
@@ -100,7 +100,7 @@ def check_revision(client, module, revision, branch):
     return 0
 
 
-def git_clone(url, path, branch="master", revision="master"):
+def git_clone(url, path, branch="main", revision="main"):
     git.Repo.clone_from(url, path, branch=branch)
     print("Repo " + t.bold(path) + t.green(" Cloned"))
     return 0
