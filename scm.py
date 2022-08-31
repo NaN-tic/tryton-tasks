@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from invoke import Collection, task, run
-from datetime import date
 import hgapi
 import git
 import os
@@ -8,7 +7,6 @@ import sys
 from blessings import Terminal
 from multiprocessing import Process
 from multiprocessing import Pool
-from path import Path
 import shutil
 import configparser
 from . import patches
@@ -55,25 +53,6 @@ def get_repo(section, config, function=None, development=False):
     if function and not (function == 'update' and repository['type'] == 'git'):
         repository['function'] = eval("%s_%s" % (repository['type'], function))
     return repository
-
-
-@task()
-def close_branch(ctx, directory, branch):
-    """ Close branch for all modules """
-
-    for module_path in Path(directory).dirs():
-        repo = hgapi.Repo(module_path)
-
-        branches = []
-        try:
-            branches = [x['name'] for x in repo.get_branches() if x]
-        except:
-            continue
-
-        if branch in branches:
-            print(module_path)
-            repo.hg_update(branch, True)
-            repo.hg_commit('close branch', close_branch=True)
 
 
 def wait_processes(processes, maximum=MAX_PROCESSES, exit_code=None):
@@ -375,58 +354,6 @@ def diff(ctx, config=None):
     patches._push()
 
 
-def hg_outgoing(module, path, verbose):
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print(t.red("Missing repositori: ") + t.bold(path_repo),
-            file=sys.stderr)
-        return
-    repo = hgapi.Repo(path_repo)
-    cmd = ['outgoing']
-    if verbose:
-        cmd.append('-v')
-
-    try:
-        out = repo.hg_command(*cmd)
-    except hgapi.HgException as e:
-        if 'no changes found' in str(e):
-            return
-        print(t.bold_red('[' + module + ']'))
-        print("Error running %s (%s): %s" % (t.bold(*cmd), e.exit_code, str(e)))
-        return
-    if out:
-        print(t.bold("= " + module + " ="))
-        print(out)
-
-def git_outgoing(module, path, verbose):
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print(t.red("Missing repositori: ") + t.bold(path_repo),
-            file=sys.stderr)
-        return
-    repo = git.Repo(path)
-    cmd = ['--pretty=oneline','--abbrev-commit','--graph','@{u}..']
-    if verbose:
-        cmd += ['-p']
-    out = repo.git.log(*cmd)
-    if out:
-        print(t.bold("= " + module + " ="))
-        print(out)
-
-def _outgoing(repo):
-    return repo['function'](repo['name'], repo['path'], repo['verbose'])
-
-@task()
-def outgoing(ctx, config=None, unstable=True, verbose=False):
-    Config = read_config_file(config, unstable=unstable)
-    p = Pool(MAX_PROCESSES)
-    repos = []
-    for section in Config.sections():
-        repo = get_repo(section, Config, 'outgoing')
-        repo['verbose'] = verbose
-        repos.append(repo)
-    p.map(_outgoing, repos)
-
 def git_pull(module, path, update=False, clean=False, branch=None,
         revision=None, ignore_missing=False):
     """
@@ -579,7 +506,6 @@ def git_branches(module, path, config_branch=None):
     print(msg)
 
 
-
 def _branches(repo):
     return repo['function'](repo['name'], repo['path'], repo['branch'])
 
@@ -631,111 +557,6 @@ def branch(ctx, branch, clean=False, config=None, unstable=True):
 def switch_branch(ctx, branch):
     repo = git.Repo('x')
     repo.git.checkout(branch)
-
-
-
-def hg_missing_branch(module, path, branch_name, closed=True):
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print(t.red("Missing repositori: ") + t.bold(path_repo),
-            file=sys.stderr)
-        return
-
-    cwd = os.getcwd()
-    os.chdir(path_repo)
-    cmd = ['hg', 'branches']
-    if closed:
-        cmd.append('-c')
-    result = run(' '.join(cmd), warn=True, hide='both')
-    if branch_name not in result.stdout:
-        print(t.bold(module) + " misses branch %s" % branch_name)
-    os.chdir(cwd)
-
-
-@task()
-def missing_branch(ctx, branch_name, config=None, unstable=True):
-    '''
-    List all modules doesn't containt a branch named branc_name
-    '''
-    if not branch_name:
-        print(t.red("Missing required branch parameter"), file=sys.stderr)
-        return
-
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'git':
-            continue
-        if repo != 'hg':
-            print("Not developed yet", file=sys.stderr)
-            continue
-        p = Process(target=hg_missing_branch, args=(section, path,
-                branch_name))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-
-
-def hg_create_branch(module, path, branch_name):
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print(t.red("Missing repositori: ") + t.bold(path_repo),
-            file=sys.stderr)
-        return
-
-    cwd = os.getcwd()
-    os.chdir(path_repo)
-
-    cmd = ['hg', 'branches']
-    result = run(' '.join(cmd), warn=True, hide='both')
-    if branch_name not in result.stdout:
-        cmd = ['hg', 'branch', branch_name]
-        result = run(' '.join(cmd), warn=True, hide='both')
-        cmd = ['hg', 'commit', '-m', '"Create branch ' + branch_name + '"']
-        result = run(' '.join(cmd), warn=True, hide='both')
-
-    os.chdir(cwd)
-
-
-@task()
-def create_branch(ctx, branch_name, config=None, unstable=True):
-    '''
-    Create a branch with name branch_name to all the repositories that don't
-    contain a branch with the same name.
-
-    WARNING: This will clear all the uncommited changes in order to not
-    add this changes to the new branch.
-    '''
-    if not branch_name:
-        print(t.red("Missing required branch parameter"), file=sys.stderr)
-        return
-
-    patches._pop()
-    print(t.bold('Cleaning all changes...'))
-    Config = read_config_file(config, unstable=unstable)
-    update(ctx, config, unstable=True, clean=True, no_quilt=True)
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        if repo == 'git':
-            continue
-        if repo != 'hg':
-            print("Not developed yet", file=sys.stderr)
-            continue
-        p = Process(target=hg_create_branch, args=(section, path, branch_name))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-
-    print(t.bold('Applying patches...'))
-    patches._pop()
-
 
 def hg_pull(module, path, update=False, clean=False, branch=None,
         revision=None, ignore_missing=False):
@@ -813,36 +634,6 @@ def hg_commit(module, path, msg):
     print(result.stdout)
     print(result.stderr)
     os.chdir(cwd)
-
-@task()
-def commit(ctx, msg, config=None, unstable=True):
-    '''
-    Pushes all pending commits to the repo url.
-
-    url that start with http are excluded.
-    '''
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    for section in Config.sections():
-        repo = Config.get(section, 'repo')
-        path = Config.get(section, 'path')
-        # Don't push to repos that start with http as we don't have access to
-        url = Config.get(section, 'url')
-        if url[:4] == 'http':
-            continue
-        if repo == 'hg':
-            func = hg_commit
-        elif repo == 'git':
-            continue
-        else:
-            print("Not developed yet", file=sys.stderr)
-            continue
-        p = Process(target=func, args=(section, path, msg))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
 
 
 def hg_push(module, path, url, new_branches=False):
@@ -1037,20 +828,6 @@ def hg_is_last_revision(path, revision):
 
 
 @task()
-def revision(ctx, config=None, unstable=True, verbose=True):
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    for section in Config.sections():
-        repo = get_repo(section, Config, 'revision')
-        p = Process(target=repo['function'], args=(section, repo['path'],
-            verbose))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
-
-
-@task()
 def fetch(ctx):
     patches._pop()
 
@@ -1121,93 +898,16 @@ def module_version(ctx, config=None):
         print(section, version)
 
 
-def increase_module_version(module, path, version):
-    '''
-    Increase version of module
-    Cred: http://hg.tryton.org/tryton-tools/file/5f31cfd7e596/increase_version
-    '''
-    path_repo = os.path.join(path, module)
-    if not os.path.exists(path_repo):
-        print(t.red("Missing repositori: ") + t.bold(path_repo), file=sys.stderr)
-        return
-
-    cfg_file = os.path.join(path_repo, 'tryton.cfg')
-    if not os.path.exists(path_repo):
-        print(t.red("Missing tryton.cfg file: ") + t.bold(
-            cfg_file), file=sys.stderr)
-        return
-
-    def increase(line):
-        if line.startswith('version='):
-            return 'version=%s\n' % version
-        return line
-
-    cwd = os.getcwd()
-    os.chdir(path_repo)
-
-    content = ''
-    filename = 'tryton.cfg'
-    with open(filename) as fp:
-        for line in fp:
-            content += increase(line)
-    with open(filename, 'w') as fp:
-        fp.write(content)
-    today = date.today().strftime('%Y-%m-%d')
-    content = 'Version %s - %s\n' % (version, today)
-    filename = 'CHANGELOG'
-    try:
-        with open(filename) as fp:
-            for line in fp:
-                content += line
-    except IOError:
-        pass
-    with open(filename, 'w') as fp:
-        fp.write(content)
-
-    cmd = ['hg', 'commit', '-m', 'Increase version']
-    run(' '.join(cmd), warn=True, hide='both')
-
-    os.chdir(cwd)
-
-
-@task()
-def increase_version(ctx, version, config=None, unstable=True, clean=False):
-    '''
-    Modifies all tryton.cfg files in order to set version to <version>
-    '''
-    if not version:
-        print(t.red("Missing required version parameter"), file=sys.stderr)
-        return
-    Config = read_config_file(config, unstable=unstable)
-    processes = []
-    p = None
-    for section in Config.sections():
-        path = Config.get(section, 'path')
-        p = Process(target=increase_module_version, args=(section, path,
-                version))
-        p.start()
-        processes.append(p)
-        wait_processes(processes)
-    wait_processes(processes, 0)
-
-
 ScmCollection = Collection()
 ScmCollection.add_task(clone)
 ScmCollection.add_task(status)
 ScmCollection.add_task(diff)
-ScmCollection.add_task(outgoing)
 ScmCollection.add_task(push)
 ScmCollection.add_task(pull)
 ScmCollection.add_task(update)
 ScmCollection.add_task(fetch)
 ScmCollection.add_task(branch)
-ScmCollection.add_task(missing_branch)
-ScmCollection.add_task(create_branch)
 ScmCollection.add_task(module_diff)
-ScmCollection.add_task(increase_version)
-ScmCollection.add_task(revision)
 ScmCollection.add_task(clean)
 ScmCollection.add_task(branches)
-ScmCollection.add_task(close_branch)
 ScmCollection.add_task(module_version)
-ScmCollection.add_task(commit)
