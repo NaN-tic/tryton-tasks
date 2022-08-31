@@ -1,37 +1,11 @@
-cryptography
+invoke>=1.0.0
 blessings
-coverage
+path.py>=10.0
+
 GitPython>=0.3.2.RC1
 hgapi
-invoke>=1.0.0
-path.py>=10.0
-pyactiveresource
-psutil
-RBTools>=1.0.2
-python-quilt
-tabulate
-configobj
-PyHamcrest
-choice
-pyyaml
-requests[security]
-pick
 
-# git
-nose
-mock
-
-# gal
-dateutils
-xmltodict
-
-# trytond
-lxml>=2.0
-relatorio>=0.2.0
-Genshi
-python-dateutil
-polib
 psycopg2-binary>=2.5.0
-python-sql>=0.8
-werkzeug==1.0.1
-wrapt
+
+python-quilt
+pick
