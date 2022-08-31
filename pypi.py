@@ -36,10 +36,7 @@ def dist(pypi, config, unstable=True):
         repo = get_repo(section, Config)
         pypi = repo['pypi'] or 'nantic'
         path = repo['path']
-        run('cd %s; python setup.py sdist upload -r %s' % (path, pypi))
-
-
-
+        run('cd %s;python setup.py bdist_wheel;twine upload dist/*' % (path))
 
 PypiCollection = Collection()
 PypiCollection.add_task(prepare)

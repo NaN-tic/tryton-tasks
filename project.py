@@ -7,7 +7,6 @@ import hgapi
 from invoke import run, task, Collection
 
 from .config import get_config
-from . import reviewboard
 from .scm import hg_pull, hg_clone, _module_version
 from .utils import t
 import logging
@@ -78,27 +77,6 @@ def create_test_task(log_file):
     work.problem = "\n".join(lines)
     work.assigned_employee = employee
     work.save()
-
-
-@task()
-def fetch_review(ctx, work):
-
-    get_tryton_connection()
-    Review = Model.get('project.work.codereview')
-    reviews = Review.find([('work.code', '=', work), ('state', '=', 'opened')])
-    for review in reviews:
-        if review.component:
-            path = os.path.join('modules', review.component.name)
-        else:
-            path = ''
-
-        if not os.path.exists(path):
-            cl = review.url.split('/')[:-2]
-            clone_url = "/".join(cl)
-            hg_clone(clone_url, path, review.branch)
-
-        hg_pull(review.component.name, path, update=True,
-                branch=review.branch)
 
 
 def get_request_info(url):
@@ -172,101 +150,7 @@ def decline_review(ctx, work, review_id=None, message=None):
                 review.state = 'closed'
                 review.save()
 
-
-@task()
-def merge_review(ctx, work, review_id=None, message=None):
-    get_tryton_connection()
-    Review = Model.get('project.work.codereview')
-    Task = Model.get('project.work')
-
-    tasks = Task.find([('code', '=', work)])
-    if not tasks:
-        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
-        sys.exit(1)
-
-    w = tasks[0]
-    reviews = Review.find([('work', '=', w.id), ('state', '=', 'opened')])
-
-    for review in reviews:
-        if review_id and str(review.id) != review_id:
-            print(review_id, review.id)
-            continue
-
-        show_review(review)
-
-        if not review_id:
-            continue
-
-        confirm = choice.Binary('Are you sure you want to merge?', False).ask()
-        if confirm:
-            owner, repo, request_id = get_request_info(review.url)
-            res = pullrequests.merge(owner, repo, request_id, message)
-            if res and res['state'] == 'MERGED':
-                review.state = 'closed'
-                review.save()
-
-
-@task()
-def upload_review(ctx, work, path, branch='default', module=None):
-    get_tryton_connection()
-    Review = Model.get('project.work.codereview')
-    Task = Model.get('project.work')
-    Component = Model.get('project.work.component')
-
-    tasks = Task.find([('code', '=', work)])
-    if not tasks:
-        print(t.red('Error: Task %s was not found.' % work), file=sys.stderr)
-        sys.exit(1)
-    work = tasks[0]
-
-    if not module:
-        module = os.path.realpath(path).split('/')[-1]
-    components = Component.find([('name', '=', module)], limit=1)
-    if not components:
-        component = Component(name=module)
-        component.save()
-    else:
-        component, = components
-
-    description = []
-    description.append('**MODULE:** %s' % module)
-    if work.problem:
-        description.append('\n**PROLEM:**\n')
-        description.append(work.problem)
-    if work.solution:
-        description.append('\n**SOLUTION:**\n')
-        description.append(work.solution)
-    description = '\n'.join(description)
-
-    review = reviewboard.create(ctx, path, module, work.rec_name,
-            description, work.code)
-
-    review_id = review
-
-    review = Review.find([
-            ('review_id', '=', str(review_id)),
-            ('work', '=', work.id),
-            ])
-    if not review:
-        review = Review()
-    else:
-        review = review[0]
-
-    review.name = "[{module}]-{task_name}".format(
-            module=module, task_name=work.rec_name.encode('utf-8'))
-    review.review_id = str(review_id)
-    review.url = ('http://reviews.nan-tic.com/r/{id}').format(id=review_id)
-
-    review.work = work
-    review.branch = branch
-    review.component = component
-    review.save()
-
-
 ProjectCollection = Collection()
 ProjectCollection.add_task(ct)
 ProjectCollection.add_task(components)
 ProjectCollection.add_task(check_migration)
-ProjectCollection.add_task(upload_review)
-# ProjectCollection.add_task(merge_review)
-# ProjectCollection.add_task(fetch_review)
