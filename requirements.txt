@@ -2,10 +2,18 @@ invoke>=1.0.0
 blessings
 path.py>=10.0
 
+# scm
 GitPython>=0.3.2.RC1
 hgapi
 
+# tryton
+python-sql>=0.8
+
+# utils / tryton
 psycopg2-binary>=2.5.0
 
+# patches
 python-quilt
+
+# config
 pick
