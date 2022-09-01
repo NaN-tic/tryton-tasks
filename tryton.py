@@ -5,20 +5,18 @@ import psycopg2
 import sys
 import socket
 import getpass
-from invoke import task, run, Collection
-import configparser
+from invoke import task, Collection
 
 from .iban import create_iban, IBANError
-from .utils import (t, read_config_file, remove_dir, NO_MODULE_REPOS,
-    BASE_MODULES)
+from .utils import t
 from functools import reduce
 
 try:
     from trytond.pool import Pool
     from trytond.transaction import Transaction
     from trytond.modules import Graph, Node, get_module_info
-except ImportError as e:
-    print("trytond importation error: ", e, file=sys.stderr)
+except ImportError:
+    print("trytond importation error: ", file=sys.stderr)
 
 try:
     from proteus import config as pconfig, Wizard, Model,  __version__ as proteus_version
@@ -147,166 +145,6 @@ def update_post_move_sequence(ctx, database, fiscalyear, sequence,
     db.commit()
     db.close()
 
-
-@task()
-def missing(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
-        install=False, show=True):
-    """
-    Checks which modules are missing according to the dependencies of the
-    modules installed in the database.
-    """
-    set_context(database, config_file)
-    cursor = Transaction().connection.cursor()
-    cursor.execute(*ir_module.select(ir_module.name,
-                        where=ir_module.state.in_(('installed', 'to install',
-                                'to upgrade', 'to remove'))))
-    module_list = set([name for (name,) in cursor.fetchall()])
-    miss = set()
-
-    modules_iteration = 0
-    while len(module_list) != modules_iteration:
-        modules_iteration = len(module_list)
-        _, _, _, missing = create_graph(module_list)
-        miss |= missing
-        module_list.update(miss)
-
-    miss = " ".join(miss)
-    if show:
-        print("Missing dependencies: %s " % miss)
-        print("Press Key to continue...")
-        sys.stdin.read(1)
-
-    if install:
-        configfile = config_file and "-c %s" % config_file or ""
-        run('trytond/bin/trytond -d %s %s -u %s'
-            % (database, configfile, miss))
-
-    return miss
-
-
-@task(help={
-        'uninstall': 'Uninstall installed forgotten and lost modules.',
-        'delete': 'Delete forgotten and lost modules form ir_module_module '
-            'table of database (except installed modules if "uninstall" param '
-            'is not set).',
-        'remove': 'Remove directory of forgotten modules (except installed '
-            'modules if "uninstall" param is not set).'
-        })
-def forgotten(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
-        uninstall=False, delete=False, remove=False, show=True, unstable=True):
-    """
-    Return a list of modules that exists in the DB but not in *.cfg files.
-    If some of these modules don't exists in filesystem (lost modules), they
-    are specifically listed.
-    """
-    with set_context(database, config_file):
-        cursor = Transaction().connection.cursor()
-        cursor.execute(*ir_module.select(ir_module.name, ir_module.state))
-        db_module_list = [(r[0], r[1]) for r in cursor.fetchall()]
-
-    config = read_config_file(unstable=unstable)
-    configs_module_list = [section for section in config.sections()
-        if section not in NO_MODULE_REPOS]
-
-    forgotten_uninstalled = []
-    forgotten_installed = []
-    lost_uninstalled = []
-    lost_installed = []
-    for module, state in db_module_list:
-        if module not in BASE_MODULES and module not in configs_module_list:
-            try:
-                get_module_info(module)
-            except IOError:
-                if state in ('installed', 'to install', 'to upgrade'):
-                    lost_installed.append(module)
-                else:
-                    lost_uninstalled.append(module)
-                continue
-
-            if state in ('installed', 'to install', 'to upgrade'):
-                forgotten_installed.append(module)
-            else:
-                forgotten_uninstalled.append(module)
-
-    if show:
-        if forgotten_uninstalled:
-            print(t.bold("Forgotten modules (in DB but not in config files):"))
-            print("  - " + "\n  - ".join(forgotten_uninstalled))
-            print("")
-        if forgotten_installed:
-            print(t.red("Forgotten installed modules (in DB but not in config "
-                "files):"))
-            print("  - " + "\n  - ".join(forgotten_installed))
-            print("")
-        if lost_uninstalled:
-            print(t.bold("Lost modules (in DB but no in filesystem):"))
-            print("  - " + "\n  - ".join(lost_uninstalled))
-            print("")
-        if lost_installed:
-            print(t.red("Lost installed modules (in DB but no in filesystem):"))
-            print("  - " + "\n  - ".join(lost_installed))
-            print("")
-
-    to_uninstall = forgotten_installed + lost_installed
-    to_delete = forgotten_uninstalled + lost_uninstalled
-    to_remove = forgotten_uninstalled if remove else []
-    if uninstall and to_uninstall:
-        if lost_installed:
-            to_remove += create_fake_modules(lost_installed)
-        uninstall_task(database, modules=to_uninstall)
-        to_delete += forgotten_installed + lost_installed
-        if remove:
-            to_remove += forgotten_installed
-
-    if delete and to_delete:
-        delete_modules(database, to_delete, config_file=config_file)
-
-    if to_remove:
-        for module in to_remove:
-            path = os.path.join('./modules', module)
-            remove_dir(path, quiet=True)
-
-    return (forgotten_uninstalled, forgotten_installed, lost_uninstalled,
-        lost_installed)
-
-
-@task(help={'modules': 'module names separated by coma.'})
-def create_fake_modules(ctx, modules):
-    """
-    Create fake (empty) modules to allow to uninstall them.
-    """
-    if not modules:
-        return
-
-    if isinstance(modules, str):
-        modules = modules.split(',')
-
-    trytoncfg_content = [
-        "[tryton]",
-        "version=3.2.0",
-        "depends:",
-        "    ir",
-        "    res",
-        "xml:",
-        ]
-
-    print(t.bold("Creating fake modules: ") + ", ".join(modules))
-    created = []
-    for module in modules:
-        module_path = os.path.join('./modules', module)
-        if os.path.exists(module_path):
-            print(("  - Module '%s' not created because already exists in "
-                "filesystem" % module_path))
-            continue
-        run('mkdir %s' % module_path)
-        run('echo "%s" > %s/tryton.cfg'
-            % ("\n".join(trytoncfg_content), module_path))
-        run('touch %s/__init__.py' % module_path)
-        print("  - Module '%s' created" % module_path)
-        created.append(module)
-    return created
-
-
 @task(help={'modules': 'module names separated by coma'})
 def uninstall_task(ctx, database, modules,
         config_file=os.environ.get('TRYTOND_CONFIG')):
@@ -334,9 +172,9 @@ def uninstall_task(ctx, database, modules,
 
     modules_to_uninstall = Module.find([
             ('name', 'in', modules),
-            ('state', '=', 'installed')
+            ('state', '=', 'activated')
             ])
-    Module.uninstall([m.id for m in modules_to_uninstall],
+    Module.deactivate([m.id for m in modules_to_uninstall],
         config.context)
 
     if proteus_version < '3.5':
@@ -365,7 +203,7 @@ def delete_modules(ctx, database, modules,
     set_context(database, config_file)
     cursor = Transaction().connection.cursor()
     cursor.execute(*ir_module.select(ir_module.name,
-                        where=(ir_module.state.in_(('installed', 'to install',
+                        where=(ir_module.state.in_(('activated', 'to activate',
                                 'to upgrade', 'to remove')) &
                             ir_module.name.in_(tuple(modules)))))
     installed_modules = [name for (name,) in cursor.fetchall()]
@@ -380,7 +218,6 @@ def delete_modules(ctx, database, modules,
 
     cursor.execute(*ir_module.delete(where=ir_module.name.in_(tuple(modules))))
     Transaction().commit()
-
 
 @task()
 def convert_bank_accounts_to_iban(ctx, database,
@@ -528,49 +365,10 @@ def adduser(ctx, dbname, user, conf_file=None):
         Transaction().commit()
         print(t.green("You could login with '%s' at '%s'" % (u.login, dbname)))
 
-
-
-@task()
-def installed_module_version(ctx, database, config_file=os.environ.get('TRYTOND_CONFIG'),
-        config=None):
-    '''
-    Check version of installed module
-    '''
-
-    set_context(database, config_file)
-    cursor = Transaction().connection.cursor()
-    cursor.execute(*ir_module.select(ir_module.name,
-        where=ir_module.state.in_(('installed',))))
-    module_list = set([name for (name,) in cursor.fetchall()])
-
-    config = read_config_file(config)
-
-    for module in module_list:
-        if not config.has_section(module):
-            print(t.red("Missing Module on filesystem:") + t.bold(
-                module), file=sys.stderr)
-            continue
-
-        path = config.get(module, 'path')
-        cfg_file = os.path.join(path, module,  'tryton.cfg')
-        if not os.path.exists(cfg_file):
-            print(t.red("Missing tryton.cfg file:") + t.bold(
-                cfg_file), file=sys.stderr)
-            continue
-        Config = configparser.ConfigParser()
-        Config.readfp(open(cfg_file))
-        version = Config.get('tryton', 'version')
-        print(module, version)
-
-
 TrytonCollection = Collection()
 TrytonCollection.add_task(delete_modules)
 TrytonCollection.add_task(uninstall_task, 'uninstall')
-TrytonCollection.add_task(create_fake_modules)
-TrytonCollection.add_task(forgotten)
-TrytonCollection.add_task(missing)
-TrytonCollection.add_task(update_post_move_sequence)
-TrytonCollection.add_task(convert_bank_accounts_to_iban)
-TrytonCollection.add_task(automatic_reconciliation)
 TrytonCollection.add_task(adduser)
-TrytonCollection.add_task(installed_module_version)
+TrytonCollection.add_task(automatic_reconciliation)
+TrytonCollection.add_task(convert_bank_accounts_to_iban)
+TrytonCollection.add_task(update_post_move_sequence)
