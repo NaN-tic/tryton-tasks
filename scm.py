@@ -4,6 +4,7 @@ import hgapi
 import git
 import os
 import sys
+import time
 from blessings import Terminal
 from multiprocessing import Process
 from multiprocessing import Pool
@@ -88,6 +89,8 @@ def git_clone(url, path, branch="main", revision="main"):
             break
         except git.exc.GitCommandError:
             if retries:
+                # Wait 10 or 20 seconds if it failed
+                time.sleep(10 * (2-retries))
                 continue
             raise
     print("Repo " + t.bold(path) + t.green(" Cloned"))
