@@ -80,7 +80,16 @@ def check_revision(client, module, revision, branch):
 
 
 def git_clone(url, path, branch="main", revision="main"):
-    git.Repo.clone_from(url, path, branch=branch)
+    retries = 2
+    while retries:
+        retries -= 1
+        try:
+            git.Repo.clone_from(url, path, branch=branch)
+            break
+        except git.exc.GitCommandError:
+            if retries:
+                continue
+            raise
     print("Repo " + t.bold(path) + t.green(" Cloned"))
     return 0
 
