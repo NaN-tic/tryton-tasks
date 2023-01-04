@@ -163,6 +163,13 @@ def update_symlinks():
             continue
         os.symlink('../../../modules/' + module, module_path)
 
+    if not os.path.exists('trytond'):
+        os.symlink('tryton/trytond', 'trytond')
+
+    if not os.path.exists('modules'):
+        os.symlink('tryton/trytond/trytond/modules', 'modules')
+
+
 def print_status(module, files):
     status_key_map = {
         'A': 'Added',
