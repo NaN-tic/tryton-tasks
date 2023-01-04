@@ -148,8 +148,20 @@ def clone(ctx, config=None, unstable=True, development=False):
     exit_code = sum(exit_codes, 0)
     if exit_code < 0:
         print(t.bold_red('Clone Task finished with errors!'))
+    update_symlinks()
     return exit_code
 
+def update_symlinks():
+    """
+    Create a symbolic in tryton/trytond/trytond/modules for each file in
+    tryton/modules
+    """
+    modules_path = 'tryton/trytond/trytond/modules'
+    for module in os.listdir('tryton/modules'):
+        module_path = os.path.join(modules_path, module)
+        if os.path.exists(module_path):
+            continue
+        os.symlink('../../../modules/' + module, module_path)
 
 def print_status(module, files):
     status_key_map = {

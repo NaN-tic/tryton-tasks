@@ -3,7 +3,7 @@ import os
 from invoke import task, Collection
 from blessings import Terminal
 
-SAO_DIR = './sao'
+SAO_DIR = './tryton/sao'
 
 t = Terminal()
 
