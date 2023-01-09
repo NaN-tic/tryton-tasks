@@ -178,6 +178,9 @@ def create_symlinks():
     if not os.path.exists('trytond'):
         os.symlink('tryton/trytond', 'trytond')
 
+    if not os.path.exists('proteus'):
+        os.symlink('tryton/proteus', 'proteus')
+
     if not os.path.exists('modules'):
         os.symlink('tryton/trytond/trytond/modules', 'modules')
 
