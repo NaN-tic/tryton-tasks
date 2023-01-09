@@ -136,6 +136,7 @@ def clone(ctx, config=None, unstable=True, development=False):
     # Updates config repo to get new repos in config files
     git_pull('config', 'config', True)
 
+    remove_symlinks()
     Config = read_config_file(config, unstable=unstable)
     p = Pool(MAX_PROCESSES)
     repos = []
@@ -148,10 +149,19 @@ def clone(ctx, config=None, unstable=True, development=False):
     exit_code = sum(exit_codes, 0)
     if exit_code < 0:
         print(t.bold_red('Clone Task finished with errors!'))
-    update_symlinks()
+    create_symlinks()
     return exit_code
 
-def update_symlinks():
+def remove_symlinks():
+    """
+    Remove all symlinks found in tryton/trytond/trytond/modules
+    """
+    modules_path = 'tryton/trytond/trytond/modules'
+    for module in os.listdir(modules_path):
+        if os.path.islink(os.path.join(modules_path, module)):
+            os.remove(os.path.join(modules_path, module))
+
+def create_symlinks():
     """
     Create a symbolic in tryton/trytond/trytond/modules for each file in
     tryton/modules
