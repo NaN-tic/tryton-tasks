@@ -157,6 +157,8 @@ def remove_symlinks():
     Remove all symlinks found in tryton/trytond/trytond/modules
     """
     modules_path = 'tryton/trytond/trytond/modules'
+    if not os.path.exists(modules_path):
+        return
     for module in os.listdir(modules_path):
         if os.path.islink(os.path.join(modules_path, module)):
             os.remove(os.path.join(modules_path, module))
