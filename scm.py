@@ -175,6 +175,9 @@ def create_symlinks():
             continue
         os.symlink('../../../modules/' + module, module_path)
 
+    if not os.path.exists('sao'):
+        os.symlink('tryton/sao', 'sao')
+
     if not os.path.exists('trytond'):
         os.symlink('tryton/trytond', 'trytond')
 
