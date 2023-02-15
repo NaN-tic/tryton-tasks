@@ -37,7 +37,6 @@ def get_url(url):
     return url
 
 def get_repo(section, config, function=None, development=False):
-    print('Working on %s' % section)
     repository = {}
     repository['name'] = section
     repository['type'] = config.get(section, 'repo')
@@ -86,9 +85,11 @@ def git_clone(url, path, branch="main", revision="main"):
     while retries:
         retries -= 1
         try:
+            print('Cloning %s...' % path)
             git.Repo.clone_from(url, path, branch=branch)
             break
         except git.exc.GitCommandError:
+            print('Clone of %s failed (%s retries left)' % (path, retries))
             if retries:
                 # Wait 10 or 20 seconds if it failed
                 time.sleep(10 * (2-retries))
