@@ -37,6 +37,7 @@ def get_url(url):
     return url
 
 def get_repo(section, config, function=None, development=False):
+    print('Working on %s' % section)
     repository = {}
     repository['name'] = section
     repository['type'] = config.get(section, 'repo')
@@ -408,6 +409,7 @@ def git_pull(module, path, update=False, clean=False, branch=None,
     """
     Params update, clean, branch and revision are not used.
     """
+    print(t.bold('Pulling %s' % module))
     path_repo = os.path.join(path)
     if not os.path.exists(path_repo):
         if ignore_missing:
