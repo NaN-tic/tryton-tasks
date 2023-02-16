@@ -13,7 +13,7 @@ import configparser
 from . import patches
 from .utils import t, read_config_file, execBashCommand
 
-MAX_PROCESSES = 25
+MAX_PROCESSES = 5
 
 DEFAULT_BRANCH = {
     'git': 'main',
