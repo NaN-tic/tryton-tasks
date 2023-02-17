@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 from invoke import Collection, task, run, exceptions
 import hgapi
 import git
@@ -88,8 +89,8 @@ def git_clone(url, path, branch="main", revision="main"):
             print('Cloning %s...' % path)
             run('git clone -v -b %s %s %s' % (branch, url, path), timeout=600)
             break
-        except exceptions.CommandTimedOut:
-            print('Clone of %s failed (%s retries left)' % (path, retries))
+        except (exceptions.CommandTimedOut, subprocess.ProcessLookupError) as e:
+            print('Clone of %s failed with %s (%s retries left)' % (path, repr(e), str(retries))
             if retries:
                 # Wait 10 or 20 seconds if it failed
                 time.sleep(10 * (2-retries))
