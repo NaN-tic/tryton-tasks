@@ -140,15 +140,17 @@ def clone(ctx, config=None, unstable=True, development=False):
 
     remove_symlinks()
     Config = read_config_file(config, unstable=unstable)
-    p = Pool(MAX_PROCESSES)
+    #p = Pool(MAX_PROCESSES)
     repos = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'clone', development)
         if not os.path.exists(repo['path']):
             repo = get_repo(section, Config, 'clone', development)
             repos.append(repo)
-    exit_codes = p.map(_clone, repos)
-    exit_code = sum(exit_codes, 0)
+    for repo in repos:
+        _clone(repo)
+    #exit_codes = p.map(_clone, repos)
+    #exit_code = sum(exit_codes, 0)
     if exit_code < 0:
         print(t.bold_red('Clone Task finished with errors!'))
     create_symlinks()
