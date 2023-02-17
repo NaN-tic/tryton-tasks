@@ -72,6 +72,9 @@ class Runner:
                 self.call()
                 elapsed = time.time() - self.start
                 if self.timeout and elapsed > self.timeout:
+                    if self.log:
+                        print('Killing process due to timeout')
+                    proc.kill()
                     raise subprocess.TimeoutExpired(cmd=cmd, timeout=self.timeout,
                        output=self.stdout, stderr=self.stderr)
 
@@ -105,8 +108,6 @@ if __name__ == '__main__':
         print(stdout)
         print(stderr)
 
-    #echo = 'echo "1\\n2\\n3\\n4\\n5\\n6\\n7\\n8\\n9\\n" 1>&2'
-    #sleep = 'sleep 3'
-    #execute(' && '.join([echo, sleep, echo, sleep, echo, sleep, echo, echo]), callback=callback, timeout=2, log=True)
-
-    execute('git clone git@github.com:nan-tic/trytond-product_brand', log=True)
+    echo = 'echo "1\\n2\\n3\\n4\\n5\\n6\\n7\\n8\\n9\\n" 1>&2'
+    sleep = 'sleep 3'
+    execute(' && '.join([echo, sleep, echo, sleep, echo, sleep, echo, echo]), callback=callback, timeout=2, log=True)
