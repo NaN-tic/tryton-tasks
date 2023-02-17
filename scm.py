@@ -86,7 +86,7 @@ def git_clone(url, path, branch="main", revision="main"):
         retries -= 1
         try:
             print('Cloning %s...' % path)
-            run('git clone -v -b %s %s %s' % (branch, url, path), timeout=120)
+            run('git clone -v -b %s %s %s' % (branch, url, path), timeout=600)
             break
         except exceptions.CommandTimedOut:
             print('Clone of %s failed (%s retries left)' % (path, retries))
