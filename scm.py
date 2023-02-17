@@ -87,7 +87,7 @@ def git_clone(url, path, branch="main", revision="main"):
         retries -= 1
         try:
             print('Cloning %s...' % path)
-            execute('git clone -vv --progress -b %s %s %s' % (branch, url, path), timeout=600,
+            execute('git clone -v -b %s %s %s' % (branch, url, path), timeout=600,
                 log=True)
             break
         except subprocess.TimeoutExpired as e:
