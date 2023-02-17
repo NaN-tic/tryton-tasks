@@ -90,7 +90,7 @@ def git_clone(url, path, branch="main", revision="main"):
             run('git clone -v -b %s %s %s' % (branch, url, path), timeout=600)
             break
         except (exceptions.CommandTimedOut, subprocess.ProcessLookupError) as e:
-            print('Clone of %s failed with %s (%s retries left)' % (path, repr(e), str(retries))
+            print('Clone of %s failed with %s (%s retries left)' % (path, repr(e), str(retries)))
             if retries:
                 # Wait 10 or 20 seconds if it failed
                 time.sleep(10 * (2-retries))
