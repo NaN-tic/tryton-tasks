@@ -15,7 +15,7 @@ from . import patches
 from .utils import t, read_config_file, execBashCommand
 from .runner import execute
 
-MAX_PROCESSES = 5
+MAX_PROCESSES = 25
 
 DEFAULT_BRANCH = {
     'git': 'main',
@@ -150,12 +150,10 @@ def clone(ctx, config=None, unstable=True, development=False):
         if not os.path.exists(repo['path']):
             repo = get_repo(section, Config, 'clone', development)
             repos.append(repo)
-    for repo in repos:
-        _clone(repo)
-    #exit_codes = p.map(_clone, repos)
-    #exit_code = sum(exit_codes, 0)
-    #if exit_code < 0:
-    #    print(t.bold_red('Clone Task finished with errors!'))
+    exit_codes = p.map(_clone, repos)
+    exit_code = sum(exit_codes, 0)
+    if exit_code < 0:
+        print(t.bold_red('Clone Task finished with errors!'))
     create_symlinks()
     return 0
 
