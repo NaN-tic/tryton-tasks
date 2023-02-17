@@ -151,10 +151,10 @@ def clone(ctx, config=None, unstable=True, development=False):
         _clone(repo)
     #exit_codes = p.map(_clone, repos)
     #exit_code = sum(exit_codes, 0)
-    if exit_code < 0:
-        print(t.bold_red('Clone Task finished with errors!'))
+    #if exit_code < 0:
+    #    print(t.bold_red('Clone Task finished with errors!'))
     create_symlinks()
-    return exit_code
+    return 0
 
 def remove_symlinks():
     """
