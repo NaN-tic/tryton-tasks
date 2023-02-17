@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 from invoke import Collection, task, run
 import hgapi
 import git
