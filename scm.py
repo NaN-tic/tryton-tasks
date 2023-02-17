@@ -12,6 +12,7 @@ import shutil
 import configparser
 from . import patches
 from .utils import t, read_config_file, execBashCommand
+from .runner import execute
 
 MAX_PROCESSES = 5
 
@@ -86,9 +87,10 @@ def git_clone(url, path, branch="main", revision="main"):
         retries -= 1
         try:
             print('Cloning %s...' % path)
-            run('git clone -v -b %s %s %s' % (branch, url, path), timeout=600)
+            execute('git clone -vv --progress -b %s %s %s' % (branch, url, path), timeout=600,
+                log=True)
             break
-        except Exception as e:
+        except subprocess.TimeoutExpired as e:
             print('Clone of %s failed with %s (%s retries left)' % (path, repr(e), str(retries)))
             if retries:
                 # Wait 10 or 20 seconds if it failed
