@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from invoke import Collection, task, run
+from invoke import Collection, task, run, exceptions
 import hgapi
 import git
 import os
@@ -86,9 +86,9 @@ def git_clone(url, path, branch="main", revision="main"):
         retries -= 1
         try:
             print('Cloning %s...' % path)
-            git.Repo.clone_from(url, path, branch=branch)
+            run('git clone -v -b %s %s %s' % (branch, url, path), timeout=120)
             break
-        except git.exc.GitCommandError:
+        except exceptions.CommandTimedOut:
             print('Clone of %s failed (%s retries left)' % (path, retries))
             if retries:
                 # Wait 10 or 20 seconds if it failed
