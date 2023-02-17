@@ -143,7 +143,7 @@ def clone(ctx, config=None, unstable=True, development=False):
 
     remove_symlinks()
     Config = read_config_file(config, unstable=unstable)
-    #p = Pool(MAX_PROCESSES)
+    p = Pool(MAX_PROCESSES)
     repos = []
     for section in Config.sections():
         repo = get_repo(section, Config, 'clone', development)
