@@ -46,21 +46,19 @@ class Runner:
     def collect_all(self):
         elapsed = time.time() - self.start
         elapsed = ('%.3f' % elapsed).rjust(8) + 's '
-        logs = []
-        for line in self.proc.stdout.readlines():
-            logs.append(elapsed + line)
-        # Last line is always empty
-        logs.pop()
+        logs = self.proc.stdout.readlines()
+        if logs and not logs[-1]:
+            # Last line is always empty
+            logs.pop()
         for log in logs:
-            self.append_stdout(log)
+            self.append_stdout(elapsed + log)
 
-        logs = []
-        for line in self.proc.stderr.readlines():
-            log.append(elapsed + line)
-        # Last line is always empty
-        logs.pop()
+        logs = self.proc.stderr.readlines()
+        if logs and not logs[-1]:
+            # Last line is always empty
+            logs.pop()
         for log in logs:
-            self.append_stderr(log)
+            self.append_stderr(elapsed + log)
 
     def run(self, cmd):
         if self.log:
